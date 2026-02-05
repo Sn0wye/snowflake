@@ -1,4 +1,4 @@
-# Coinly
+# Snowflake
 
 This repository serves as a learning project to create and deploy multiple microservices using different technologies and languages, with a focus on enabling communication between them.
 
