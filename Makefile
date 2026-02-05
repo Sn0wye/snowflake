@@ -19,4 +19,6 @@ start: check-docker check-dotnet
 
 # --- OpenAPI merge related ---
 openapi: check-node
-	npx openapi-merge-cli
+	@mkdir -p docs
+	npx openapi-merge-cli --config docs/openapi-merge.json
+	@echo "✓ OpenAPI documentation generated at docs/openapi.json"

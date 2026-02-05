@@ -1,0 +1,14 @@
+{
+  "inputs": [
+    {
+      "inputFile": "../carbon/openapi.json"
+    },
+    {
+      "inputFile": "../oxygen/openapi.json"
+    },
+    {
+      "inputFile": "../helium/openapi.json"
+    }
+  ],
+  "output": "./openapi.json"
+}
