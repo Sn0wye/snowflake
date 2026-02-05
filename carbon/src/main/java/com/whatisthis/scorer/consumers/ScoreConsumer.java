@@ -26,14 +26,14 @@ public class ScoreConsumer {
     @RabbitListener(queues = RabbitMQConstants.CALCULATE_SCORE_QUEUE)
     public void consume(String message) {
         try {
-            ScoreEvent scoreEvent = new ScoreEvent(message);
-            System.out.println("Received message: " + scoreEvent);
+            UserCreatedEvent userCreatedEvent = new UserCreatedEvent(message);
+            System.out.println("Received message: " + userCreatedEvent);
 
             Score score = scoreService.calculateScore(
-                    scoreEvent.userId(),
-                    BigDecimal.valueOf(scoreEvent.income()),
-                    BigDecimal.valueOf(scoreEvent.debt()),
-                    BigDecimal.valueOf(scoreEvent.assetsValue())
+                    userCreatedEvent.id(),
+                    BigDecimal.valueOf(userCreatedEvent.annual_income()),
+                    BigDecimal.valueOf(userCreatedEvent.debt()),
+                    BigDecimal.valueOf(userCreatedEvent.assets_value())
             );
 
             broadcastScoreUpdatedEvent(score);

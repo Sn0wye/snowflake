@@ -1,6 +1,6 @@
 package com.whatisthis.scorer.entities;
 
-import com.whatisthis.scorer.consumers.ScoreEvent;
+import com.whatisthis.scorer.consumers.UserCreatedEvent;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -34,11 +34,11 @@ public class Score {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public Score(ScoreEvent scoreEvent) {
-        this.userId = scoreEvent.userId();
-        this.income = BigDecimal.valueOf(scoreEvent.income());
-        this.debt = BigDecimal.valueOf(scoreEvent.debt());
-        this.assetsValue = BigDecimal.valueOf(scoreEvent.assetsValue());
+    public Score(UserCreatedEvent userCreatedEvent) {
+        this.userId = userCreatedEvent.id();
+        this.income = BigDecimal.valueOf(userCreatedEvent.annual_income());
+        this.debt = BigDecimal.valueOf(userCreatedEvent.debt());
+        this.assetsValue = BigDecimal.valueOf(userCreatedEvent.assets_value());
     }
 
     @PrePersist

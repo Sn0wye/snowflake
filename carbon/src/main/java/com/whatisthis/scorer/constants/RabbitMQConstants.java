@@ -8,6 +8,6 @@ public final class RabbitMQConstants {
     }
 
     // Routing keys
-    public static final String CALCULATE_SCORE_QUEUE = "calculate-score";
+    public static final String CALCULATE_SCORE_QUEUE = "user.created";
     public static final String SCORE_UPDATED_QUEUE = "score-updated";
 }
