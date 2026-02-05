@@ -51,6 +51,7 @@ func NewAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingServic
 //	@Failure		500	{object}	exceptions.InternalServerError	"Failed to fetch user"
 //	@Security		Bearer
 //	@Router			/auth/profile [get]
+//	@OperationId	profile
 func (s *authController) Profile(c *fiber.Ctx) error {
 	claims := c.Locals("claims").(*jwt.Claims)
 	user := models.User{}
@@ -77,16 +78,18 @@ func (s *authController) Profile(c *fiber.Ctx) error {
 // Register godoc
 //
 //	@Summary		/auth/register
-//	@Description	Register a new user
-//	@Tags			Auth
+//	@Description	Register a new user.
+//	@Description Emits: `user.created` event upon successful registration.
+//	@Tags			  Auth
 //	@Accept			json
 //	@Produce		json
 //	@Param			body	body		dto.RegisterRequest	true	"Register Request"
-//	@Success		200		{object}	dto.RegisterResponse
+//	@Success		200		{object}	dto.RegisterResponse "RegisterResponse"
 //	@Failure		400		{object}	exceptions.BadRequestError			"Invalid request body"
 //	@Failure		422		{object}	exceptions.UnprocessableEntityError	"Email already taken"
 //	@Failure		500		{object}	exceptions.InternalServerError	"Failed to hash password OR Failed to marshal data OR Failed to generate JWT token"
 //	@Router			/auth/register [post]
+//	@OperationId	register
 func (s *authController) Register(c *fiber.Ctx) error {
 	db := s.db
 	body := new(dto.RegisterRequest)
@@ -118,10 +121,13 @@ func (s *authController) Register(c *fiber.Ctx) error {
 	db.Create(&user)
 
 	data := map[string]interface{}{
-		"userId":      user.ID.String(),
-		"income":      user.AnnualIncome,
-		"debt":        user.Debt,
-		"assetsValue": user.AssetsValue,
+		"id":            user.ID.String(),
+		"username":      user.Username,
+		"email":         user.Email,
+		"annual_income": user.AnnualIncome,
+		"debt":          user.Debt,
+		"assets_value":  user.AssetsValue,
+		"created_at":    user.CreatedAt,
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -130,7 +136,7 @@ func (s *authController) Register(c *fiber.Ctx) error {
 		return exceptions.InternalServer(c, "failed to marshal data")
 	}
 
-	s.rmq.Produce("calculate-score", string(jsonData))
+	s.rmq.Produce("user.created", string(jsonData))
 
 	token, err := s.GenerateToken(user.ID.String())
 	if err != nil {
@@ -155,6 +161,7 @@ func (s *authController) Register(c *fiber.Ctx) error {
 //	@Failure		401		{object}	exceptions.UnauthorizedError		"Wrong email or password"
 //	@Failure		500		{object}	exceptions.InternalServerError	"Failed to generate JWT token"
 //	@Router			/auth/login [post]
+//	@OperationId	login
 func (s *authController) Login(c *fiber.Ctx) error {
 	db := s.db
 
