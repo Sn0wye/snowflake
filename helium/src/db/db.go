@@ -3,7 +3,7 @@ package db
 import (
 	"log"
 
-	"whatisthis/pkg/config"
+	"snowflake/pkg/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"

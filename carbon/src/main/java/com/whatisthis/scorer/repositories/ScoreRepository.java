@@ -1,7 +1,7 @@
-package com.whatisthis.scorer.repositories;
+package com.snowflake.scorer.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import com.whatisthis.scorer.entities.Score;
+import com.snowflake.scorer.entities.Score;
 
 import java.util.Optional;
 

@@ -1,12 +1,12 @@
-package com.whatisthis.scorer.interceptors;
+package com.snowflake.scorer.interceptors;
 
-import com.whatisthis.scorer.exceptions.UnauthorizedException;
+import com.snowflake.scorer.exceptions.UnauthorizedException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
-import com.whatisthis.scorer.services.GrpcAuthService;
+import com.snowflake.scorer.services.GrpcAuthService;
 import pb.Auth;
 
 // This is an overengineered way to validate JWT tokens.

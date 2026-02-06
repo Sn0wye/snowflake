@@ -1,4 +1,4 @@
-package com.whatisthis.scorer.model.dto;
+package com.snowflake.scorer.model.dto;
 
 // Income Score:
 // High Income: 300 (Above $100,000 per year)

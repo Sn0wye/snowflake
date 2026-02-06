@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"whatisthis/pkg/exceptions"
-	"whatisthis/pkg/jwt"
-	"whatisthis/pkg/messaging"
-	"whatisthis/src/dto"
-	"whatisthis/src/models"
-	"whatisthis/src/utils"
+	"snowflake/pkg/exceptions"
+	"snowflake/pkg/jwt"
+	"snowflake/pkg/messaging"
+	"snowflake/src/dto"
+	"snowflake/src/models"
+	"snowflake/src/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"

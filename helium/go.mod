@@ -1,4 +1,4 @@
-module whatisthis
+module snowflake
 
 go 1.22.0
 

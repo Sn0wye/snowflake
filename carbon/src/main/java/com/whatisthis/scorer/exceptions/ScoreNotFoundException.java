@@ -1,4 +1,4 @@
-package com.whatisthis.scorer.exceptions;
+package com.snowflake.scorer.exceptions;
 
 public class ScoreNotFoundException extends RuntimeException {
     public ScoreNotFoundException(String message) {

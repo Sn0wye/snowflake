@@ -1,4 +1,4 @@
-package com.whatisthis.scorer.constants;
+package com.snowflake.scorer.constants;
 
 public final class RabbitMQConstants {
 

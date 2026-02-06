@@ -1,9 +1,9 @@
-package com.whatisthis.scorer.services;
+package com.snowflake.scorer.services;
 
-import com.whatisthis.scorer.model.dto.IncomeScore;
-import com.whatisthis.scorer.model.dto.DebtScore;
-import com.whatisthis.scorer.model.dto.AssetScore;
-import com.whatisthis.scorer.model.request.CalculateScoreRequest;
+import com.snowflake.scorer.model.dto.IncomeScore;
+import com.snowflake.scorer.model.dto.DebtScore;
+import com.snowflake.scorer.model.dto.AssetScore;
+import com.snowflake.scorer.model.request.CalculateScoreRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

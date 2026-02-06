@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"whatisthis/pkg/exceptions"
-	"whatisthis/pkg/jwt"
-	"whatisthis/pkg/logger"
+	"snowflake/pkg/exceptions"
+	"snowflake/pkg/jwt"
+	"snowflake/pkg/logger"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/spf13/viper"

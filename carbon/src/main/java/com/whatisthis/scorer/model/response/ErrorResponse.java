@@ -1,4 +1,4 @@
-package com.whatisthis.scorer.model.response;
+package com.snowflake.scorer.model.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

@@ -1,4 +1,4 @@
-package com.whatisthis.scorer.model.dto;
+package com.snowflake.scorer.model.dto;
 
 // Assets Ownership Score:
 // High value assets: 300 (Value above $500,000)

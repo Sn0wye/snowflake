@@ -1,13 +1,13 @@
-package com.whatisthis.scorer.consumers;
+package com.snowflake.scorer.consumers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.whatisthis.scorer.constants.RabbitMQConstants;
-import com.whatisthis.scorer.services.ScoreService;
+import com.snowflake.scorer.constants.RabbitMQConstants;
+import com.snowflake.scorer.services.ScoreService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import com.whatisthis.scorer.entities.Score;
+import com.snowflake.scorer.entities.Score;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;

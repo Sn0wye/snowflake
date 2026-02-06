@@ -1,8 +1,8 @@
 package migration
 
 import (
-	"whatisthis/pkg/logger"
-	"whatisthis/src/models"
+	"snowflake/pkg/logger"
+	"snowflake/src/models"
 
 	"gorm.io/gorm"
 )

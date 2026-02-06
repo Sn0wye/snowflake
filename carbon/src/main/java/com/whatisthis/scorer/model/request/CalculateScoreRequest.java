@@ -1,4 +1,4 @@
-package com.whatisthis.scorer.model.request;
+package com.snowflake.scorer.model.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;

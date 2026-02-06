@@ -1,4 +1,4 @@
-package com.whatisthis.scorer.model.dto;
+package com.snowflake.scorer.model.dto;
 
 import java.math.BigDecimal;
 

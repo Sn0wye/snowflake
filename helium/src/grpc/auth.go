@@ -2,10 +2,10 @@ package grpc
 
 import (
 	"context"
+	"snowflake/pb"
+	"snowflake/pkg/config"
+	"snowflake/pkg/jwt"
 	"time"
-	"whatisthis/pb"
-	"whatisthis/pkg/config"
-	"whatisthis/pkg/jwt"
 
 	"google.golang.org/grpc"
 )

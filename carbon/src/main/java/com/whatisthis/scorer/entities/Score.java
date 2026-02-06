@@ -1,6 +1,6 @@
-package com.whatisthis.scorer.entities;
+package com.snowflake.scorer.entities;
 
-import com.whatisthis.scorer.consumers.UserCreatedEvent;
+import com.snowflake.scorer.consumers.UserCreatedEvent;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

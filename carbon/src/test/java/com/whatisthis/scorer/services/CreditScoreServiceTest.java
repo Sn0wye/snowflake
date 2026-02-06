@@ -1,9 +1,9 @@
-package com.whatisthis.scorer.services;
+package com.snowflake.scorer.services;
 
-import com.whatisthis.scorer.exceptions.ScoreCalculationException;
-import com.whatisthis.scorer.model.dto.IncomeScore;
-import com.whatisthis.scorer.model.dto.DebtScore;
-import com.whatisthis.scorer.model.dto.AssetScore;
+import com.snowflake.scorer.exceptions.ScoreCalculationException;
+import com.snowflake.scorer.model.dto.IncomeScore;
+import com.snowflake.scorer.model.dto.DebtScore;
+import com.snowflake.scorer.model.dto.AssetScore;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

@@ -1,4 +1,4 @@
-package com.whatisthis.scorer.model.request;
+package com.snowflake.scorer.model.request;
 
 import jakarta.validation.ConstraintViolation;
 import org.junit.jupiter.api.BeforeEach;

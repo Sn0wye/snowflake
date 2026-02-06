@@ -1,4 +1,4 @@
-package com.whatisthis.scorer.config;
+package com.snowflake.scorer.config;
 
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;

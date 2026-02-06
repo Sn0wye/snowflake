@@ -1,6 +1,6 @@
-package com.whatisthis.scorer.config;
+package com.snowflake.scorer.config;
 
-import com.whatisthis.scorer.interceptors.BearerTokenInterceptor;
+import com.snowflake.scorer.interceptors.BearerTokenInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;

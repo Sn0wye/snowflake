@@ -1,4 +1,4 @@
-package com.whatisthis.scorer.consumers;
+package com.snowflake.scorer.consumers;
 
 public class ScoreUpdatedEvent {
     private String userId;

@@ -1,4 +1,4 @@
-package com.whatisthis.scorer.services;
+package com.snowflake.scorer.services;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;

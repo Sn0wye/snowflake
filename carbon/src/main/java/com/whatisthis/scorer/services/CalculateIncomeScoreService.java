@@ -1,6 +1,6 @@
-package com.whatisthis.scorer.services;
+package com.snowflake.scorer.services;
 
-import com.whatisthis.scorer.model.dto.IncomeScore;
+import com.snowflake.scorer.model.dto.IncomeScore;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;

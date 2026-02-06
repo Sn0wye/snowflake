@@ -1,8 +1,8 @@
-package com.whatisthis.scorer.services;
+package com.snowflake.scorer.services;
 
-import com.whatisthis.scorer.entities.Score;
-import com.whatisthis.scorer.exceptions.ScoreNotFoundException;
-import com.whatisthis.scorer.repositories.ScoreRepository;
+import com.snowflake.scorer.entities.Score;
+import com.snowflake.scorer.exceptions.ScoreNotFoundException;
+import com.snowflake.scorer.repositories.ScoreRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

@@ -3,7 +3,7 @@ package utils
 import (
 	"fmt"
 	"reflect"
-	"whatisthis/pkg/validator"
+	"snowflake/pkg/validator"
 
 	"github.com/gofiber/fiber/v2"
 )

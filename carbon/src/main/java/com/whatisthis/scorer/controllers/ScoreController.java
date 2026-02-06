@@ -1,12 +1,12 @@
-package com.whatisthis.scorer.controllers;
+package com.snowflake.scorer.controllers;
 
-import com.whatisthis.scorer.entities.Score;
-import com.whatisthis.scorer.model.response.ScoreNotFoundResponse;
-import com.whatisthis.scorer.model.response.ValidationErrorResponse;
-import com.whatisthis.scorer.model.request.CalculateScoreRequest;
-import com.whatisthis.scorer.model.response.ErrorResponse;
-import com.whatisthis.scorer.model.response.ScoreResponse;
-import com.whatisthis.scorer.services.ScoreService;
+import com.snowflake.scorer.entities.Score;
+import com.snowflake.scorer.model.response.ScoreNotFoundResponse;
+import com.snowflake.scorer.model.response.ValidationErrorResponse;
+import com.snowflake.scorer.model.request.CalculateScoreRequest;
+import com.snowflake.scorer.model.response.ErrorResponse;
+import com.snowflake.scorer.model.response.ScoreResponse;
+import com.snowflake.scorer.services.ScoreService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;

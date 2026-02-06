@@ -1,7 +1,7 @@
-package com.whatisthis.scorer.services;
+package com.snowflake.scorer.services;
 
-import com.whatisthis.scorer.exceptions.ScoreCalculationException;
-import com.whatisthis.scorer.model.dto.AssetScore;
+import com.snowflake.scorer.exceptions.ScoreCalculationException;
+import com.snowflake.scorer.model.dto.AssetScore;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;

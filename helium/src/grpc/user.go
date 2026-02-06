@@ -2,9 +2,9 @@ package grpc
 
 import (
 	"context"
-	"whatisthis/pb"
-	"whatisthis/src/db"
-	"whatisthis/src/models"
+	"snowflake/pb"
+	"snowflake/src/db"
+	"snowflake/src/models"
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"

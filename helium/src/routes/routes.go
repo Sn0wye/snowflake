@@ -1,12 +1,12 @@
 package routes
 
 import (
-	"whatisthis/pkg/config"
-	"whatisthis/pkg/jwt"
-	"whatisthis/pkg/logger"
-	"whatisthis/pkg/messaging"
-	"whatisthis/src/controllers"
-	"whatisthis/src/db"
+	"snowflake/pkg/config"
+	"snowflake/pkg/jwt"
+	"snowflake/pkg/logger"
+	"snowflake/pkg/messaging"
+	"snowflake/src/controllers"
+	"snowflake/src/db"
 
 	"github.com/gofiber/fiber/v2"
 )

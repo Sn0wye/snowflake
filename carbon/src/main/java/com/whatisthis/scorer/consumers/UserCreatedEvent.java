@@ -1,4 +1,4 @@
-package com.whatisthis.scorer.consumers;
+package com.snowflake.scorer.consumers;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;

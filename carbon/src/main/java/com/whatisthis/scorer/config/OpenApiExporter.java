@@ -1,4 +1,4 @@
-package com.whatisthis.scorer.config;
+package com.snowflake.scorer.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;

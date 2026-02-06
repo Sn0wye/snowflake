@@ -1,8 +1,8 @@
-package com.whatisthis.scorer.exceptions;
+package com.snowflake.scorer.exceptions;
 
-import com.whatisthis.scorer.model.response.ErrorResponse;
-import com.whatisthis.scorer.model.response.ScoreNotFoundResponse;
-import com.whatisthis.scorer.model.response.ValidationErrorResponse;
+import com.snowflake.scorer.model.response.ErrorResponse;
+import com.snowflake.scorer.model.response.ScoreNotFoundResponse;
+import com.snowflake.scorer.model.response.ValidationErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;

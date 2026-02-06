@@ -2,7 +2,7 @@ package messaging
 
 import (
 	"fmt"
-	"whatisthis/pkg/logger"
+	"snowflake/pkg/logger"
 
 	"go.uber.org/zap"
 
