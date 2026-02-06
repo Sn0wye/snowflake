@@ -2,10 +2,10 @@ services:
   # PostgreSQL DB
   postgres:
     image: postgres
-    container_name: whatisthis-postgres
+    container_name: snowflake-postgres
     environment:
-      POSTGRES_USER: whatisthis
-      POSTGRES_PASSWORD: whatisthis
+      POSTGRES_USER: snowflake
+      POSTGRES_PASSWORD: snowflake
     ports:
       - '5432:5432'
     volumes:
@@ -14,7 +14,7 @@ services:
     networks:
       - microservices-network
     healthcheck:
-      test: ['CMD', 'pg_isready', '-U', 'whatisthis']
+      test: ['CMD', 'pg_isready', '-U', 'snowflake']
       interval: 1s
       timeout: 1s
       retries: 3
@@ -22,10 +22,10 @@ services:
   # RabbitMQ Message Broker
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: whatisthis-rabbitmq
+    container_name: snowflake-rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: whatisthis
-      RABBITMQ_DEFAULT_PASS: whatisthis
+      RABBITMQ_DEFAULT_USER: snowflake
+      RABBITMQ_DEFAULT_PASS: snowflake
     volumes:
       - ./init/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
       - ./init/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
@@ -43,7 +43,7 @@ services:
   # Proxy Server
   nginx:
     image: nginx:latest
-    container_name: whatisthis-nginx
+    container_name: snowflake-nginx
     ports:
       - '80:80'
     volumes:
@@ -59,8 +59,8 @@ services:
   authentication:
     build:
       context: ./helium
-    image: whatisthis-authentication
-    container_name: whatisthis-authentication
+    image: snowflake-authentication
+    container_name: snowflake-authentication
     ports:
       # Exposing gRPC for now because nginx refuses to work
       - '50050:50050'
@@ -76,8 +76,8 @@ services:
   scorer:
     build:
       context: ./carbon
-    image: whatisthis-scorer
-    container_name: whatisthis-scorer
+    image: snowflake-scorer
+    container_name: snowflake-scorer
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -92,8 +92,8 @@ services:
   loan:
     build:
       context: ./oxygen
-    image: whatisthis-loan
-    container_name: whatisthis-loan
+    image: snowflake-loan
+    container_name: snowflake-loan
     depends_on:
       rabbitmq:
         condition: service_healthy

@@ -5,17 +5,17 @@ grpc:
   port: 50050
 security:
   jwt_secret: super-secret-key
-  jwt_issuer: whatisthis
+  jwt_issuer: snowflake
 db:
   driver: postgres
   host: 127.0.0.1
   port: 5432
   database: authentication
-  user: whatisthis
-  password: whatisthis
-  connectionString: postgres://whatisthis:whatisthis@127.0.0.1:5432/authentication?sslmode=disable
+  user: snowflake
+  password: snowflake
+  connectionString: postgres://snowflake:snowflake@127.0.0.1:5432/authentication?sslmode=disable
 messaging:
-  connectionString: amqp://whatisthis:whatisthis@localhost:5672
+  connectionString: amqp://snowflake:snowflake@localhost:5672
 log:
   log_level: info
   encoding: console # json or console

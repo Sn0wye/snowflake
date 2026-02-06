@@ -1,8 +1,8 @@
 {
   "users": [
     {
-      "name": "whatisthis",
-      "password": "whatisthis",
+      "name": "snowflake",
+      "password": "snowflake",
       "tags": "administrator"
     }
   ],
@@ -13,7 +13,7 @@
   ],
   "permissions": [
     {
-      "user": "whatisthis",
+      "user": "snowflake",
       "vhost": "/",
       "configure": ".*",
       "write": ".*",
@@ -22,7 +22,7 @@
   ],
   "queues": [
     {
-      "name": "calculate-score",
+      "name": "user.created",
       "vhost": "/",
       "durable": true,
       "auto_delete": false

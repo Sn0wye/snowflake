@@ -4,7 +4,7 @@ FROM golang:1.22.4-alpine AS builder
 WORKDIR /app
 
 # Install curl
-RUN apk --no-cache add curl
+RUN apk --no-cache add curl make
 
 # Set the version of protoc you want to install
 ENV PROTOC_VERSION=27.1
@@ -24,7 +24,8 @@ RUN go mod download
 
 COPY . .
 
-RUN sh ./scripts/proto-build.sh
+# Generate protobuf code
+RUN make generate
 RUN go build -o main src/cmd/server.go
 
 # Runner
@@ -33,6 +34,7 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/main .
 COPY --from=builder /app/config ./config
+COPY --from=builder /app/swagger.json .
 ENV APP_CONF=/app/config/prod.yml
 
 EXPOSE 8080
