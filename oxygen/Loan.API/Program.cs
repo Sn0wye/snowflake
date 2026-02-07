@@ -20,13 +20,13 @@ builder.Services.AddSwaggerGen(options =>
         
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "Coinly API Reference",
+        Title = "Snowflake API Reference",
         Version = "v1",
-        Description = "The Coinly API is organized around REST. This API has predictable resource-oriented URLs, accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.",
+        Description = "The Snowflake API is organized around REST. This API has predictable resource-oriented URLs, accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.",
         Contact = new OpenApiContact
         {
             Name = "GitHub",
-            Url = new Uri("https://github.com/Sn0wye/coinly/issues")
+            Url = new Uri("https://github.com/Sn0wye/snowflake/issues")
         },
         License = new OpenApiLicense
         {
@@ -35,7 +35,7 @@ builder.Services.AddSwaggerGen(options =>
         },
     });
     
-    options.AddServer(new OpenApiServer { Url = "https://coinly.snowye.dev" });
+    options.AddServer(new OpenApiServer { Url = "https://snowflake.snowye.dev" });
 
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {

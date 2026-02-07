@@ -27,17 +27,17 @@ import (
 	"google.golang.org/grpc"
 )
 
-//	@title			Coinly API Reference
+//	@title			Snowflake API Reference
 //	@version		1.0.0
-//	@description	The Coinly API is organized around REST. This API has predictable resource-oriented URLs, accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.
+//	@description	The Snowflake API is organized around REST. This API has predictable resource-oriented URLs, accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.
 
 //	@contact.name	GitHub
-//	@contact.url	https://github.com/Sn0wye/coinly/issues
+//	@contact.url	https://github.com/Sn0wye/snowflake/issues
 
 //	@license.name	GNU General Public License v3.0
 //	@license.url	https://www.gnu.org/licenses/gpl-3.0
 
-// @host		coinly.snowye.dev
+// @host		snowflake.snowye.dev
 // @BasePath	/
 
 // @Schemes	https

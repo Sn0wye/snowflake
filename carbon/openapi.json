@@ -1,1 +1,249 @@
-{"openapi":"3.0.1","info":{"title":"Coinly API Reference","description":"The Coinly API is organized around REST. This API has predictable resource-oriented URLs, accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.","contact":{"name":"GitHub","url":"https://github.com/Sn0wye/coinly/issues"},"license":{"name":"GNU General Public License v3.0","url":"https://www.gnu.org/licenses/gpl-3.0"},"version":"1.0.0"},"servers":[{"url":"https://coinly.snowye.dev","description":"Coinly API Server"}],"tags":[{"name":"Scorer","description":"Operations related to credit score"}],"paths":{"/score":{"get":{"tags":["Scorer"],"description":"Get credit score","operationId":"getScore","responses":{"200":{"description":"ScoreResponse","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ScoreResponse"},"example":{"creditScore":750}}}},"500":{"description":"Internal server error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ErrorResponse"},"examples":{"ErrorResponse":{"description":"ErrorResponse","value":{"message":"Something went wrong :(","status_code":500}}}}}},"404":{"description":"Score not found","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ScoreNotFoundResponse"},"examples":{"ScoreNotFoundResponse":{"description":"ScoreNotFoundResponse","value":{"message":"Score not found","status_code":404}}}}}}}},"post":{"tags":["Scorer"],"description":"Calculate credit score","operationId":"calculateScore","requestBody":{"content":{"application/json":{"schema":{"$ref":"#/components/schemas/CalculateScoreRequest"}}},"required":true},"responses":{"500":{"description":"Internal server error","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ErrorResponse"},"examples":{"ErrorResponse":{"description":"ErrorResponse","value":{"message":"Something went wrong :(","status_code":500}}}}}},"200":{"description":"OK","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ScoreResponse"},"example":{"creditScore":750}}}},"400":{"description":"Invalid request body","content":{"application/json":{"schema":{"$ref":"#/components/schemas/ValidationErrorResponse"},"examples":{"ValidationErrorResponse":{"description":"ValidationErrorResponse","value":{"message":"Invalid request body","status_code":400,"errors":{"income":"Income must be greater than zero.","debt":"Debt cannot be null.","assetsValue":"Assets value cannot be negative."}}}}}}}}}}},"components":{"schemas":{"CalculateScoreRequest":{"required":["assetsValue","debt","income"],"type":"object","properties":{"income":{"minimum":1,"type":"number","description":"Income","format":"double","example":5000.0},"debt":{"minimum":0,"type":"number","description":"Debt","format":"double","example":1000.0},"assetsValue":{"minimum":0,"type":"number","description":"Assets value","format":"double","example":50000.0}}},"ErrorResponse":{"type":"object","properties":{"message":{"type":"string","description":"Error message","example":"Something went wrong :("},"status_code":{"type":"integer","description":"Status code","format":"int32","example":500}}},"ScoreResponse":{"type":"object","properties":{"creditScore":{"type":"integer","description":"Credit score","format":"int32","example":700}}},"ValidationErrorResponse":{"type":"object","properties":{"message":{"type":"string","description":"Error message","example":"Invalid request body."},"status_code":{"type":"integer","description":"Status code","format":"int32","example":400},"errors":{"type":"object","additionalProperties":{"type":"string","description":"Validation errors","example":"{\"income\":\"Income cannot be null.\",\"debt\":\"Debt cannot be negative.\"}"},"description":"Validation errors","example":{"income":"Income cannot be null.","debt":"Debt cannot be negative."}}}},"ScoreNotFoundResponse":{"type":"object","properties":{"message":{"type":"string","description":"Error message","example":"Score not found"},"status_code":{"type":"integer","description":"Status code","format":"int32","example":404}}}}}}
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Snowflake API Reference",
+    "description": "The Snowflake API is organized around REST. This API has predictable resource-oriented URLs, accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.",
+    "contact": {
+      "name": "GitHub",
+      "url": "https://github.com/Sn0wye/snowflake/issues"
+    },
+    "license": {
+      "name": "GNU General Public License v3.0",
+      "url": "https://www.gnu.org/licenses/gpl-3.0"
+    },
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://snowflake.snowye.dev",
+      "description": "Snowflake API Server"
+    }
+  ],
+  "tags": [
+    { "name": "Scorer", "description": "Operations related to credit score" }
+  ],
+  "paths": {
+    "/score": {
+      "get": {
+        "tags": ["Scorer"],
+        "description": "Get credit score",
+        "operationId": "getScore",
+        "responses": {
+          "200": {
+            "description": "ScoreResponse",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ScoreResponse" },
+                "example": { "creditScore": 750 }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "examples": {
+                  "ErrorResponse": {
+                    "description": "ErrorResponse",
+                    "value": {
+                      "message": "Something went wrong :(",
+                      "status_code": 500
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Score not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoreNotFoundResponse"
+                },
+                "examples": {
+                  "ScoreNotFoundResponse": {
+                    "description": "ScoreNotFoundResponse",
+                    "value": {
+                      "message": "Score not found",
+                      "status_code": 404
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Scorer"],
+        "description": "Calculate credit score",
+        "operationId": "calculateScore",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CalculateScoreRequest" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "examples": {
+                  "ErrorResponse": {
+                    "description": "ErrorResponse",
+                    "value": {
+                      "message": "Something went wrong :(",
+                      "status_code": 500
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ScoreResponse" },
+                "example": { "creditScore": 750 }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationErrorResponse"
+                },
+                "examples": {
+                  "ValidationErrorResponse": {
+                    "description": "ValidationErrorResponse",
+                    "value": {
+                      "message": "Invalid request body",
+                      "status_code": 400,
+                      "errors": {
+                        "income": "Income must be greater than zero.",
+                        "debt": "Debt cannot be null.",
+                        "assetsValue": "Assets value cannot be negative."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CalculateScoreRequest": {
+        "required": ["assetsValue", "debt", "income"],
+        "type": "object",
+        "properties": {
+          "income": {
+            "minimum": 1,
+            "type": "number",
+            "description": "Income",
+            "format": "double",
+            "example": 5000.0
+          },
+          "debt": {
+            "minimum": 0,
+            "type": "number",
+            "description": "Debt",
+            "format": "double",
+            "example": 1000.0
+          },
+          "assetsValue": {
+            "minimum": 0,
+            "type": "number",
+            "description": "Assets value",
+            "format": "double",
+            "example": 50000.0
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Error message",
+            "example": "Something went wrong :("
+          },
+          "status_code": {
+            "type": "integer",
+            "description": "Status code",
+            "format": "int32",
+            "example": 500
+          }
+        }
+      },
+      "ScoreResponse": {
+        "type": "object",
+        "properties": {
+          "creditScore": {
+            "type": "integer",
+            "description": "Credit score",
+            "format": "int32",
+            "example": 700
+          }
+        }
+      },
+      "ValidationErrorResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Error message",
+            "example": "Invalid request body."
+          },
+          "status_code": {
+            "type": "integer",
+            "description": "Status code",
+            "format": "int32",
+            "example": 400
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "description": "Validation errors",
+              "example": "{\"income\":\"Income cannot be null.\",\"debt\":\"Debt cannot be negative.\"}"
+            },
+            "description": "Validation errors",
+            "example": {
+              "income": "Income cannot be null.",
+              "debt": "Debt cannot be negative."
+            }
+          }
+        }
+      },
+      "ScoreNotFoundResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Error message",
+            "example": "Score not found"
+          },
+          "status_code": {
+            "type": "integer",
+            "description": "Status code",
+            "format": "int32",
+            "example": 404
+          }
+        }
+      }
+    }
+  }
+}

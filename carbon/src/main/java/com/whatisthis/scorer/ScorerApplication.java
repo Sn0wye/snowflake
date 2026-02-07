@@ -13,12 +13,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @EnableRabbit
 @OpenAPIDefinition(
         info = @Info(
-                title = "Coinly API Reference",
+                title = "Snowflake API Reference",
                 version = "1.0.0",
-                description = "The Coinly API is organized around REST. This API has predictable resource-oriented URLs, accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.",
+                description = "The Snowflake API is organized around REST. This API has predictable resource-oriented URLs, accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.",
                 contact = @Contact(
                         name = "GitHub",
-                        url = "https://github.com/Sn0wye/coinly/issues"
+                        url = "https://github.com/Sn0wye/snowflake/issues"
                 ),
                 license = @License(
                         name = "GNU General Public License v3.0",
@@ -26,7 +26,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
                 )
         ),
         servers = {
-                @Server(url = "https://coinly.snowye.dev", description = "Coinly API Server")
+                @Server(url = "https://snowflake.snowye.dev", description = "Snowflake API Server")
         }
 )
 public class ScorerApplication {

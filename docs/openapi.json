@@ -1,11 +1,11 @@
 {
   "openapi": "3.0.3",
   "info": {
-    "title": "Coinly API Reference",
-    "description": "The Coinly API is organized around REST. This API has predictable resource-oriented URLs, accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.",
+    "title": "Snowflake API Reference",
+    "description": "The Snowflake API is organized around REST. This API has predictable resource-oriented URLs, accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.",
     "contact": {
       "name": "GitHub",
-      "url": "https://github.com/Sn0wye/coinly/issues"
+      "url": "https://github.com/Sn0wye/snowflake/issues"
     },
     "license": {
       "name": "GNU General Public License v3.0",
@@ -15,8 +15,8 @@
   },
   "servers": [
     {
-      "url": "https://coinly.snowye.dev",
-      "description": "Coinly API Server"
+      "url": "https://snowflake.snowye.dev",
+      "description": "Snowflake API Server"
     }
   ],
   "security": [
@@ -33,9 +33,7 @@
   "paths": {
     "/score": {
       "get": {
-        "tags": [
-          "Scorer"
-        ],
+        "tags": ["Scorer"],
         "description": "Get credit score",
         "operationId": "getScore",
         "responses": {
@@ -93,9 +91,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Scorer"
-        ],
+        "tags": ["Scorer"],
         "description": "Calculate credit score",
         "operationId": "calculateScore",
         "requestBody": {
@@ -170,9 +166,7 @@
     },
     "/loan/apply": {
       "post": {
-        "tags": [
-          "Loan"
-        ],
+        "tags": ["Loan"],
         "requestBody": {
           "content": {
             "application/json": {
@@ -258,9 +252,7 @@
     },
     "/auth/login": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "/auth/login",
         "description": "Login",
         "requestBody": {
@@ -321,9 +313,7 @@
     },
     "/auth/profile": {
       "get": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "/auth/profile",
         "description": "Get user profile",
         "responses": {
@@ -367,9 +357,7 @@
     },
     "/auth/register": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "/auth/register",
         "description": "Register a new user",
         "requestBody": {
@@ -432,11 +420,7 @@
   "components": {
     "schemas": {
       "CalculateScoreRequest": {
-        "required": [
-          "assetsValue",
-          "debt",
-          "income"
-        ],
+        "required": ["assetsValue", "debt", "income"],
         "type": "object",
         "properties": {
           "income": {
@@ -535,10 +519,7 @@
         }
       },
       "ApplyForLoanRequest": {
-        "required": [
-          "loanAmount",
-          "term"
-        ],
+        "required": ["loanAmount", "term"],
         "type": "object",
         "properties": {
           "loanAmount": {
@@ -556,9 +537,7 @@
         "additionalProperties": false
       },
       "ApplyForLoanResponse": {
-        "required": [
-          "message"
-        ],
+        "required": ["message"],
         "type": "object",
         "properties": {
           "status": {
@@ -608,11 +587,7 @@
         "additionalProperties": false
       },
       "LoanApplicationStatus": {
-        "enum": [
-          "PENDING",
-          "APPROVED",
-          "REJECTED"
-        ],
+        "enum": ["PENDING", "APPROVED", "REJECTED"],
         "type": "string"
       },
       "ProblemDetails": {
@@ -643,11 +618,7 @@
         "additionalProperties": {}
       },
       "ValidationErrorResponse1": {
-        "required": [
-          "errors",
-          "message",
-          "statusCode"
-        ],
+        "required": ["errors", "message", "statusCode"],
         "type": "object",
         "properties": {
           "message": {
@@ -695,10 +666,7 @@
         }
       },
       "LoginRequest": {
-        "required": [
-          "email",
-          "password"
-        ],
+        "required": ["email", "password"],
         "type": "object",
         "properties": {
           "email": {
