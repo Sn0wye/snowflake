@@ -15,3 +15,9 @@ SELECT 'CREATE DATABASE loan'
 WHERE NOT EXISTS (
     SELECT FROM pg_database WHERE datname = 'loan'
 )\gexec
+
+-- Create 'transaction' database if it does not exist
+SELECT 'CREATE DATABASE core'
+WHERE NOT EXISTS (
+    SELECT FROM pg_database WHERE datname = 'transaction'
+)\gexec

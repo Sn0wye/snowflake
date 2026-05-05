@@ -6,11 +6,12 @@ TLDR; There will be A LOT of overengineering, but that's the point. The goal is 
 
 ## Services
 
-| **Service Name** | **Responsability**             | **Description**                                                                                                     | **Language** | **Framework** | **Ports**                 |
-| ---------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------- | ------------ | ------------- | ------------------------- |
-| Helium           | User authentication management | Helium is lightweight and foundational, just like authentication, which provides the basis for all interactions.    | Go           | Fiber         | 8080 (HTTP), 50050 (gRPC) |
-| Carbon           | User scoring and evaluation    | Carbon is a fundamental building block, symbolizing the core calculations and essential scoring functions.          | Java         | Spring Boot   | 8081 (HTTP)               |
-| Oxygen           | Loan operations and servicing  | Oxygen is life-sustaining, representing the essential and enabling nature of loans in fostering growth and support. | C#           | .NET          | 8082 (HTTP)               |
+| **Service Name** | **Responsibility**             | **Description**                                                                                                                                            | **Language** | **Framework** | **Ports**                 |
+| ---------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | ------------- | ------------------------- |
+| Helium           | User authentication management | Helium is lightweight and foundational, just like authentication, which provides the basis for all interactions.                                           | Go           | Fiber         | 8080 (HTTP), 50050 (gRPC) |
+| Carbon           | User scoring and evaluation    | Carbon is a fundamental building block, symbolizing the core calculations and essential scoring functions.                                                 | Java         | Spring Boot   | 8081 (HTTP)               |
+| Oxygen           | Loan operations and servicing  | Oxygen is life-sustaining, representing the essential and enabling nature of loans in fostering growth and support.                                        | C#           | .NET          | 8082 (HTTP)               |
+| Gold             | Payment and balance management | Gold is the universal store of value, representing the financial core that powers instant FLAKE transfers and ledger-based balance tracking between users. | Go           | Fiber         | 8083 (HTTP)               |
 
 ## Infrastructure
 
@@ -23,15 +24,15 @@ TLDR; There will be A LOT of overengineering, but that's the point. The goal is 
 
 This project is a learning experience where I explore different technologies and patterns. Here's a breakdown of the key decisions:
 
-- **Go & Fiber**: Go is a fast, lightweight language I’ve been learning and experimenting with. It’s ideal for microservices, and its rich ecosystem simplifies development. For the authentication service, I paired it with Fiber, a minimalistic, high-performance web framework, to ensure a fast and efficient implementation.
+- **Go & Fiber**: Go is a fast, lightweight language I've been learning and experimenting with. It's ideal for microservices, and its rich ecosystem simplifies development. Fiber, a minimalistic, high-performance web framework, powers both Helium (auth) and Gold (payments), ensuring fast and efficient HTTP servers for both services.
 
 - **Java & Spring Boot**: Leveraging my experience with Java, I chose it for the Scorer service, particularly for interacting with RabbitMQ, as its official client is written in Java. Spring Boot was a natural fit for its extensive ecosystem, making API development and queue consumption seamless.
 
 - **C# & .NET**: As one of my favorite languages, C# was my choice for the Loan service. .NET complements it perfectly for building robust APIs.
 
-- **PostgreSQL**: I selected PostgreSQL for its popularity, reliability, and familiarity. It serves as the relational database for the project.
+- **PostgreSQL**: I selected PostgreSQL for its popularity, reliability, and familiarity. It serves as the relational database for the project, including the double-entry ledger in Gold.
 
-- **RabbitMQ**: For asynchronous communication between services, RabbitMQ was an easy choice due to its simplicity and Docker-friendly setup.
+- **RabbitMQ**: For asynchronous communication between services, RabbitMQ was an easy choice due to its simplicity and Docker-friendly setup. Gold consumes `user.created` events from Helium to automatically provision accounts, and publishes transaction events for downstream consumers.
 
 - **Nginx**: Nginx acts as a reverse proxy and load balancer, allowing me to experiment with API gateway patterns and manage service routing efficiently.
 

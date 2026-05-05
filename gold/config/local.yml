@@ -1,0 +1,26 @@
+env: local
+http:
+  port: 8083
+grpc:
+  port: 50053
+security:
+  jwt_secret: super-secret-key
+  jwt_issuer: snowflake
+db:
+  driver: postgres
+  host: 127.0.0.1
+  port: 5432
+  database: core
+  user: snowflake
+  password: snowflake
+  connectionString: postgres://snowflake:snowflake@127.0.0.1:5432/core?sslmode=disable
+messaging:
+  connectionString: amqp://snowflake:snowflake@localhost:5672
+log:
+  log_level: info
+  encoding: console # json or console
+  log_file_name: './storage/logs/server.log'
+  max_backups: 30
+  max_age: 7
+  max_size: 1024
+  compress: true
