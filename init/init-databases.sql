@@ -1,7 +1,7 @@
--- Create 'authentication' database if it does not exist
-SELECT 'CREATE DATABASE authentication'
+-- Create 'helium' database if it does not exist
+SELECT 'CREATE DATABASE helium'
 WHERE NOT EXISTS (
-    SELECT FROM pg_database WHERE datname = 'authentication'
+    SELECT FROM pg_database WHERE datname = 'helium'
 )\gexec
 
 -- Create 'carbon' database if it does not exist

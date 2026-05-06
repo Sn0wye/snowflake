@@ -51,16 +51,16 @@ services:
     networks:
       - microservices-network
     depends_on:
-      - authentication
+      - helium
       - carbon
       - loan
 
   # Authentication Service
-  authentication:
+  helium:
     build:
       context: ./helium
-    image: snowflake-authentication
-    container_name: snowflake-authentication
+    image: snowflake-helium
+    container_name: snowflake-helium
     ports:
       # Exposing gRPC for now because nginx refuses to work
       - '50050:50050'
@@ -83,7 +83,7 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
-      authentication:
+      helium:
         condition: service_started
     networks:
       - microservices-network
@@ -99,7 +99,7 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
-      authentication:
+      helium:
         condition: service_started
       carbon:
         condition: service_started
