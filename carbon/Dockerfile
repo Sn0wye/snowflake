@@ -28,7 +28,7 @@ FROM eclipse-temurin:22-jre-alpine
 WORKDIR /app
 
 # Copy the built artifact from the build stage
-COPY --from=build /app/target/scorer-0.0.1-SNAPSHOT.jar ./app.jar
+COPY --from=build /app/target/carbon-0.0.1-SNAPSHOT.jar ./app.jar
 
 # Expose the port your application runs on
 EXPOSE 8080

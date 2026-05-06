@@ -4,10 +4,10 @@ WHERE NOT EXISTS (
     SELECT FROM pg_database WHERE datname = 'authentication'
 )\gexec
 
--- Create 'scorer' database if it does not exist
-SELECT 'CREATE DATABASE scorer'
+-- Create 'carbon' database if it does not exist
+SELECT 'CREATE DATABASE carbon'
 WHERE NOT EXISTS (
-    SELECT FROM pg_database WHERE datname = 'scorer'
+    SELECT FROM pg_database WHERE datname = 'carbon'
 )\gexec
 
 -- Create 'loan' database if it does not exist

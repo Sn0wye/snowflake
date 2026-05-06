@@ -52,7 +52,7 @@ services:
       - microservices-network
     depends_on:
       - authentication
-      - scorer
+      - carbon
       - loan
 
   # Authentication Service
@@ -73,11 +73,11 @@ services:
       - microservices-network
 
   # Scorer Service
-  scorer:
+  carbon:
     build:
       context: ./carbon
-    image: snowflake-scorer
-    container_name: snowflake-scorer
+    image: snowflake-carbon
+    container_name: snowflake-carbon
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -101,7 +101,7 @@ services:
         condition: service_healthy
       authentication:
         condition: service_started
-      scorer:
+      carbon:
         condition: service_started
     networks:
       - microservices-network
