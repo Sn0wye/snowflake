@@ -10,10 +10,10 @@ db:
   driver: postgres
   host: 127.0.0.1
   port: 5432
-  database: core
+  database: gold
   user: snowflake
   password: snowflake
-  connectionString: postgres://snowflake:snowflake@127.0.0.1:5432/core?sslmode=disable
+  connectionString: postgres://snowflake:snowflake@127.0.0.1:5432/gold?sslmode=disable
 messaging:
   connectionString: amqp://snowflake:snowflake@localhost:5672
 log:
