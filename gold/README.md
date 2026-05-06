@@ -248,22 +248,22 @@ Immutable double-entry ledger. Every transaction creates 2 entries (debit + cred
 
 ### Balance Endpoints
 
-- `GET /v1/balance` - Get current user balance
-- `GET /v1/balance/history` - Get balance change history
+- `GET /account/balance` - Get current user balance
+- `GET /account/balance/history` - Get balance change history
 
 ### Flake Endpoints
 
-- `POST /v1/flake` - Register new Flake key
-- `GET /v1/flake` - List user's Flake keys
-- `DELETE /v1/flake/:keyId` - Deactivate Flake key
-- `GET /v1/flake/lookup?keyValue=:keyValue` - Lookup account by Flake key value (query param)
+- `POST /account/flake` - Register new Flake key
+- `GET /account/flake` - List user's Flake keys
+- `DELETE /account/flake/:keyId` - Deactivate Flake key
+- `GET /account/flake/lookup?keyValue=:keyValue` - Lookup account by Flake key value (query param)
 
 ### Transaction Endpoints
 
-- `POST /v1/transactions/transfer` - Execute FLAKE transfer
-- `GET /v1/transactions` - List user's transactions (paginated)
-- `GET /v1/transactions/:id` - Get transaction details
-- `POST /v1/transactions/deposit` - Deposit funds (admin/test only)
+- `POST /account/transactions/transfer` - Execute FLAKE transfer
+- `GET /account/transactions` - List user's transactions (paginated)
+- `GET /account/transactions/:id` - Get transaction details
+- `POST /account/transactions/deposit` - Deposit funds (admin/test only)
 
 ---
 

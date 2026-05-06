@@ -17,7 +17,8 @@ services:
       test: ['CMD', 'pg_isready', '-U', 'snowflake']
       interval: 1s
       timeout: 1s
-      retries: 3
+      retries: 15
+      start_period: 10s
 
   # RabbitMQ Message Broker
   rabbitmq:
@@ -38,7 +39,8 @@ services:
       test: ['CMD', 'rabbitmqctl', 'status']
       interval: 1s
       timeout: 1s
-      retries: 3
+      retries: 30
+      start_period: 30s
 
   # Proxy Server
   nginx:
@@ -54,6 +56,7 @@ services:
       - helium
       - carbon
       - oxygen
+      - gold
 
   # Authentication Service
   helium:
@@ -64,6 +67,7 @@ services:
     ports:
       # Exposing gRPC for now because nginx refuses to work
       - '50050:50050'
+    restart: on-failure
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -78,6 +82,24 @@ services:
       context: ./carbon
     image: snowflake-carbon
     container_name: snowflake-carbon
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      helium:
+        condition: service_started
+    networks:
+      - microservices-network
+
+  # Gold Service
+  gold:
+    build:
+      context: ./gold
+    image: snowflake-gold
+    container_name: snowflake-gold
+    restart: on-failure
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -94,6 +116,7 @@ services:
       context: ./oxygen
     image: snowflake-oxygen
     container_name: snowflake-oxygen
+    restart: on-failure
     depends_on:
       rabbitmq:
         condition: service_healthy

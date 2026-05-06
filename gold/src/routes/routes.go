@@ -19,7 +19,7 @@ func BindFlakeRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Lo
 	conf := config.GetConfig()
 	jwt := jwt.NewJwt(conf)
 
-	router := app.Group("/v1/flake", jwtMiddleware)
+	router := app.Group("/account/flake", jwtMiddleware)
 
 	controller := controllers.NewFlakeController(db, jwt)
 
@@ -34,7 +34,7 @@ func BindBalanceRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.
 	conf := config.GetConfig()
 	jwt := jwt.NewJwt(conf)
 
-	router := app.Group("/v1/balance", jwtMiddleware)
+	router := app.Group("/account/balance", jwtMiddleware)
 
 	controller := controllers.NewBalanceController(db, jwt)
 
@@ -47,7 +47,7 @@ func BindTransactionRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *log
 	conf := config.GetConfig()
 	jwt := jwt.NewJwt(conf)
 
-	router := app.Group("/v1/transactions", jwtMiddleware)
+	router := app.Group("/account/transactions", jwtMiddleware)
 
 	controller := controllers.NewTransactionsController(db, jwt, rmq, log)
 
@@ -81,7 +81,7 @@ func BindHealthRoutes(app *fiber.App) {
 }
 
 func BindAdminRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, job *reconciliation.Job) {
-	router := app.Group("/v1/admin", jwtMiddleware)
+	router := app.Group("/account/admin", jwtMiddleware)
 
 	// On-demand reconciliation trigger (JWT required; no admin-role check yet)
 	router.Post("/reconcile", func(c *fiber.Ctx) error {
