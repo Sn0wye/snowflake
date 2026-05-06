@@ -1,0 +1,14 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Oxygen.DTO\Oxygen.DTO.csproj" />
+      <ProjectReference Include="..\Oxygen.Repository\Oxygen.Repository.csproj" />
+    </ItemGroup>
+
+</Project>

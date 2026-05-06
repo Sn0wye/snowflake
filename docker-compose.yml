@@ -53,7 +53,7 @@ services:
     depends_on:
       - helium
       - carbon
-      - loan
+      - oxygen
 
   # Authentication Service
   helium:
@@ -88,12 +88,12 @@ services:
     networks:
       - microservices-network
 
-  # Loan Service
-  loan:
+  # Oxygen Service
+  oxygen:
     build:
       context: ./oxygen
-    image: snowflake-loan
-    container_name: snowflake-loan
+    image: snowflake-oxygen
+    container_name: snowflake-oxygen
     depends_on:
       rabbitmq:
         condition: service_healthy

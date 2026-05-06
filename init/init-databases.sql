@@ -10,10 +10,10 @@ WHERE NOT EXISTS (
     SELECT FROM pg_database WHERE datname = 'carbon'
 )\gexec
 
--- Create 'loan' database if it does not exist
-SELECT 'CREATE DATABASE loan'
+-- Create 'oxygen' database if it does not exist
+SELECT 'CREATE DATABASE oxygen'
 WHERE NOT EXISTS (
-    SELECT FROM pg_database WHERE datname = 'loan'
+    SELECT FROM pg_database WHERE datname = 'oxygen'
 )\gexec
 
 -- Create 'gold' database if it does not exist
