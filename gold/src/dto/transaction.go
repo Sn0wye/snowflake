@@ -26,7 +26,6 @@ type TransactionResponse struct {
 	Type              models.TransactionType   `json:"type"`
 	Status            models.TransactionStatus `json:"status"`
 	Amount            int64                    `json:"amount"`
-	AmountFormatted   string                   `json:"amount_formatted"`
 	SenderAccountID   *uuid.UUID               `json:"sender_account_id,omitempty"`
 	ReceiverAccountID *uuid.UUID               `json:"receiver_account_id,omitempty"`
 	FlakeKeyUsed      string                   `json:"flake_key_used,omitempty"`
@@ -49,7 +48,6 @@ func TransactionToResponse(t models.Transaction) TransactionResponse {
 		Type:              t.Type,
 		Status:            t.Status,
 		Amount:            t.Amount,
-		AmountFormatted:   formatCents(t.Amount),
 		SenderAccountID:   t.SenderAccountID,
 		ReceiverAccountID: t.ReceiverAccountID,
 		FlakeKeyUsed:      t.FlakeKeyUsed,

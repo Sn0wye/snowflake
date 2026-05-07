@@ -23,9 +23,9 @@ import (
 )
 
 const (
-	minTransactionAmount  int64 = 1           // 1 centavo
-	maxTransactionAmount  int64 = 10_000_000  // R$ 100,000.00
-	dailyTransactionLimit int64 = 5_000_000   // R$ 50,000.00
+	minTransactionAmount  int64 = 1          // 1 cent
+	maxTransactionAmount  int64 = 10_000_000 // R$ 100,000.00
+	dailyTransactionLimit int64 = 5_000_000  // R$ 50,000.00
 	maxDailyTransactions  int64 = 100
 
 	defaultTransactionLimit = 20
