@@ -68,11 +68,19 @@ services:
       # Exposing gRPC for now because nginx refuses to work
       - '50050:50050'
     restart: on-failure
+    environment:
+      - DATABASE_URL=${HELIUM_DATABASE_URL:-}
+      - RABBITMQ_URL=${HELIUM_RABBITMQ_URL:-}
+      - JWT_SECRET=${HELIUM_JWT_SECRET:-}
+      - JWT_ISSUER=${HELIUM_JWT_ISSUER:-}
+      - HTTP_PORT=${HELIUM_HTTP_PORT:-8080}
+      - GRPC_PORT=${HELIUM_GRPC_PORT:-50050}
+      - LOG_LOG_LEVEL=${HELIUM_LOG_LEVEL:-info}
     depends_on:
-      rabbitmq:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
+    rabbitmq:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
     networks:
       - microservices-network
 
@@ -83,13 +91,19 @@ services:
     image: snowflake-carbon
     container_name: snowflake-carbon
     restart: on-failure
+    environment:
+      - SPRING_DATASOURCE_URL=${CARBON_DATABASE_URL:-}
+      - SPRING_RABBITMQ_ADDRESSES=${CARBON_RABBITMQ_URL:-}
+      - SPRING_GRPC_HOST=${CARBON_GRPC_HOST:-snowflake-helium}
+      - SERVER_PORT=${CARBON_HTTP_PORT:-8081}
+      - LOGGING_LEVEL_ROOT=${CARBON_LOG_LEVEL:-INFO}
     depends_on:
-      rabbitmq:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      helium:
-        condition: service_started
+    rabbitmq:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+    helium:
+      condition: service_started
     networks:
       - microservices-network
 
@@ -100,15 +114,23 @@ services:
     image: snowflake-gold
     container_name: snowflake-gold
     restart: on-failure
+    environment:
+      - DATABASE_URL=${GOLD_DATABASE_URL:-}
+      - RABBITMQ_URL=${GOLD_RABBITMQ_URL:-}
+      - JWT_SECRET=${GOLD_JWT_SECRET:-}
+      - JWT_ISSUER=${GOLD_JWT_ISSUER:-}
+      - HTTP_PORT=${GOLD_HTTP_PORT:-8083}
+      - GRPC_PORT=${GOLD_GRPC_PORT:-50053}
+      - LOG_LOG_LEVEL=${GOLD_LOG_LEVEL:-info}
     depends_on:
-      rabbitmq:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      helium:
-        condition: service_started
-    networks:
-      - microservices-network
+    rabbitmq:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+    helium:
+      condition: service_started
+  networks:
+    - microservices-network
 
   # Oxygen Service
   oxygen:
@@ -117,15 +139,21 @@ services:
     image: snowflake-oxygen
     container_name: snowflake-oxygen
     restart: on-failure
+    environment:
+      - ConnectionStrings__DefaultConnection=${OXYGEN_DATABASE_URL:-}
+      - ConnectionStrings__UsersGrpc=${OXYGEN_GRPC_URL:-http://snowflake-helium:50050}
+      - Security__Jwt__SecretKey=${OXYGEN_JWT_SECRET:-}
+      - ASPNETCORE_HTTP_PORTS=${OXYGEN_HTTP_PORT:-8082}
+      - Logging__LogLevel__Default=${OXYGEN_LOG_LEVEL:-Information}
     depends_on:
-      rabbitmq:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      helium:
-        condition: service_started
-      carbon:
-        condition: service_started
+    rabbitmq:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+    helium:
+      condition: service_started
+    carbon:
+      condition: service_started
     networks:
       - microservices-network
 
