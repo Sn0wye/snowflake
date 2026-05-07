@@ -4,15 +4,17 @@ FROM golang:1.26.2-alpine AS builder
 WORKDIR /app
 
 # Install curl
-RUN apk --no-cache add curl make
+RUN apk --no-cache add curl make gcc musl-dev unzip
 
 # Set the version of protoc you want to install
 ENV PROTOC_VERSION=27.1
 
-# Download and install protoc
-RUN curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-linux-x86_64.zip \
-    && unzip protoc-${PROTOC_VERSION}-linux-x86_64.zip -d /usr/local \
-    && rm protoc-${PROTOC_VERSION}-linux-x86_64.zip
+# Download and install protoc (arch-aware)
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "aarch64" ]; then PROTOC_ARCH="linux-aarch_64"; else PROTOC_ARCH="linux-x86_64"; fi && \
+    curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOC_VERSION}/protoc-${PROTOC_VERSION}-${PROTOC_ARCH}.zip \
+    && unzip protoc-${PROTOC_VERSION}-${PROTOC_ARCH}.zip -d /usr/local \
+    && rm protoc-${PROTOC_VERSION}-${PROTOC_ARCH}.zip
 
 # Install protoc-gen-go and protoc-gen-go-grpc plugins
 RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.34.1 \
