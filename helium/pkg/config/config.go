@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -24,6 +25,23 @@ func getConfig(path string) *viper.Viper {
 	if err != nil {
 		panic(err)
 	}
+
+	// Enable env var overrides — all YAML keys overridable via uppercased env vars
+	// (dots replaced with underscores, e.g. HTTP_PORT → http.port)
+	conf.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	conf.AutomaticEnv()
+
+	// Conventional bindings — only applied if env var is non-empty
+	if v := os.Getenv("DATABASE_URL"); v != "" {
+		conf.Set("db.connectionString", v)
+	}
+	if v := os.Getenv("RABBITMQ_URL"); v != "" {
+		conf.Set("messaging.connectionString", v)
+	}
+	if v := os.Getenv("JWT_SECRET"); v != "" {
+		conf.Set("security.jwt_secret", v)
+	}
+
 	return conf
 }
 
