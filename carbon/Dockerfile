@@ -33,8 +33,7 @@ COPY --from=build /app/target/carbon-0.0.1-SNAPSHOT.jar ./app.jar
 # Expose the port your application runs on
 EXPOSE 8080
 
-# Set Spring profile to prod for Docker environment
-ENV SPRING_PROFILES_ACTIVE=prod
+
 
 # Specify the command to run on container start
 CMD ["java", "-jar", "app.jar"]
