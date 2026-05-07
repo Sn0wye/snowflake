@@ -19,7 +19,6 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/main .
 COPY --from=builder /app/config ./config
-COPY --from=builder /app/swagger.json .
 
 EXPOSE 8083
 

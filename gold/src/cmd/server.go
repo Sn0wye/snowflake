@@ -23,7 +23,6 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/gofiber/contrib/swagger"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/spf13/viper"
@@ -104,14 +103,14 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 		},
 	})
 
-	app.Use(swagger.New(
-		swagger.Config{
-			BasePath: "/",
-			FilePath: "./swagger.json",
-			Path:     "swagger",
-			Title:    "Swagger API Docs",
-		},
-	))
+	// app.Use(swagger.New(
+	// 	swagger.Config{
+	// 		BasePath: "/",
+	// 		FilePath: "./swagger.json",
+	// 		Path:     "swagger",
+	// 		Title:    "Swagger API Docs",
+	// 	},
+	// ))
 
 	// CORS middleware
 	app.Use(cors.New(cors.Config{
