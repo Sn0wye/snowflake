@@ -3,7 +3,8 @@ package utils
 import (
 	"fmt"
 	"reflect"
-	"snowflake/pkg/validator"
+
+	"github.com/getsnowflake/snowflake/helium/pkg/validator"
 
 	"github.com/gofiber/fiber/v2"
 )

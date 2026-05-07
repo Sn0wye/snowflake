@@ -1,8 +1,8 @@
 package migration
 
 import (
-	"snowflake/pkg/logger"
-	"snowflake/src/models"
+	"github.com/getsnowflake/snowflake/helium/pkg/logger"
+	"github.com/getsnowflake/snowflake/helium/src/models"
 
 	"gorm.io/gorm"
 )

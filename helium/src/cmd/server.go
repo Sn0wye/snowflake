@@ -7,17 +7,18 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"snowflake/pkg/config"
-	"snowflake/pkg/logger"
-	"snowflake/pkg/messaging"
-	"snowflake/pkg/validator"
-	"snowflake/src/db"
-	grpcs "snowflake/src/grpc"
-	"snowflake/src/middleware"
-	"snowflake/src/migration"
-	"snowflake/src/models"
-	"snowflake/src/routes"
 	"syscall"
+
+	"github.com/getsnowflake/snowflake/helium/pkg/config"
+	"github.com/getsnowflake/snowflake/helium/pkg/logger"
+	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
+	"github.com/getsnowflake/snowflake/helium/pkg/validator"
+	"github.com/getsnowflake/snowflake/helium/src/db"
+	grpcs "github.com/getsnowflake/snowflake/helium/src/grpc"
+	"github.com/getsnowflake/snowflake/helium/src/middleware"
+	"github.com/getsnowflake/snowflake/helium/src/migration"
+	"github.com/getsnowflake/snowflake/helium/src/models"
+	"github.com/getsnowflake/snowflake/helium/src/routes"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -31,7 +32,7 @@ import (
 //	@description	The Snowflake API is organized around REST. This API has predictable resource-oriented URLs, accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.
 
 //	@contact.name	GitHub
-//	@contact.url	https://github.com/Sn0wye/snowflake/issues
+//	@contact.url	https://github.com/getsnowflake/snowflake/helium/issues
 
 //	@license.name	GNU General Public License v3.0
 //	@license.url	https://www.gnu.org/licenses/gpl-3.0

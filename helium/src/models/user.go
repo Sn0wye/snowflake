@@ -1,8 +1,9 @@
 package models
 
 import (
-	"snowflake/pb"
 	"time"
+
+	"github.com/getsnowflake/snowflake/helium/pb"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"

@@ -1,6 +1,6 @@
 # -- Proto Gen --
-PROTO_FILES := $(wildcard $(PROTO_DIR)/*.proto)
 PROTO_DIR := ./proto
+PROTO_FILES := $(wildcard $(PROTO_DIR)/*.proto)
 OUTPUT_DIR := ./pb
 generate: $(PROTO_FILES)
 	@mkdir -p $(OUTPUT_DIR)

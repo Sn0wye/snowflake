@@ -1,12 +1,12 @@
 package routes
 
 import (
-	"snowflake/pkg/config"
-	"snowflake/pkg/jwt"
-	"snowflake/pkg/logger"
-	"snowflake/pkg/messaging"
-	"snowflake/src/controllers"
-	"snowflake/src/db"
+	"github.com/getsnowflake/snowflake/helium/pkg/config"
+	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
+	"github.com/getsnowflake/snowflake/helium/pkg/logger"
+	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
+	"github.com/getsnowflake/snowflake/helium/src/controllers"
+	"github.com/getsnowflake/snowflake/helium/src/db"
 
 	"github.com/gofiber/fiber/v2"
 )

@@ -1,7 +1,7 @@
 package validator
 
 import (
-	"snowflake/pkg/logger"
+	"github.com/getsnowflake/snowflake/helium/pkg/logger"
 
 	"github.com/go-playground/validator/v10"
 )

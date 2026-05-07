@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"snowflake/pkg/exceptions"
-	"snowflake/pkg/jwt"
-	"snowflake/pkg/messaging"
-	"snowflake/src/dto"
-	"snowflake/src/models"
-	"snowflake/src/utils"
+	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
+	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
+	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
+	"github.com/getsnowflake/snowflake/helium/src/dto"
+	"github.com/getsnowflake/snowflake/helium/src/models"
+	"github.com/getsnowflake/snowflake/helium/src/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
