@@ -1,7 +1,7 @@
 services:
   # PostgreSQL DB
   postgres:
-    image: postgres
+    image: postgres:18.3
     container_name: snowflake-postgres
     environment:
       POSTGRES_USER: snowflake
