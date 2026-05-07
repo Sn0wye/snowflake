@@ -77,10 +77,10 @@ services:
       - GRPC_PORT=${HELIUM_GRPC_PORT:-50050}
       - LOG_LOG_LEVEL=${HELIUM_LOG_LEVEL:-info}
     depends_on:
-    rabbitmq:
-      condition: service_healthy
-    postgres:
-      condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
     networks:
       - microservices-network
 
@@ -98,12 +98,12 @@ services:
       - SERVER_PORT=${CARBON_HTTP_PORT:-8081}
       - LOGGING_LEVEL_ROOT=${CARBON_LOG_LEVEL:-INFO}
     depends_on:
-    rabbitmq:
-      condition: service_healthy
-    postgres:
-      condition: service_healthy
-    helium:
-      condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      helium:
+        condition: service_started
     networks:
       - microservices-network
 
@@ -123,14 +123,14 @@ services:
       - GRPC_PORT=${GOLD_GRPC_PORT:-50053}
       - LOG_LOG_LEVEL=${GOLD_LOG_LEVEL:-info}
     depends_on:
-    rabbitmq:
-      condition: service_healthy
-    postgres:
-      condition: service_healthy
-    helium:
-      condition: service_started
-  networks:
-    - microservices-network
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      helium:
+        condition: service_started
+    networks:
+      - microservices-network
 
   # Oxygen Service
   oxygen:
@@ -146,14 +146,14 @@ services:
       - ASPNETCORE_HTTP_PORTS=${OXYGEN_HTTP_PORT:-8082}
       - Logging__LogLevel__Default=${OXYGEN_LOG_LEVEL:-Information}
     depends_on:
-    rabbitmq:
-      condition: service_healthy
-    postgres:
-      condition: service_healthy
-    helium:
-      condition: service_started
-    carbon:
-      condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      helium:
+        condition: service_started
+      carbon:
+        condition: service_started
     networks:
       - microservices-network
 
