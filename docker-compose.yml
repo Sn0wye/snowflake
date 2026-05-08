@@ -9,7 +9,7 @@ services:
     ports:
       - '5433:5432'
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - ${POSTGRES_DATA_PATH:-/data/snowflake/postgres}:/var/lib/postgresql/data
       - ./init:/docker-entrypoint-initdb.d
     networks:
       - microservices-network
@@ -28,6 +28,7 @@ services:
       RABBITMQ_DEFAULT_USER: snowflake
       RABBITMQ_DEFAULT_PASS: snowflake
     volumes:
+      - ${RABBITMQ_DATA_PATH:-/data/snowflake/rabbitmq}:/var/lib/rabbitmq
       - ./init/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
       - ./init/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
     ports:
