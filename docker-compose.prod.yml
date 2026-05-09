@@ -1,0 +1,181 @@
+services:
+  # PostgreSQL DB
+  postgres:
+    image: postgres:18.3
+    container_name: snowflake-postgres
+    environment:
+      POSTGRES_USER: snowflake
+      POSTGRES_PASSWORD: snowflake
+    ports:
+      - '5433:5432'
+    volumes:
+      - ${POSTGRES_DATA_PATH:-/data/snowflake/postgres}:/var/lib/postgresql
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ['CMD', 'pg_isready', '-U', 'snowflake']
+      interval: 1s
+      timeout: 1s
+      retries: 15
+      start_period: 10s
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: snowflake-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: snowflake
+      RABBITMQ_DEFAULT_PASS: snowflake
+    volumes:
+      - ${RABBITMQ_DATA_PATH:-/data/snowflake/rabbitmq}:/var/lib/rabbitmq
+      - ./init/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./init/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    ports:
+      - '5672:5672'
+      - '15672:15672'
+    networks:
+      - microservices-network
+    healthcheck:
+      test: ['CMD', 'rabbitmqctl', 'status']
+      interval: 1s
+      timeout: 1s
+      retries: 30
+      start_period: 30s
+
+  # Authentication Service
+  helium:
+    build:
+      context: ./helium
+    image: snowflake-helium
+    container_name: snowflake-helium
+    ports:
+      - '50050:50050'
+    restart: on-failure
+    environment:
+      - DATABASE_URL=${HELIUM_DATABASE_URL:-}
+      - RABBITMQ_URL=${HELIUM_RABBITMQ_URL:-}
+      - JWT_SECRET=${HELIUM_JWT_SECRET:-}
+      - JWT_ISSUER=${HELIUM_JWT_ISSUER:-}
+      - HTTP_PORT=${HELIUM_HTTP_PORT:-8080}
+      - GRPC_PORT=${HELIUM_GRPC_PORT:-50050}
+      - LOG_LOG_LEVEL=${HELIUM_LOG_LEVEL:-info}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.helium.rule=PathPrefix(`/auth`)"
+      - "traefik.http.routers.helium.entrypoints=websecure"
+      - "traefik.http.routers.helium.tls=true"
+      - "traefik.http.routers.helium.tls.certresolver=letsencrypt"
+      - "traefik.http.services.helium.loadbalancer.server.port=8080"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    networks:
+      - microservices-network
+      - coolify
+
+  # Scorer Service
+  carbon:
+    build:
+      context: ./carbon
+    image: snowflake-carbon
+    container_name: snowflake-carbon
+    restart: on-failure
+    environment:
+      - SPRING_DATASOURCE_URL=${CARBON_DATABASE_URL:-}
+      - SPRING_RABBITMQ_ADDRESSES=${CARBON_RABBITMQ_URL:-}
+      - SPRING_GRPC_HOST=${CARBON_GRPC_HOST:-snowflake-helium}
+      - SERVER_PORT=${CARBON_HTTP_PORT:-8081}
+      - LOGGING_LEVEL_ROOT=${CARBON_LOG_LEVEL:-INFO}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.carbon.rule=PathPrefix(`/score`)"
+      - "traefik.http.routers.carbon.entrypoints=websecure"
+      - "traefik.http.routers.carbon.tls=true"
+      - "traefik.http.routers.carbon.tls.certresolver=letsencrypt"
+      - "traefik.http.services.carbon.loadbalancer.server.port=8081"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      helium:
+        condition: service_started
+    networks:
+      - microservices-network
+      - coolify
+
+  # Gold Service
+  gold:
+    build:
+      context: ./gold
+    image: snowflake-gold
+    container_name: snowflake-gold
+    restart: on-failure
+    environment:
+      - DATABASE_URL=${GOLD_DATABASE_URL:-}
+      - RABBITMQ_URL=${GOLD_RABBITMQ_URL:-}
+      - JWT_SECRET=${GOLD_JWT_SECRET:-}
+      - JWT_ISSUER=${GOLD_JWT_ISSUER:-}
+      - HTTP_PORT=${GOLD_HTTP_PORT:-8083}
+      - GRPC_PORT=${GOLD_GRPC_PORT:-50053}
+      - LOG_LOG_LEVEL=${GOLD_LOG_LEVEL:-info}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gold.rule=PathPrefix(`/account/`)"
+      - "traefik.http.routers.gold.entrypoints=websecure"
+      - "traefik.http.routers.gold.tls=true"
+      - "traefik.http.routers.gold.tls.certresolver=letsencrypt"
+      - "traefik.http.services.gold.loadbalancer.server.port=8083"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      helium:
+        condition: service_started
+    networks:
+      - microservices-network
+      - coolify
+
+  # Oxygen Service
+  oxygen:
+    build:
+      context: ./oxygen
+    image: snowflake-oxygen
+    container_name: snowflake-oxygen
+    restart: on-failure
+    environment:
+      - ConnectionStrings__DefaultConnection=${OXYGEN_DATABASE_URL:-}
+      - ConnectionStrings__UsersGrpc=${OXYGEN_GRPC_URL:-http://snowflake-helium:50050}
+      - Security__Jwt__SecretKey=${OXYGEN_JWT_SECRET:-}
+      - ASPNETCORE_HTTP_PORTS=${OXYGEN_HTTP_PORT:-8082}
+      - Logging__LogLevel__Default=${OXYGEN_LOG_LEVEL:-Information}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.oxygen.rule=PathPrefix(`/loan/`)"
+      - "traefik.http.routers.oxygen.entrypoints=websecure"
+      - "traefik.http.routers.oxygen.tls=true"
+      - "traefik.http.routers.oxygen.tls.certresolver=letsencrypt"
+      - "traefik.http.services.oxygen.loadbalancer.server.port=8082"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      helium:
+        condition: service_started
+      carbon:
+        condition: service_started
+    networks:
+      - microservices-network
+      - coolify
+
+# Network Configuration
+networks:
+  microservices-network:
+    driver: bridge
+  coolify:
+    external: true
