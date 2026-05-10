@@ -2,7 +2,6 @@ services:
   # PostgreSQL DB
   postgres:
     image: postgres:18.3
-    container_name: snowflake-postgres
     environment:
       POSTGRES_USER: snowflake
       POSTGRES_PASSWORD: snowflake
@@ -23,7 +22,6 @@ services:
   # RabbitMQ Message Broker
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: snowflake-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: snowflake
       RABBITMQ_DEFAULT_PASS: snowflake
@@ -48,7 +46,6 @@ services:
     build:
       context: ./helium
     image: snowflake-helium
-    container_name: snowflake-helium
     ports:
       - '50050:50050'
     restart: on-failure
@@ -61,12 +58,12 @@ services:
       - GRPC_PORT=${HELIUM_GRPC_PORT:-50050}
       - LOG_LOG_LEVEL=${HELIUM_LOG_LEVEL:-info}
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.helium.rule=PathPrefix(`/auth`)"
-      - "traefik.http.routers.helium.entrypoints=websecure"
-      - "traefik.http.routers.helium.tls=true"
-      - "traefik.http.routers.helium.tls.certresolver=letsencrypt"
-      - "traefik.http.services.helium.loadbalancer.server.port=8080"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.helium.rule=PathPrefix(`/auth`)'
+      - 'traefik.http.routers.helium.entrypoints=websecure'
+      - 'traefik.http.routers.helium.tls=true'
+      - 'traefik.http.routers.helium.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.helium.loadbalancer.server.port=8080'
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -81,7 +78,6 @@ services:
     build:
       context: ./carbon
     image: snowflake-carbon
-    container_name: snowflake-carbon
     restart: on-failure
     environment:
       - SPRING_DATASOURCE_URL=${CARBON_DATABASE_URL:-}
@@ -90,12 +86,12 @@ services:
       - SERVER_PORT=${CARBON_HTTP_PORT:-8081}
       - LOGGING_LEVEL_ROOT=${CARBON_LOG_LEVEL:-INFO}
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.carbon.rule=PathPrefix(`/score`)"
-      - "traefik.http.routers.carbon.entrypoints=websecure"
-      - "traefik.http.routers.carbon.tls=true"
-      - "traefik.http.routers.carbon.tls.certresolver=letsencrypt"
-      - "traefik.http.services.carbon.loadbalancer.server.port=8081"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.carbon.rule=PathPrefix(`/score`)'
+      - 'traefik.http.routers.carbon.entrypoints=websecure'
+      - 'traefik.http.routers.carbon.tls=true'
+      - 'traefik.http.routers.carbon.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.carbon.loadbalancer.server.port=8081'
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -112,7 +108,6 @@ services:
     build:
       context: ./gold
     image: snowflake-gold
-    container_name: snowflake-gold
     restart: on-failure
     environment:
       - DATABASE_URL=${GOLD_DATABASE_URL:-}
@@ -123,12 +118,12 @@ services:
       - GRPC_PORT=${GOLD_GRPC_PORT:-50053}
       - LOG_LOG_LEVEL=${GOLD_LOG_LEVEL:-info}
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.gold.rule=PathPrefix(`/account/`)"
-      - "traefik.http.routers.gold.entrypoints=websecure"
-      - "traefik.http.routers.gold.tls=true"
-      - "traefik.http.routers.gold.tls.certresolver=letsencrypt"
-      - "traefik.http.services.gold.loadbalancer.server.port=8083"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.gold.rule=PathPrefix(`/account/`)'
+      - 'traefik.http.routers.gold.entrypoints=websecure'
+      - 'traefik.http.routers.gold.tls=true'
+      - 'traefik.http.routers.gold.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.gold.loadbalancer.server.port=8083'
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -154,12 +149,12 @@ services:
       - ASPNETCORE_HTTP_PORTS=${OXYGEN_HTTP_PORT:-8082}
       - Logging__LogLevel__Default=${OXYGEN_LOG_LEVEL:-Information}
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.oxygen.rule=PathPrefix(`/loan/`)"
-      - "traefik.http.routers.oxygen.entrypoints=websecure"
-      - "traefik.http.routers.oxygen.tls=true"
-      - "traefik.http.routers.oxygen.tls.certresolver=letsencrypt"
-      - "traefik.http.services.oxygen.loadbalancer.server.port=8082"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.oxygen.rule=PathPrefix(`/loan/`)'
+      - 'traefik.http.routers.oxygen.entrypoints=websecure'
+      - 'traefik.http.routers.oxygen.tls=true'
+      - 'traefik.http.routers.oxygen.tls.certresolver=letsencrypt'
+      - 'traefik.http.services.oxygen.loadbalancer.server.port=8082'
     depends_on:
       rabbitmq:
         condition: service_healthy
