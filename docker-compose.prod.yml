@@ -1,6 +1,5 @@
 services:
-  # PostgreSQL DB
-  postgres:
+  snowflake-postgres:
     image: postgres:18.3
     container_name: snowflake-postgres
     environment:
@@ -21,7 +20,7 @@ services:
       start_period: 10s
 
   # RabbitMQ Message Broker
-  rabbitmq:
+  snowflake-rabbitmq:
     image: rabbitmq:3-management
     container_name: snowflake-rabbitmq
     environment:
@@ -44,7 +43,7 @@ services:
       start_period: 30s
 
   # Authentication Service
-  helium:
+  snowflake-helium:
     build:
       context: ./helium
     image: snowflake-helium
@@ -68,16 +67,16 @@ services:
       - 'traefik.http.routers.helium.tls.certresolver=letsencrypt'
       - 'traefik.http.services.helium.loadbalancer.server.port=8080'
     depends_on:
-      rabbitmq:
+      snowflake-rabbitmq:
         condition: service_healthy
-      postgres:
+      snowflake-database:
         condition: service_healthy
     networks:
       - microservices-network
       - coolify
 
   # Scorer Service
-  carbon:
+  snowflake-carbon:
     build:
       context: ./carbon
     image: snowflake-carbon
@@ -97,18 +96,18 @@ services:
       - 'traefik.http.routers.carbon.tls.certresolver=letsencrypt'
       - 'traefik.http.services.carbon.loadbalancer.server.port=8081'
     depends_on:
-      rabbitmq:
+      snowflake-rabbitmq:
         condition: service_healthy
-      postgres:
+      snowflake-database:
         condition: service_healthy
-      helium:
+      snowflake-helium:
         condition: service_started
     networks:
       - microservices-network
       - coolify
 
   # Gold Service
-  gold:
+  snowflake-gold:
     build:
       context: ./gold
     image: snowflake-gold
@@ -130,18 +129,18 @@ services:
       - 'traefik.http.routers.gold.tls.certresolver=letsencrypt'
       - 'traefik.http.services.gold.loadbalancer.server.port=8083'
     depends_on:
-      rabbitmq:
+      snowflake-rabbitmq:
         condition: service_healthy
-      postgres:
+      snowflake-database:
         condition: service_healthy
-      helium:
+      snowflake-helium:
         condition: service_started
     networks:
       - microservices-network
       - coolify
 
   # Oxygen Service
-  oxygen:
+  snowflake-oxygen:
     build:
       context: ./oxygen
     image: snowflake-oxygen
@@ -161,13 +160,13 @@ services:
       - 'traefik.http.routers.oxygen.tls.certresolver=letsencrypt'
       - 'traefik.http.services.oxygen.loadbalancer.server.port=8082'
     depends_on:
-      rabbitmq:
+      snowflake-rabbitmq:
         condition: service_healthy
-      postgres:
+      snowflake-database:
         condition: service_healthy
-      helium:
+      snowflake-helium:
         condition: service_started
-      carbon:
+      snowflake-carbon:
         condition: service_started
     networks:
       - microservices-network
