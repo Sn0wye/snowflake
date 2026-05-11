@@ -2,6 +2,7 @@ services:
   # PostgreSQL DB
   postgres:
     image: postgres:18.3
+    container_name: snowflake-postgres
     environment:
       POSTGRES_USER: snowflake
       POSTGRES_PASSWORD: snowflake
@@ -22,6 +23,7 @@ services:
   # RabbitMQ Message Broker
   rabbitmq:
     image: rabbitmq:3-management
+    container_name: snowflake-rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: snowflake
       RABBITMQ_DEFAULT_PASS: snowflake
@@ -46,6 +48,7 @@ services:
     build:
       context: ./helium
     image: snowflake-helium
+    container_name: snowflake-helium
     ports:
       - '50050:50050'
     restart: on-failure
@@ -78,6 +81,7 @@ services:
     build:
       context: ./carbon
     image: snowflake-carbon
+    container_name: snowflake-carbon
     restart: on-failure
     environment:
       - SPRING_DATASOURCE_URL=${CARBON_DATABASE_URL:-}
@@ -108,6 +112,7 @@ services:
     build:
       context: ./gold
     image: snowflake-gold
+    container_name: snowflake-gold
     restart: on-failure
     environment:
       - DATABASE_URL=${GOLD_DATABASE_URL:-}
