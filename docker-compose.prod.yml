@@ -1,4 +1,19 @@
 services:
+  # Nginx Load Balancer
+  snowflake-nginx:
+    image: nginx:latest
+    container_name: snowflake-nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - snowflake-helium
+      - snowflake-carbon
+      - snowflake-oxygen
+      - snowflake-gold
+    networks:
+      - microservices-network
+    restart: on-failure
+
   snowflake-postgres:
     image: postgres:18.3
     container_name: snowflake-postgres
@@ -30,9 +45,6 @@ services:
       - ${RABBITMQ_DATA_PATH:-/data/snowflake/rabbitmq}:/var/lib/rabbitmq
       - ./init/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json:ro
       - ./init/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-    ports:
-      - '5672:5672'
-      - '15672:15672'
     networks:
       - microservices-network
     healthcheck:
@@ -59,13 +71,6 @@ services:
       - HTTP_PORT=${HELIUM_HTTP_PORT:-8080}
       - GRPC_PORT=${HELIUM_GRPC_PORT:-50050}
       - LOG_LOG_LEVEL=${HELIUM_LOG_LEVEL:-info}
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.helium.rule=PathPrefix(`/auth`)'
-      - 'traefik.http.routers.helium.entrypoints=websecure'
-      - 'traefik.http.routers.helium.tls=true'
-      - 'traefik.http.routers.helium.tls.certresolver=letsencrypt'
-      - 'traefik.http.services.helium.loadbalancer.server.port=8080'
     depends_on:
       snowflake-rabbitmq:
         condition: service_healthy
@@ -73,7 +78,6 @@ services:
         condition: service_healthy
     networks:
       - microservices-network
-      - coolify
 
   # Scorer Service
   snowflake-carbon:
@@ -88,13 +92,6 @@ services:
       - SPRING_GRPC_HOST=${CARBON_GRPC_HOST:-snowflake-helium}
       - SERVER_PORT=${CARBON_HTTP_PORT:-8081}
       - LOGGING_LEVEL_ROOT=${CARBON_LOG_LEVEL:-INFO}
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.carbon.rule=PathPrefix(`/score`)'
-      - 'traefik.http.routers.carbon.entrypoints=websecure'
-      - 'traefik.http.routers.carbon.tls=true'
-      - 'traefik.http.routers.carbon.tls.certresolver=letsencrypt'
-      - 'traefik.http.services.carbon.loadbalancer.server.port=8081'
     depends_on:
       snowflake-rabbitmq:
         condition: service_healthy
@@ -104,7 +101,6 @@ services:
         condition: service_started
     networks:
       - microservices-network
-      - coolify
 
   # Gold Service
   snowflake-gold:
@@ -121,13 +117,6 @@ services:
       - HTTP_PORT=${GOLD_HTTP_PORT:-8083}
       - GRPC_PORT=${GOLD_GRPC_PORT:-50053}
       - LOG_LOG_LEVEL=${GOLD_LOG_LEVEL:-info}
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.gold.rule=PathPrefix(`/account/`)'
-      - 'traefik.http.routers.gold.entrypoints=websecure'
-      - 'traefik.http.routers.gold.tls=true'
-      - 'traefik.http.routers.gold.tls.certresolver=letsencrypt'
-      - 'traefik.http.services.gold.loadbalancer.server.port=8083'
     depends_on:
       snowflake-rabbitmq:
         condition: service_healthy
@@ -137,7 +126,6 @@ services:
         condition: service_started
     networks:
       - microservices-network
-      - coolify
 
   # Oxygen Service
   snowflake-oxygen:
@@ -152,13 +140,6 @@ services:
       - Security__Jwt__SecretKey=${OXYGEN_JWT_SECRET:-}
       - ASPNETCORE_HTTP_PORTS=${OXYGEN_HTTP_PORT:-8082}
       - Logging__LogLevel__Default=${OXYGEN_LOG_LEVEL:-Information}
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.routers.oxygen.rule=PathPrefix(`/loan/`)'
-      - 'traefik.http.routers.oxygen.entrypoints=websecure'
-      - 'traefik.http.routers.oxygen.tls=true'
-      - 'traefik.http.routers.oxygen.tls.certresolver=letsencrypt'
-      - 'traefik.http.services.oxygen.loadbalancer.server.port=8082'
     depends_on:
       snowflake-rabbitmq:
         condition: service_healthy
@@ -170,11 +151,8 @@ services:
         condition: service_started
     networks:
       - microservices-network
-      - coolify
 
 # Network Configuration
 networks:
   microservices-network:
     driver: bridge
-  coolify:
-    external: true
