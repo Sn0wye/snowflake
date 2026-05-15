@@ -34,6 +34,18 @@ func NewBalanceController(db *gorm.DB, jwt *jwt.JWT) BalanceController {
 	}
 }
 
+// GetBalance godoc
+//
+//	@Summary		/account/balance
+//	@Description	Get user account balance
+//	@Tags			Balance
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{object}	dto.BalanceResponse			"BalanceResponse"
+//	@Failure		404	{object}	exceptions.NotFoundError	"Account not found"
+//	@Security		Bearer
+//	@Router			/account/balance [get]
+//	@OperationId	getBalance
 func (s *balanceController) GetBalance(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
 
@@ -45,6 +57,21 @@ func (s *balanceController) GetBalance(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(dto.AccountToBalanceResponse(account))
 }
 
+// GetBalanceHistory godoc
+//
+//	@Summary		/account/balance/history
+//	@Description	Get user account balance transaction history with pagination
+//	@Tags			Balance
+//	@Accept			json
+//	@Produce		json
+//	@Param			page	query		int								false	"Page number (default: 1)"
+//	@Param			limit	query		int								false	"Items per page, max 100 (default: 20)"
+//	@Success		200		{object}	dto.BalanceHistoryResponse		"BalanceHistoryResponse"
+//	@Failure		404		{object}	exceptions.NotFoundError		"Account not found"
+//	@Failure		500		{object}	exceptions.InternalServerError	"Failed to fetch balance history"
+//	@Security		Bearer
+//	@Router			/account/balance/history [get]
+//	@OperationId	getBalanceHistory
 func (s *balanceController) GetBalanceHistory(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
 

@@ -46,8 +46,8 @@ func NewAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingServic
 //	@Tags			Auth
 //	@Accept			json
 //	@Produce		json
-//	@Success		200	{object}	dto.ProfileResponse					"ProfileResponse"
-//	@Failure		401	{object}	exceptions.UnauthorizedError		"Unauthorized"
+//	@Success		200	{object}	dto.ProfileResponse				"ProfileResponse"
+//	@Failure		401	{object}	exceptions.UnauthorizedError	"Unauthorized"
 //	@Failure		500	{object}	exceptions.InternalServerError	"Failed to fetch user"
 //	@Security		Bearer
 //	@Router			/auth/profile [get]
@@ -79,15 +79,15 @@ func (s *authController) Profile(c *fiber.Ctx) error {
 //
 //	@Summary		/auth/register
 //	@Description	Register a new user.
-//	@Description Emits: `user.created` event upon successful registration.
-//	@Tags			  Auth
+//	@Description	Emits: `user.created` event upon successful registration.
+//	@Tags			Auth
 //	@Accept			json
 //	@Produce		json
-//	@Param			body	body		dto.RegisterRequest	true	"Register Request"
-//	@Success		200		{object}	dto.RegisterResponse "RegisterResponse"
+//	@Param			body	body		dto.RegisterRequest					true	"Register Request"
+//	@Success		200		{object}	dto.RegisterResponse				"RegisterResponse"
 //	@Failure		400		{object}	exceptions.BadRequestError			"Invalid request body"
 //	@Failure		422		{object}	exceptions.UnprocessableEntityError	"Email already taken"
-//	@Failure		500		{object}	exceptions.InternalServerError	"Failed to hash password OR Failed to marshal data OR Failed to generate JWT token"
+//	@Failure		500		{object}	exceptions.InternalServerError		"Failed to hash password OR Failed to marshal data OR Failed to generate JWT token"
 //	@Router			/auth/register [post]
 //	@OperationId	register
 func (s *authController) Register(c *fiber.Ctx) error {
@@ -157,8 +157,8 @@ func (s *authController) Register(c *fiber.Ctx) error {
 //	@Produce		json
 //	@Param			body	body		dto.LoginRequest	true	"Login Request"
 //	@Success		200		{object}	dto.LoginResponse
-//	@Failure		400		{object}	exceptions.BadRequestError			"Invalid request body"
-//	@Failure		401		{object}	exceptions.UnauthorizedError		"Wrong email or password"
+//	@Failure		400		{object}	exceptions.BadRequestError		"Invalid request body"
+//	@Failure		401		{object}	exceptions.UnauthorizedError	"Wrong email or password"
 //	@Failure		500		{object}	exceptions.InternalServerError	"Failed to generate JWT token"
 //	@Router			/auth/login [post]
 //	@OperationId	login

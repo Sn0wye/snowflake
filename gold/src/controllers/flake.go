@@ -41,6 +41,21 @@ func NewFlakeController(db *gorm.DB, jwt *jwt.JWT) FlakeController {
 	}
 }
 
+// CreateFlake godoc
+//
+//	@Summary		/account/flakes
+//	@Description	Create a new flake key for the user account
+//	@Tags			Flakes
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		dto.CreateFlakeRequest			true	"Create Flake Request"
+//	@Success		201		{object}	dto.FlakeResponse				"FlakeResponse"
+//	@Failure		400		{object}	exceptions.BadRequestError		"Invalid flake key or maximum limit reached"
+//	@Failure		404		{object}	exceptions.NotFoundError		"Account not found"
+//	@Failure		500		{object}	exceptions.InternalServerError	"Failed to create flake key"
+//	@Security		Bearer
+//	@Router			/account/flakes [post]
+//	@OperationId	createFlake
 func (s *flakeController) CreateFlake(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
 
@@ -106,6 +121,19 @@ func (s *flakeController) CreateFlake(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusCreated).JSON(dto.FlakeToResponse(flake))
 }
 
+// GetFlakes godoc
+//
+//	@Summary		/account/flakes
+//	@Description	Get all flake keys for the user account
+//	@Tags			Flakes
+//	@Accept			json
+//	@Produce		json
+//	@Success		200	{array}		dto.FlakeResponse				"Array of FlakeResponse"
+//	@Failure		404	{object}	exceptions.NotFoundError		"Account not found"
+//	@Failure		500	{object}	exceptions.InternalServerError	"Failed to fetch flake keys"
+//	@Security		Bearer
+//	@Router			/account/flakes [get]
+//	@OperationId	getFlakes
 func (s *flakeController) GetFlakes(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
 
@@ -127,6 +155,21 @@ func (s *flakeController) GetFlakes(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(response)
 }
 
+// DeleteFlake godoc
+//
+//	@Summary		/account/flakes/{id}
+//	@Description	Deactivate a flake key
+//	@Tags			Flakes
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string							true	"Flake key ID"
+//	@Success		200	{object}	dto.FlakeResponse				"FlakeResponse"
+//	@Failure		400	{object}	exceptions.BadRequestError		"Flake key is already inactive"
+//	@Failure		404	{object}	exceptions.NotFoundError		"Account or flake key not found"
+//	@Failure		500	{object}	exceptions.InternalServerError	"Failed to deactivate flake key"
+//	@Security		Bearer
+//	@Router			/account/flakes/{id} [delete]
+//	@OperationId	deleteFlake
 func (s *flakeController) DeleteFlake(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
 	id := ctx.Params("id")
@@ -152,6 +195,19 @@ func (s *flakeController) DeleteFlake(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(dto.FlakeToResponse(flake))
 }
 
+// PublicLookupFlake godoc
+//
+//	@Summary		/account/flakes/lookup
+//	@Description	Publicly lookup account info by flake key (no authentication required)
+//	@Tags			Flakes
+//	@Accept			json
+//	@Produce		json
+//	@Param			key_value	query		string						true	"Flake key value to lookup"
+//	@Success		200			{object}	dto.LookupFlakeResponse		"LookupFlakeResponse"
+//	@Failure		400			{object}	exceptions.BadRequestError	"Missing key_value parameter"
+//	@Failure		404			{object}	exceptions.NotFoundError	"Flake key or account not found"
+//	@Router			/account/flakes/lookup [get]
+//	@OperationId	publicLookupFlake
 func (s *flakeController) PublicLookupFlake(ctx *fiber.Ctx) error {
 	keyValue := ctx.Query("key_value")
 	if keyValue == "" {

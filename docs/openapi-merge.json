@@ -8,6 +8,9 @@
     },
     {
       "inputFile": "../helium/openapi.json"
+    },
+    {
+      "inputFile": "../gold/openapi.json"
     }
   ],
   "output": "./openapi.json"

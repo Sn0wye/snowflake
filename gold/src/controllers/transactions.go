@@ -55,6 +55,23 @@ func NewTransactionsController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.Messagi
 	}
 }
 
+// GetTransactions godoc
+//
+//	@Summary		/account/transactions
+//	@Description	Get user account transactions with optional filters and pagination
+//	@Tags			Transactions
+//	@Accept			json
+//	@Produce		json
+//	@Param			page	query		int									false	"Page number (default: 1)"
+//	@Param			limit	query		int									false	"Items per page, max 100 (default: 20)"
+//	@Param			status	query		string								false	"Filter by transaction status (pending, completed)"
+//	@Param			type	query		string								false	"Filter by transaction type (transfer, deposit)"
+//	@Success		200		{object}	dto.PaginatedTransactionsResponse	"PaginatedTransactionsResponse"
+//	@Failure		404		{object}	exceptions.NotFoundError			"Account not found"
+//	@Failure		500		{object}	exceptions.InternalServerError		"Failed to fetch transactions"
+//	@Security		Bearer
+//	@Router			/account/transactions [get]
+//	@OperationId	getTransactions
 func (s *transactionsController) GetTransactions(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
 
@@ -113,6 +130,20 @@ func (s *transactionsController) GetTransactions(ctx *fiber.Ctx) error {
 	})
 }
 
+// GetTransactionByID godoc
+//
+//	@Summary		/account/transactions/{id}
+//	@Description	Get a specific transaction by ID (user must be sender or receiver)
+//	@Tags			Transactions
+//	@Accept			json
+//	@Produce		json
+//	@Param			id	path		string							true	"Transaction ID"
+//	@Success		200	{object}	dto.TransactionResponse			"TransactionResponse"
+//	@Failure		404	{object}	exceptions.NotFoundError		"Account or transaction not found"
+//	@Failure		500	{object}	exceptions.InternalServerError	"Failed to fetch transaction"
+//	@Security		Bearer
+//	@Router			/account/transactions/{id} [get]
+//	@OperationId	getTransactionByID
 func (s *transactionsController) GetTransactionByID(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
 	id := ctx.Params("id")
@@ -140,6 +171,22 @@ func (s *transactionsController) GetTransactionByID(ctx *fiber.Ctx) error {
 	return ctx.Status(http.StatusOK).JSON(dto.TransactionToResponse(transaction))
 }
 
+// CreateTransaction godoc
+//
+//	@Summary		/account/transactions
+//	@Description	Create a new transaction/transfer between accounts
+//	@Description	Emits: `transaction.completed` event upon successful transfer completion.
+//	@Tags			Transactions
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		dto.CreateTransferRequest		true	"Create Transfer Request"
+//	@Success		201		{object}	dto.TransactionResponse			"TransactionResponse"
+//	@Failure		400		{object}	exceptions.BadRequestError		"Invalid amount, account status, or limits exceeded"
+//	@Failure		404		{object}	exceptions.NotFoundError		"Account or receiver flake key not found"
+//	@Failure		500		{object}	exceptions.InternalServerError	"Transfer failed"
+//	@Security		Bearer
+//	@Router			/account/transactions [post]
+//	@OperationId	createTransaction
 func (s *transactionsController) CreateTransaction(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
 
@@ -358,6 +405,21 @@ func (s *transactionsController) publishCompleted(t *models.Transaction) {
 	}()
 }
 
+// Deposit godoc
+//
+//	@Summary		/account/transactions/deposit
+//	@Description	Deposit funds into an account
+//	@Description	Emits: `transaction.completed` event upon successful deposit completion.
+//	@Tags			Transactions
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		dto.DepositRequest				true	"Deposit Request"
+//	@Success		201		{object}	dto.TransactionResponse			"TransactionResponse"
+//	@Failure		400		{object}	exceptions.BadRequestError		"Invalid amount or account status"
+//	@Failure		404		{object}	exceptions.NotFoundError		"Account not found"
+//	@Failure		500		{object}	exceptions.InternalServerError	"Deposit failed"
+//	@Router			/account/transactions/deposit [post]
+//	@OperationId	deposit
 func (s *transactionsController) Deposit(ctx *fiber.Ctx) error {
 	body := new(dto.DepositRequest)
 	if err := utils.ParseRequest(ctx, body); err != nil {
