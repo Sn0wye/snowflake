@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: snowflake
       POSTGRES_PASSWORD: snowflake
     ports:
-      - '5433:5432'
+      - '5432:5432'
     volumes:
       - ${POSTGRES_DATA_PATH:-/data/snowflake/postgres}:/var/lib/postgresql
       - ./init:/docker-entrypoint-initdb.d
@@ -45,12 +45,11 @@ services:
 
   # Proxy Server
   nginx:
-    image: nginx:latest
+    build:
+      context: ./nginx
     container_name: snowflake-nginx
     ports:
       - '80:80'
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
       - microservices-network
     depends_on:
@@ -66,7 +65,7 @@ services:
     image: snowflake-helium
     container_name: snowflake-helium
     ports:
-      # Exposing gRPC for now because nginx refuses to work
+      # Expose gRPC for development
       - '50050:50050'
     restart: on-failure
     environment:
