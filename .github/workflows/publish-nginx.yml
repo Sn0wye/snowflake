@@ -32,7 +32,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
-          context: .
+          context: ./nginx
           file: nginx/Dockerfile
           push: true
           platforms: linux/arm64
