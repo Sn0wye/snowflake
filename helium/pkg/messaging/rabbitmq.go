@@ -92,7 +92,7 @@ func (m *MessagingService) Consume(queueName string) (<-chan amqp091.Delivery, e
 	// Declare the queue
 	_, err = channel.QueueDeclare(
 		queueName, // name
-		false,     // durable
+		true,      // durable
 		false,     // delete when unused
 		false,     // exclusive
 		false,     // no-wait
