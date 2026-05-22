@@ -124,6 +124,17 @@ func (m *MessagingService) Consume(queueName string) (<-chan amqp091.Delivery, e
 	return messages, nil
 }
 
+// HealthCheck verifies the RabbitMQ connection by opening a test channel
+func (m *MessagingService) HealthCheck() error {
+	ch, err := m.conn.Channel()
+	if err != nil {
+		m.logger.Error("RabbitMQ health check failed", zap.Error(err))
+		return fmt.Errorf("failed to open channel: %w", err)
+	}
+	defer ch.Close()
+	return nil
+}
+
 // Close gracefully closes the connection
 func (m *MessagingService) Close() {
 	m.logger.Info("Closing RabbitMQ connection")

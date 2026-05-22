@@ -122,7 +122,7 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 	// JWT Middleware
 	jwt := middleware.JWTMiddleware(conf, logger)
 
-	routes.BindHealthRoutes(app)
+	routes.BindHealthRoutes(app, db.GetDB(), rmq)
 	routes.BindFlakeRoutes(app, jwt, logger, rmq)
 	routes.BindBalanceRoutes(app, jwt, logger, rmq)
 	routes.BindTransactionRoutes(app, jwt, logger, rmq)

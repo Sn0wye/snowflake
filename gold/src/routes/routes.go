@@ -57,31 +57,6 @@ func BindTransactionRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *log
 	router.Post("/deposit", controller.Deposit)
 }
 
-func BindHealthRoutes(app *fiber.App) {
-	router := app.Group("/account")
-
-	router.Get("/health", func(c *fiber.Ctx) error {
-		database := db.GetDB()
-		sqlDB, err := database.DB()
-		if err != nil {
-			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
-				"status":   "unhealthy",
-				"database": "unavailable",
-			})
-		}
-		if err := sqlDB.Ping(); err != nil {
-			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{
-				"status":   "unhealthy",
-				"database": "unreachable",
-			})
-		}
-		return c.Status(http.StatusOK).JSON(fiber.Map{
-			"status":   "healthy",
-			"database": "ok",
-		})
-	})
-}
-
 func BindAdminRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, job *reconciliation.Job) {
 	router := app.Group("/account/admin", jwtMiddleware)
 
