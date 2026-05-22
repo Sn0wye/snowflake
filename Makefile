@@ -31,7 +31,7 @@ docs-gold: check-swag
 	$(MAKE) -C gold docs
 
 # --- OpenAPI generation (all services) ---
-docs-generate: docs-helium docs-gold docs-oxygen
+docs-generate: docs-helium docs-gold
 	@echo "✓ All service OpenAPI specs generated"
 
 # --- OpenAPI merge related ---
