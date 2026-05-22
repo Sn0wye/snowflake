@@ -19,6 +19,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.2"
+          cache: true
+          cache-dependency-path: ./gold/go.sum
+
+      - name: Cross-compile binary
+        working-directory: ./gold
+        run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o main src/cmd/server.go
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
         with:
@@ -33,7 +44,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ./gold
-          file: ./gold/Dockerfile
+          file: ./gold/Dockerfile.ci
           push: true
           platforms: linux/arm64
           tags: ghcr.io/${{ github.repository }}/gold:prod

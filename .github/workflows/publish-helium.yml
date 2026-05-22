@@ -23,6 +23,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.26.2"
+          cache: true
+          cache-dependency-path: ./helium/go.sum
 
       - name: Setup Protoc
         uses: arduino/setup-protoc@v3
@@ -39,6 +41,10 @@ jobs:
         working-directory: ./helium
         run: make generate
 
+      - name: Cross-compile binary
+        working-directory: ./helium
+        run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o main src/cmd/server.go
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
         with:
@@ -53,7 +59,7 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: ./helium
-          file: ./helium/Dockerfile
+          file: ./helium/Dockerfile.ci
           push: true
           platforms: linux/arm64
           tags: ghcr.io/${{ github.repository }}/helium:prod

@@ -1,0 +1,7 @@
+FROM alpine:latest
+WORKDIR /app
+COPY main .
+COPY config ./config
+EXPOSE 8080
+EXPOSE 50050
+CMD ["./main"]
