@@ -125,6 +125,7 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 	jwt := middleware.JWTMiddleware(conf, logger)
 
 	// Bind routes
+	routes.BindHealthRoutes(app, db.GetDB(), rmq)
 	routes.BindAuthRoutes(app, jwt, logger, rmq)
 
 	port := conf.GetInt("http.port")
