@@ -58,7 +58,9 @@ func BindTransactionRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *log
 }
 
 func BindHealthRoutes(app *fiber.App) {
-	app.Get("/health", func(c *fiber.Ctx) error {
+	router := app.Group("/account")
+
+	router.Get("/health", func(c *fiber.Ctx) error {
 		database := db.GetDB()
 		sqlDB, err := database.DB()
 		if err != nil {
