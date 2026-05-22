@@ -64,7 +64,7 @@ services:
     image: snowflake-helium
     container_name: snowflake-helium
     ports:
-      # Expose gRPC for development
+      - '8080:8080'
       - '50050:50050'
     restart: on-failure
     environment:
@@ -89,10 +89,12 @@ services:
       context: ./carbon
     image: snowflake-carbon
     container_name: snowflake-carbon
+    ports:
+      - '8081:8081'
     restart: on-failure
     environment:
       - SPRING_DATASOURCE_URL=${CARBON_DATABASE_URL:-}
-      - SPRING_RABBITMQ_ADDRESSES=${CARBON_RABBITMQ_URL:-}
+      - SPRING_RABBITMQ_HOST=${CARBON_RABBITMQ_HOST:-rabbitmq}
       - SPRING_GRPC_HOST=${CARBON_GRPC_HOST:-snowflake-helium}
       - SERVER_PORT=${CARBON_HTTP_PORT:-8081}
       - LOGGING_LEVEL_ROOT=${CARBON_LOG_LEVEL:-INFO}
@@ -112,6 +114,8 @@ services:
       context: ./gold
     image: snowflake-gold
     container_name: snowflake-gold
+    ports:
+      - '8083:8083'
     restart: on-failure
     environment:
       - DATABASE_URL=${GOLD_DATABASE_URL:-}
@@ -137,6 +141,8 @@ services:
       context: ./oxygen
     image: snowflake-oxygen
     container_name: snowflake-oxygen
+    ports:
+      - '8082:8082'
     restart: on-failure
     environment:
       - ConnectionStrings__DefaultConnection=${OXYGEN_DATABASE_URL:-}
