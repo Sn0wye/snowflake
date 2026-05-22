@@ -4,22 +4,22 @@ import (
 	"context"
 
 	"github.com/getsnowflake/snowflake/helium/pb"
-	"github.com/getsnowflake/snowflake/helium/src/db"
 	"github.com/getsnowflake/snowflake/helium/src/models"
 
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"gorm.io/gorm"
 )
 
-type userSevice struct {
+type userService struct {
 	pb.UnimplementedUserServiceServer
+	db *gorm.DB
 }
 
-func (s *userSevice) GetUsers(context.Context, *emptypb.Empty) (*pb.GetUsersResponse, error) {
-	db := db.GetDB()
+func (s *userService) GetUsers(context.Context, *emptypb.Empty) (*pb.GetUsersResponse, error) {
 	var users []models.User
 
-	db.Find(&users)
+	s.db.Find(&users)
 
 	var grpcUsers []*pb.User
 	for _, user := range users {
@@ -32,11 +32,10 @@ func (s *userSevice) GetUsers(context.Context, *emptypb.Empty) (*pb.GetUsersResp
 	}, nil
 }
 
-func (s *userSevice) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.GetUserResponse, error) {
-	db := db.GetDB()
+func (s *userService) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.GetUserResponse, error) {
 	var user models.User
 
-	result := db.Where("id = ?", req.Id).First(&user)
+	result := s.db.Where("id = ?", req.Id).First(&user)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -47,23 +46,22 @@ func (s *userSevice) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.G
 	}, nil
 }
 
-func (s *userSevice) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.DeleteUserResponse, error) {
-	db := db.GetDB()
+func (s *userService) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.DeleteUserResponse, error) {
 	var user models.User
 
-	result := db.Where("id = ?", req.Id).First(&user)
+	result := s.db.Where("id = ?", req.Id).First(&user)
 
 	if result.Error != nil {
 		return nil, result.Error
 	}
 
-	db.Delete(&user)
+	s.db.Delete(&user)
 
 	return &pb.DeleteUserResponse{
 		User: user.ToGRPC(),
 	}, nil
 }
 
-func RegisterUserService(s *grpc.Server) {
-	pb.RegisterUserServiceServer(s, &userSevice{})
+func RegisterUserService(s *grpc.Server, db *gorm.DB) {
+	pb.RegisterUserServiceServer(s, &userService{db: db})
 }

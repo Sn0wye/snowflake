@@ -2,6 +2,7 @@ package db
 
 import (
 	"log"
+	"sync"
 
 	"github.com/getsnowflake/snowflake/helium/pkg/config"
 
@@ -11,28 +12,34 @@ import (
 	gormLogger "gorm.io/gorm/logger"
 )
 
+var (
+	instance *gorm.DB
+	once     sync.Once
+)
+
 func GetDB() *gorm.DB {
-	conf := config.GetConfig()
-	driver := conf.GetString("db.driver")
-	conn := conf.GetString("db.connectionString")
+	once.Do(func() {
+		conf := config.GetConfig()
+		driver := conf.GetString("db.driver")
+		conn := conf.GetString("db.connectionString")
 
-	var db *gorm.DB
-	var err error
+		var err error
 
-	switch driver {
-	case "postgres":
-		db, err = gorm.Open(postgres.Open(conn), &gorm.Config{
-			Logger: gormLogger.Default.LogMode(gormLogger.Info),
-		})
-	default: // sqlite (default)
-		db, err = gorm.Open(sqlite.Open("db.sqlite"), &gorm.Config{
-			Logger: gormLogger.Default.LogMode(gormLogger.Info),
-		})
-	}
+		switch driver {
+		case "postgres":
+			instance, err = gorm.Open(postgres.Open(conn), &gorm.Config{
+				Logger: gormLogger.Default.LogMode(gormLogger.Info),
+			})
+		default: // sqlite (default)
+			instance, err = gorm.Open(sqlite.Open("db.sqlite"), &gorm.Config{
+				Logger: gormLogger.Default.LogMode(gormLogger.Info),
+			})
+		}
 
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
-	}
+		if err != nil {
+			log.Fatalf("Failed to connect to database: %v", err)
+		}
+	})
 
-	return db
+	return instance
 }
