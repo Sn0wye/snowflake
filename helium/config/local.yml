@@ -16,6 +16,11 @@ db:
   connectionString: postgres://snowflake:snowflake@127.0.0.1:5432/helium?sslmode=disable
 messaging:
   connectionString: amqp://snowflake:snowflake@localhost:5672
+google:
+  client_id: ''
+  client_secret: ''
+  redirect_url: ''
+
 log:
   log_level: info
   encoding: console # json or console

@@ -1,8 +1,6 @@
 module github.com/getsnowflake/snowflake/helium
 
-go 1.22.0
-
-toolchain go1.23.3
+go 1.25.0
 
 require (
 	github.com/go-playground/validator/v10 v10.22.1
@@ -14,6 +12,7 @@ require (
 	github.com/spf13/viper v1.18.2
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.29.0
+	golang.org/x/oauth2 v0.36.0
 	google.golang.org/grpc v1.59.0
 	google.golang.org/protobuf v1.33.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -23,6 +22,7 @@ require (
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/andybalholm/brotli v1.0.5 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.5 // indirect

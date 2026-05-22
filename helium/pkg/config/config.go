@@ -41,6 +41,15 @@ func getConfig(path string) *viper.Viper {
 	if v := os.Getenv("JWT_SECRET"); v != "" {
 		conf.Set("security.jwt_secret", v)
 	}
+	if v := os.Getenv("GOOGLE_CLIENT_ID"); v != "" {
+		conf.Set("google.client_id", v)
+	}
+	if v := os.Getenv("GOOGLE_CLIENT_SECRET"); v != "" {
+		conf.Set("google.client_secret", v)
+	}
+	if v := os.Getenv("GOOGLE_REDIRECT_URL"); v != "" {
+		conf.Set("google.redirect_url", v)
+	}
 
 	return conf
 }

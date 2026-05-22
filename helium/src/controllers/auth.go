@@ -176,6 +176,9 @@ func (s *authController) Login(c *fiber.Ctx) error {
 	var user models.User
 	db.Where("email = ?", body.Email).First(&user)
 
+	if user.Password == "" {
+		return exceptions.Unauthorized(c)
+	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password)); err != nil {
 		return exceptions.Unauthorized(c)
 	}
