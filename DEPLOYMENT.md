@@ -19,16 +19,16 @@ All services use committed config files as defaults with environment variable ov
 
 ## Environment Variables
 
-**Quick reference:** Copy `.env.example` for local testing. For full variable specifications, see [.deployment/env-vars.md](.deployment/env-vars.md).
+**Quick reference:** Copy `.env.example` for local testing.
 
 Key naming conventions:
 - **helium/gold:** `{SERVICE}_*` prefix (e.g., `HELIUM_DATABASE_URL`, `GOLD_JWT_SECRET`)
 - **carbon:** `SPRING_*` prefix (e.g., `SPRING_DATASOURCE_URL`, `LOGGING_LEVEL_ROOT`)
 - **oxygen:** CamelCase with double-underscores (e.g., `ConnectionStrings__DefaultConnection`, `Logging__LogLevel__Default`)
 
-## Docker Compose
+## Docker Compose (Local Dev Only)
 
-All `environment:` blocks configured in `docker-compose.yml`. Pattern: `${SERVICE_VAR:-default}` allows unset vars to fall back to service config file defaults.
+`docker-compose.yml` is for local development only — not used in production. All `environment:` blocks use `${SERVICE_VAR:-default}` so unset vars fall back to service config file defaults. Includes nginx as a local reverse proxy.
 
 ## Local Development
 
@@ -39,20 +39,22 @@ docker compose up postgres rabbitmq  # infra only
 go run ./helium/src/cmd/server.go    # helium
 ```
 
-**Option B: Full docker-compose:**
+**Option B: Full docker-compose (includes nginx proxy on :80):**
 ```bash
 # Copy .env.example → .env, update as needed
 docker compose up
 ```
 
-## Production Deployment (Coolify)
+## Production Deployment
 
-1. Commit all changes
-2. Create Docker Compose project in Coolify pointing to this repo
-3. Set all service env vars via Coolify UI (reference: [.deployment/env-vars.md](.deployment/env-vars.md))
-4. Deploy
+Each service is deployed **independently** via CI/CD:
 
-Coolify substitutes env vars into `docker-compose.yml`. Services load config file defaults, then apply env var overrides.
+1. Push to `main` triggers the service's GitHub Actions workflow (`.github/workflows/publish-<service>.yml`)
+2. Workflow builds the Docker image and pushes to `ghcr.io/<repo>/<service>:prod`
+3. Workflow calls the Coolify webhook (`COOLIFY_<SERVICE>_WEBHOOK`) which redeploys that service
+4. Coolify pulls the new image and restarts the container with its configured env vars
+
+Each service is configured separately in Coolify with its own env vars. There is no shared docker-compose in production — nginx is not used in prod.
 
 ## Configuration Priority (lowest to highest)
 

@@ -41,14 +41,25 @@ make migrate-oxygen
   - Exception: `SPRING_DATASOURCE_URL` expects JDBC format (`jdbc:postgresql://...`), not `postgres://...`
 - **oxygen**: Reads `appsettings.json` (or `.Development.json` in dev). .NET uses double-underscores (`ConnectionStrings__DefaultConnection`).
 
-**See DEPLOYMENT.md for full env var reference and docker-compose setup.**
+**See DEPLOYMENT.md for full env var reference and local dev setup.**
 
-## Docker Compose
+## Docker Compose (Local Dev Only)
 
-- **Fixed June 2026**: YAML `depends_on` indentation was broken; now correct.
-- All services use `docker-compose.yml`; no separate prod compose file.
+- `docker-compose.yml` is for local development only — not used in production.
+- Includes nginx reverse proxy on port 80 (also local dev only).
 - Env var substitution: `${SERVICE_VAR:-default}` pattern throughout.
 - `.env` file (gitignored) provides local overrides for development.
+- **Fixed June 2026**: YAML `depends_on` indentation was broken; now correct.
+
+## Production Deployment
+
+Each service deploys independently via GitHub Actions → ghcr.io → Coolify:
+
+- Push to `main` triggers `.github/workflows/publish-<service>.yml`
+- Image pushed to `ghcr.io/<repo>/<service>:prod`
+- Coolify webhook (`COOLIFY_<SERVICE>_WEBHOOK`) redeploys the service
+- Each service is configured individually in Coolify with its own env vars
+- No shared compose file or nginx in production
 
 ## Development Gotchas
 
