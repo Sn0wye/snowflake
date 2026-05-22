@@ -22,6 +22,8 @@ func BindAuthRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Log
 
 	router.Post("/login", controller.Login)
 	router.Post("/register", controller.Register)
+	router.Post("/refresh", controller.Refresh)
+	router.Post("/logout", controller.Logout)
 
 	router.Get("/profile", jwtMiddleware, controller.Profile)
 

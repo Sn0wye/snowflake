@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -83,7 +84,7 @@ func (s *oauthController) Redirect(c *fiber.Ctx) error {
 // Callback godoc
 //
 //	@Summary		/auth/oauth/callback
-//	@Description	Google OAuth callback — exchanges code for token, creates/links account, returns JWT
+//	@Description	Google OAuth callback — exchanges code for token, creates/links account, returns access and refresh tokens
 //	@Description	Emits: `user.created` event upon new user registration.
 //	@Tags			Auth
 //	@Produce		json
@@ -92,7 +93,7 @@ func (s *oauthController) Redirect(c *fiber.Ctx) error {
 //	@Success		200		{object}	dto.OAuthResponse				"OAuthResponse"
 //	@Failure		400		{object}	exceptions.BadRequestError		"Missing code or state"
 //	@Failure		401		{object}	exceptions.UnauthorizedError	"Invalid state"
-//	@Failure		500		{object}	exceptions.InternalServerError	"Failed to exchange code OR fetch user info OR generate JWT token"
+//	@Failure		500		{object}	exceptions.InternalServerError	"Failed to exchange code OR fetch user info OR generate token"
 //	@Router			/auth/oauth/callback [get]
 //	@OperationId	oauthCallback
 func (s *oauthController) Callback(c *fiber.Ctx) error {
@@ -141,11 +142,7 @@ func (s *oauthController) Callback(c *fiber.Ctx) error {
 	var oauthAccount models.OAuthAccount
 	result := s.db.Where("provider = ? AND provider_id = ?", models.ProviderGoogle, googleUser.Sub).First(&oauthAccount)
 	if result.Error == nil {
-		tkn, jwtErr := s.GenerateToken(oauthAccount.UserID.String())
-		if jwtErr != nil {
-			return exceptions.InternalServer(c, "failed to generate JWT token")
-		}
-		return c.Status(fiber.StatusOK).JSON(dto.OAuthResponse{Token: tkn})
+		return s.authResponse(c, oauthAccount.UserID.String())
 	}
 
 	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -168,11 +165,7 @@ func (s *oauthController) Callback(c *fiber.Ctx) error {
 			return exceptions.InternalServer(c, "failed to create oauth account")
 		}
 
-		tkn, jwtErr := s.GenerateToken(user.ID.String())
-		if jwtErr != nil {
-			return exceptions.InternalServer(c, "failed to generate JWT token")
-		}
-		return c.Status(fiber.StatusOK).JSON(dto.OAuthResponse{Token: tkn})
+		return s.authResponse(c, user.ID.String())
 	}
 
 	username := s.generateUsername(googleUser.Email)
@@ -206,19 +199,61 @@ func (s *oauthController) Callback(c *fiber.Ctx) error {
 		s.rmq.Produce("user.created", string(jsonData))
 	}
 
-	tkn, jwtErr := s.GenerateToken(user.ID.String())
-	if jwtErr != nil {
-		return exceptions.InternalServer(c, "failed to generate JWT token")
+	return s.authResponse(c, user.ID.String())
+}
+
+func (s *oauthController) authResponse(ctx *fiber.Ctx, userID string) error {
+	accessToken, err := s.GenerateToken(userID)
+	if err != nil {
+		return exceptions.InternalServer(ctx, "failed to generate JWT token")
 	}
-	return c.Status(fiber.StatusOK).JSON(dto.OAuthResponse{Token: tkn})
+
+	refreshToken, err := s.storeRefreshToken(userID)
+	if err != nil {
+		return exceptions.InternalServer(ctx, "failed to generate refresh token")
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(dto.OAuthResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	})
 }
 
 func (s *oauthController) GenerateToken(userId string) (string, error) {
-	token, err := s.jwt.GenToken(userId, time.Now().Add(time.Hour*24*90))
+	token, err := s.jwt.GenToken(userId, time.Now().Add(accessTokenDuration))
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate JWT token")
 	}
 	return token, nil
+}
+
+func (s *oauthController) storeRefreshToken(userId string) (string, error) {
+	parsedUserID, err := uuid.Parse(userId)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to parse user ID")
+	}
+
+	s.db.Where("user_id = ?", parsedUserID).Delete(&models.RefreshToken{})
+
+	tokenString, err := s.jwt.GenRefreshToken(userId, time.Now().Add(refreshTokenDuration))
+	if err != nil {
+		return "", errors.Wrap(err, "failed to generate refresh token")
+	}
+
+	hash := sha256.Sum256([]byte(tokenString))
+	tokenHash := hex.EncodeToString(hash[:])
+
+	refreshToken := models.RefreshToken{
+		UserID:    parsedUserID,
+		TokenHash: tokenHash,
+		ExpiresAt: time.Now().Add(refreshTokenDuration),
+	}
+
+	if err := s.db.Create(&refreshToken).Error; err != nil {
+		return "", errors.Wrap(err, "failed to store refresh token")
+	}
+
+	return tokenString, nil
 }
 
 func generateState() (string, error) {

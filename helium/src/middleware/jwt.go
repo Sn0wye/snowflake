@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
@@ -26,16 +25,6 @@ func JWTMiddleware(conf *viper.Viper, logger *logger.Logger) fiber.Handler {
 		if err != nil {
 			fmt.Println("Invalid token provided")
 			return exceptions.Unauthorized(ctx)
-		}
-
-		expirationTime := claims.ExpiresAt.Time
-		if time.Until(expirationTime) < 5*time.Minute {
-			newTokenString, err := j.GenToken(claims.Subject, time.Now().Add(time.Hour*24*90))
-			if err != nil {
-				fmt.Println("Error generating new token")
-				return exceptions.InternalServer(ctx, err.Error())
-			}
-			ctx.Set("Authorization", "Bearer "+newTokenString)
 		}
 
 		ctx.Locals("claims", claims)
