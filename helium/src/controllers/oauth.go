@@ -87,8 +87,8 @@ func (s *oauthController) Redirect(c *fiber.Ctx) error {
 //	@Description	Emits: `user.created` event upon new user registration.
 //	@Tags			Auth
 //	@Produce		json
-//	@Param			code	query	string	true	"Authorization code from Google"
-//	@Param			state	query	string	true	"CSRF state token"
+//	@Param			code	query		string							true	"Authorization code from Google"
+//	@Param			state	query		string							true	"CSRF state token"
 //	@Success		200		{object}	dto.OAuthResponse				"OAuthResponse"
 //	@Failure		400		{object}	exceptions.BadRequestError		"Missing code or state"
 //	@Failure		401		{object}	exceptions.UnauthorizedError	"Invalid state"
