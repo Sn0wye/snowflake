@@ -3,5 +3,6 @@ postgres_data
 .DS_Store
 **/.DS_Store
 .env
+.env.*
 **/openapi.json
 **/swagger.json
