@@ -72,8 +72,7 @@ func (j *JWT) GenRefreshToken(userId string, expiresAt time.Time) (string, error
 }
 
 func (j *JWT) ParseRefreshToken(tokenString string) (*Claims, error) {
-	strippedToken := strings.TrimPrefix(tokenString, "Bearer ")
-	token, err := jwtLib.ParseWithClaims(strippedToken, &Claims{}, func(token *jwtLib.Token) (interface{}, error) {
+	token, err := jwtLib.ParseWithClaims(tokenString, &Claims{}, func(token *jwtLib.Token) (interface{}, error) {
 		return j.refreshKey, nil
 	})
 
