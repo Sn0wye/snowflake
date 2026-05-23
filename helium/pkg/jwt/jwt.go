@@ -86,7 +86,7 @@ func (j *JWT) ParseRefreshToken(tokenString string) (*Claims, error) {
 		return nil, errors.New("token claims are invalid")
 	}
 
-	if claims.ExpiresAt.Before(claims.IssuedAt.Time) {
+	if time.Now().After(claims.ExpiresAt.Time) {
 		return nil, errors.New("token is expired")
 	}
 
@@ -112,7 +112,7 @@ func (j *JWT) ParseToken(tokenString string) (*Claims, error) {
 		return nil, errors.New("token claims are invalid")
 	}
 
-	if claims.ExpiresAt.Before(claims.IssuedAt.Time) {
+	if time.Now().After(claims.ExpiresAt.Time) {
 		return nil, errors.New("token is expired")
 	}
 
