@@ -29,12 +29,12 @@ func JWTMiddleware(conf *viper.Viper, logger *logger.Logger) fiber.Handler {
 
 		// Token validation only - auth service (helium) is responsible for token generation
 		ctx.Locals("claims", claims)
-		recoveryLoggerFunc(ctx, logger)
+		setUserLogContext(ctx, logger)
 		return ctx.Next()
 	}
 }
 
-func recoveryLoggerFunc(ctx *fiber.Ctx, logger *logger.Logger) {
+func setUserLogContext(ctx *fiber.Ctx, logger *logger.Logger) {
 	userInfo := ctx.Locals("claims").(*jwt.Claims)
 	logger.NewContext(ctx, zap.String("UserId", userInfo.Subject))
 }
