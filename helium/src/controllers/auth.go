@@ -5,25 +5,19 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
 	"github.com/getsnowflake/snowflake/helium/src/models"
+	"github.com/getsnowflake/snowflake/helium/src/services"
 	"github.com/getsnowflake/snowflake/helium/src/utils"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
-)
-
-const (
-	accessTokenDuration  = 15 * time.Minute
-	refreshTokenDuration = 30 * 24 * time.Hour
 )
 
 type AuthController interface {
@@ -32,21 +26,21 @@ type AuthController interface {
 	Login(ctx *fiber.Ctx) error
 	Refresh(ctx *fiber.Ctx) error
 	Logout(ctx *fiber.Ctx) error
-	GenerateToken(userId string) (string, error)
-	GenerateRefreshToken(userId string) (string, error)
 }
 
 type authController struct {
-	db  *gorm.DB
-	jwt *jwt.JWT
-	rmq *messaging.MessagingService
+	db    *gorm.DB
+	jwt   *jwt.JWT
+	rmq   *messaging.MessagingService
+	token *services.TokenService
 }
 
 func NewAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService) AuthController {
 	return &authController{
-		db:  db,
-		jwt: jwt,
-		rmq: rmq,
+		db:    db,
+		jwt:   jwt,
+		rmq:   rmq,
+		token: services.NewTokenService(db, jwt),
 	}
 }
 
@@ -149,12 +143,12 @@ func (s *authController) Register(c *fiber.Ctx) error {
 
 	s.rmq.Produce("user.created", string(jsonData))
 
-	accessToken, err := s.GenerateToken(user.ID.String())
+	accessToken, err := s.token.GenerateAccessToken(user.ID.String())
 	if err != nil {
 		return exceptions.InternalServer(c, "failed to generate JWT token")
 	}
 
-	refreshToken, err := s.GenerateRefreshToken(user.ID.String())
+	refreshToken, err := s.token.GenerateRefreshToken(user.ID.String())
 	if err != nil {
 		return exceptions.InternalServer(c, "failed to generate refresh token")
 	}
@@ -200,14 +194,14 @@ func (s *authController) Login(c *fiber.Ctx) error {
 		return exceptions.Unauthorized(c)
 	}
 
-	accessToken, err := s.GenerateToken(user.ID.String())
+	accessToken, err := s.token.GenerateAccessToken(user.ID.String())
 	if err != nil {
 		return exceptions.InternalServer(c, "failed to generate JWT token")
 	}
 
-	s.revokeAllUserRefreshTokens(user.ID.String())
+	s.token.RevokeAllUserRefreshTokens(user.ID.String())
 
-	refreshToken, err := s.GenerateRefreshToken(user.ID.String())
+	refreshToken, err := s.token.GenerateRefreshToken(user.ID.String())
 	if err != nil {
 		return exceptions.InternalServer(c, "failed to generate refresh token")
 	}
@@ -261,12 +255,12 @@ func (s *authController) Refresh(c *fiber.Ctx) error {
 
 	userID := claims.Subject
 
-	accessToken, err := s.GenerateToken(userID)
+	accessToken, err := s.token.GenerateAccessToken(userID)
 	if err != nil {
 		return exceptions.InternalServer(c, "failed to generate JWT token")
 	}
 
-	newRefreshToken, err := s.GenerateRefreshToken(userID)
+	newRefreshToken, err := s.token.GenerateRefreshToken(userID)
 	if err != nil {
 		return exceptions.InternalServer(c, "failed to generate refresh token")
 	}
@@ -308,49 +302,4 @@ func (s *authController) Logout(c *fiber.Ctx) error {
 	s.db.Delete(&token)
 
 	return c.SendStatus(fiber.StatusNoContent)
-}
-
-func (s *authController) GenerateToken(userId string) (string, error) {
-	token, err := s.jwt.GenToken(userId, time.Now().Add(accessTokenDuration))
-	if err != nil {
-		return "", errors.Wrap(err, "failed to generate JWT token")
-	}
-
-	return token, nil
-}
-
-func (s *authController) GenerateRefreshToken(userId string) (string, error) {
-	tokenString, err := s.jwt.GenRefreshToken(userId, time.Now().Add(refreshTokenDuration))
-	if err != nil {
-		return "", errors.Wrap(err, "failed to generate refresh token")
-	}
-
-	hash := sha256.Sum256([]byte(tokenString))
-	tokenHash := hex.EncodeToString(hash[:])
-
-	parsedUserID, err := uuid.Parse(userId)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to parse user ID")
-	}
-
-	refreshToken := models.RefreshToken{
-		UserID:    parsedUserID,
-		TokenHash: tokenHash,
-		ExpiresAt: time.Now().Add(refreshTokenDuration),
-	}
-
-	if err := s.db.Create(&refreshToken).Error; err != nil {
-		return "", errors.Wrap(err, "failed to store refresh token")
-	}
-
-	return tokenString, nil
-}
-
-func (s *authController) revokeAllUserRefreshTokens(userId string) {
-	parsedUserID, err := uuid.Parse(userId)
-	if err != nil {
-		return
-	}
-
-	s.db.Where("user_id = ?", parsedUserID).Delete(&models.RefreshToken{})
 }

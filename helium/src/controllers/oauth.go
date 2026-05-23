@@ -2,18 +2,17 @@ package controllers
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
 	"github.com/getsnowflake/snowflake/helium/src/models"
+	"github.com/getsnowflake/snowflake/helium/src/services"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -35,6 +34,7 @@ type oauthController struct {
 	rmq    *messaging.MessagingService
 	oauth  *oauth2.Config
 	secure bool
+	token  *services.TokenService
 }
 
 func NewOAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService, conf *viper.Viper) OAuthController {
@@ -50,6 +50,7 @@ func NewOAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingServi
 			Endpoint:     google.Endpoint,
 		},
 		secure: conf.GetBool("http.secure"),
+		token:  services.NewTokenService(db, jwt),
 	}
 }
 
@@ -205,12 +206,14 @@ func (s *oauthController) Callback(c *fiber.Ctx) error {
 }
 
 func (s *oauthController) authResponse(ctx *fiber.Ctx, userID string) error {
-	accessToken, err := s.GenerateToken(userID)
+	s.token.RevokeAllUserRefreshTokens(userID)
+
+	accessToken, err := s.token.GenerateAccessToken(userID)
 	if err != nil {
 		return exceptions.InternalServer(ctx, "failed to generate JWT token")
 	}
 
-	refreshToken, err := s.storeRefreshToken(userID)
+	refreshToken, err := s.token.GenerateRefreshToken(userID)
 	if err != nil {
 		return exceptions.InternalServer(ctx, "failed to generate refresh token")
 	}
@@ -219,43 +222,6 @@ func (s *oauthController) authResponse(ctx *fiber.Ctx, userID string) error {
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
 	})
-}
-
-func (s *oauthController) GenerateToken(userId string) (string, error) {
-	token, err := s.jwt.GenToken(userId, time.Now().Add(accessTokenDuration))
-	if err != nil {
-		return "", errors.Wrap(err, "failed to generate JWT token")
-	}
-	return token, nil
-}
-
-func (s *oauthController) storeRefreshToken(userId string) (string, error) {
-	parsedUserID, err := uuid.Parse(userId)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to parse user ID")
-	}
-
-	s.db.Where("user_id = ?", parsedUserID).Delete(&models.RefreshToken{})
-
-	tokenString, err := s.jwt.GenRefreshToken(userId, time.Now().Add(refreshTokenDuration))
-	if err != nil {
-		return "", errors.Wrap(err, "failed to generate refresh token")
-	}
-
-	hash := sha256.Sum256([]byte(tokenString))
-	tokenHash := hex.EncodeToString(hash[:])
-
-	refreshToken := models.RefreshToken{
-		UserID:    parsedUserID,
-		TokenHash: tokenHash,
-		ExpiresAt: time.Now().Add(refreshTokenDuration),
-	}
-
-	if err := s.db.Create(&refreshToken).Error; err != nil {
-		return "", errors.Wrap(err, "failed to store refresh token")
-	}
-
-	return tokenString, nil
 }
 
 func generateState() (string, error) {
