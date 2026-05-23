@@ -4,10 +4,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
 
 	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
+	"github.com/getsnowflake/snowflake/helium/pkg/logger"
 	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
 	"github.com/getsnowflake/snowflake/helium/src/models"
@@ -16,6 +16,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -33,14 +34,16 @@ type authController struct {
 	jwt   *jwt.JWT
 	rmq   *messaging.MessagingService
 	token *services.TokenService
+	log   *logger.Logger
 }
 
-func NewAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService) AuthController {
+func NewAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService, log *logger.Logger) AuthController {
 	return &authController{
 		db:    db,
 		jwt:   jwt,
 		rmq:   rmq,
 		token: services.NewTokenService(db, jwt),
+		log:   log,
 	}
 }
 
@@ -179,7 +182,7 @@ func (s *authController) Login(c *fiber.Ctx) error {
 	body := new(dto.LoginRequest)
 
 	if err := utils.ParseRequest(c, body); err != nil {
-		fmt.Println(err)
+		s.log.Warn("login parse error", zap.Error(err))
 
 		return err
 	}

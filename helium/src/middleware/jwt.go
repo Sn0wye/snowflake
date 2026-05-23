@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"fmt"
-
 	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/pkg/logger"
@@ -17,13 +15,13 @@ func JWTMiddleware(conf *viper.Viper, logger *logger.Logger) fiber.Handler {
 	return func(ctx *fiber.Ctx) error {
 		tokenString := ctx.Get("Authorization")
 		if tokenString == "" {
-			fmt.Println("No token provided")
+			logger.Warn("no token provided")
 			return exceptions.Unauthorized(ctx)
 		}
 
 		claims, err := j.ParseToken(tokenString)
 		if err != nil {
-			fmt.Println("Invalid token provided")
+			logger.Warn("invalid token", zap.Error(err))
 			return exceptions.Unauthorized(ctx)
 		}
 

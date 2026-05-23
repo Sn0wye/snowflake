@@ -18,7 +18,7 @@ func BindAuthRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Log
 
 	router := app.Group("/auth")
 
-	controller := controllers.NewAuthController(db, jwt, rmq)
+	controller := controllers.NewAuthController(db, jwt, rmq, log)
 
 	router.Post("/login", controller.Login)
 	router.Post("/register", controller.Register)
