@@ -30,10 +30,11 @@ type OAuthController interface {
 }
 
 type oauthController struct {
-	db    *gorm.DB
-	jwt   *jwt.JWT
-	rmq   *messaging.MessagingService
-	oauth *oauth2.Config
+	db     *gorm.DB
+	jwt    *jwt.JWT
+	rmq    *messaging.MessagingService
+	oauth  *oauth2.Config
+	secure bool
 }
 
 func NewOAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService, conf *viper.Viper) OAuthController {
@@ -48,6 +49,7 @@ func NewOAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingServi
 			Scopes:       []string{"openid", "email", "profile"},
 			Endpoint:     google.Endpoint,
 		},
+		secure: conf.GetBool("http.secure"),
 	}
 }
 
@@ -72,7 +74,7 @@ func (s *oauthController) Redirect(c *fiber.Ctx) error {
 		Value:    state,
 		HTTPOnly: true,
 		SameSite: "lax",
-		Secure:   false,
+		Secure:   s.secure,
 		MaxAge:   600,
 	})
 
@@ -114,7 +116,7 @@ func (s *oauthController) Callback(c *fiber.Ctx) error {
 		Value:    "",
 		HTTPOnly: true,
 		SameSite: "lax",
-		Secure:   false,
+		Secure:   s.secure,
 		MaxAge:   -1,
 	})
 

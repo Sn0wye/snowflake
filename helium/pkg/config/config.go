@@ -32,6 +32,15 @@ func getConfig(path string) *viper.Viper {
 	conf.AutomaticEnv()
 
 	// Conventional bindings — only applied if env var is non-empty
+	if v := os.Getenv("HTTP_PORT"); v != "" {
+		conf.Set("http.port", v)
+	}
+	if v := os.Getenv("HTTP_SECURE"); v != "" {
+		conf.Set("http.secure", v)
+	}
+	if v := os.Getenv("GRPC_PORT"); v != "" {
+		conf.Set("grpc.port", v)
+	}
 	if v := os.Getenv("DATABASE_URL"); v != "" {
 		conf.Set("db.connectionString", v)
 	}
@@ -40,6 +49,9 @@ func getConfig(path string) *viper.Viper {
 	}
 	if v := os.Getenv("JWT_SECRET"); v != "" {
 		conf.Set("security.jwt_secret", v)
+	}
+	if v := os.Getenv("JWT_ISSUER"); v != "" {
+		conf.Set("security.jwt_issuer", v)
 	}
 	if v := os.Getenv("REFRESH_TOKEN_SECRET"); v != "" {
 		conf.Set("security.refresh_secret", v)

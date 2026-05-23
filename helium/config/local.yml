@@ -1,6 +1,7 @@
 env: local
 http:
   port: 8080
+  secure: false
 grpc:
   port: 50050
 security:
@@ -9,11 +10,6 @@ security:
   jwt_issuer: snowflake
 db:
   driver: postgres
-  host: 127.0.0.1
-  port: 5432
-  database: helium
-  user: snowflake
-  password: snowflake
   connectionString: postgres://snowflake:snowflake@127.0.0.1:5432/helium?sslmode=disable
 messaging:
   connectionString: amqp://snowflake:snowflake@localhost:5672
