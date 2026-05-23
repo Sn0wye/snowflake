@@ -33,7 +33,7 @@ type AuthController interface {
 	Refresh(ctx *fiber.Ctx) error
 	Logout(ctx *fiber.Ctx) error
 	GenerateToken(userId string) (string, error)
-	GenerateRefreshToken(ctx *fiber.Ctx, userId string) (string, error)
+	GenerateRefreshToken(userId string) (string, error)
 }
 
 type authController struct {
@@ -154,7 +154,7 @@ func (s *authController) Register(c *fiber.Ctx) error {
 		return exceptions.InternalServer(c, "failed to generate JWT token")
 	}
 
-	refreshToken, err := s.GenerateRefreshToken(c, user.ID.String())
+	refreshToken, err := s.GenerateRefreshToken(user.ID.String())
 	if err != nil {
 		return exceptions.InternalServer(c, "failed to generate refresh token")
 	}
@@ -207,7 +207,7 @@ func (s *authController) Login(c *fiber.Ctx) error {
 
 	s.revokeAllUserRefreshTokens(user.ID.String())
 
-	refreshToken, err := s.GenerateRefreshToken(c, user.ID.String())
+	refreshToken, err := s.GenerateRefreshToken(user.ID.String())
 	if err != nil {
 		return exceptions.InternalServer(c, "failed to generate refresh token")
 	}
@@ -266,7 +266,7 @@ func (s *authController) Refresh(c *fiber.Ctx) error {
 		return exceptions.InternalServer(c, "failed to generate JWT token")
 	}
 
-	newRefreshToken, err := s.GenerateRefreshToken(c, userID)
+	newRefreshToken, err := s.GenerateRefreshToken(userID)
 	if err != nil {
 		return exceptions.InternalServer(c, "failed to generate refresh token")
 	}
@@ -319,7 +319,7 @@ func (s *authController) GenerateToken(userId string) (string, error) {
 	return token, nil
 }
 
-func (s *authController) GenerateRefreshToken(c *fiber.Ctx, userId string) (string, error) {
+func (s *authController) GenerateRefreshToken(userId string) (string, error) {
 	tokenString, err := s.jwt.GenRefreshToken(userId, time.Now().Add(refreshTokenDuration))
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate refresh token")
