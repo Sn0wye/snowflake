@@ -27,7 +27,7 @@ func BindAuthRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Log
 
 	router.Get("/profile", jwtMiddleware, controller.Profile)
 
-	oauthController := controllers.NewOAuthController(db, jwt, rmq, conf)
+	oauthController := controllers.NewOAuthController(db, jwt, rmq, conf, log)
 
 	router.Get("/oauth/google", oauthController.Redirect)
 	router.Get("/oauth/google/callback", oauthController.Callback)

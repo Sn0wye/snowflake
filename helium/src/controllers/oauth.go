@@ -9,6 +9,7 @@ import (
 
 	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
+	"github.com/getsnowflake/snowflake/helium/pkg/logger"
 	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
 	"github.com/getsnowflake/snowflake/helium/src/models"
@@ -18,6 +19,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"gorm.io/gorm"
@@ -35,9 +37,10 @@ type oauthController struct {
 	oauth  *oauth2.Config
 	secure bool
 	token  *services.TokenService
+	log    *logger.Logger
 }
 
-func NewOAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService, conf *viper.Viper) OAuthController {
+func NewOAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService, conf *viper.Viper, log *logger.Logger) OAuthController {
 	return &oauthController{
 		db:  db,
 		jwt: jwt,
@@ -51,6 +54,7 @@ func NewOAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingServi
 		},
 		secure: conf.GetBool("http.secure"),
 		token:  services.NewTokenService(db, jwt),
+		log:    log,
 	}
 }
 
@@ -206,7 +210,10 @@ func (s *oauthController) Callback(c *fiber.Ctx) error {
 }
 
 func (s *oauthController) authResponse(ctx *fiber.Ctx, userID string) error {
-	s.token.RevokeAllUserRefreshTokens(userID)
+	if err := s.token.RevokeAllUserRefreshTokens(userID); err != nil {
+		s.log.Error("failed to revoke refresh tokens on oauth login", zap.Error(err))
+		return exceptions.InternalServer(ctx, "failed to revoke existing refresh tokens")
+	}
 
 	accessToken, err := s.token.GenerateAccessToken(userID)
 	if err != nil {

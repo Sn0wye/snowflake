@@ -202,7 +202,10 @@ func (s *authController) Login(c *fiber.Ctx) error {
 		return exceptions.InternalServer(c, "failed to generate JWT token")
 	}
 
-	s.token.RevokeAllUserRefreshTokens(user.ID.String())
+	if err := s.token.RevokeAllUserRefreshTokens(user.ID.String()); err != nil {
+		s.log.Error("failed to revoke refresh tokens on login", zap.Error(err))
+		return exceptions.InternalServer(c, "failed to revoke existing refresh tokens")
+	}
 
 	refreshToken, err := s.token.GenerateRefreshToken(user.ID.String())
 	if err != nil {
