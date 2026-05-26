@@ -266,7 +266,9 @@ func (s *authController) Refresh(c *fiber.Ctx) error {
 		return exceptions.InternalServer(c, "failed to generate refresh token")
 	}
 
-	s.db.Delete(&token)
+	if err := s.db.Delete(&token).Error; err != nil {
+		return exceptions.InternalServer(c, "failed to revoke old refresh token")
+	}
 
 	return c.Status(fiber.StatusOK).JSON(dto.RefreshResponse{
 		AccessToken:  accessToken,
