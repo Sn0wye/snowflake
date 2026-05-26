@@ -6,18 +6,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
+	"github.com/getsnowflake/snowflake/helium/pkg/logger"
 	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
 	"github.com/getsnowflake/snowflake/helium/src/models"
+	"github.com/getsnowflake/snowflake/helium/src/services"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"gorm.io/gorm"
@@ -29,13 +31,16 @@ type OAuthController interface {
 }
 
 type oauthController struct {
-	db    *gorm.DB
-	jwt   *jwt.JWT
-	rmq   *messaging.MessagingService
-	oauth *oauth2.Config
+	db     *gorm.DB
+	jwt    *jwt.JWT
+	rmq    *messaging.MessagingService
+	oauth  *oauth2.Config
+	secure bool
+	token  *services.TokenService
+	log    *logger.Logger
 }
 
-func NewOAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService, conf *viper.Viper) OAuthController {
+func NewOAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService, conf *viper.Viper, log *logger.Logger) OAuthController {
 	return &oauthController{
 		db:  db,
 		jwt: jwt,
@@ -47,6 +52,9 @@ func NewOAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingServi
 			Scopes:       []string{"openid", "email", "profile"},
 			Endpoint:     google.Endpoint,
 		},
+		secure: conf.GetBool("http.secure"),
+		token:  services.NewTokenService(db, jwt),
+		log:    log,
 	}
 }
 
@@ -71,7 +79,7 @@ func (s *oauthController) Redirect(c *fiber.Ctx) error {
 		Value:    state,
 		HTTPOnly: true,
 		SameSite: "lax",
-		Secure:   false,
+		Secure:   s.secure,
 		MaxAge:   600,
 	})
 
@@ -83,7 +91,7 @@ func (s *oauthController) Redirect(c *fiber.Ctx) error {
 // Callback godoc
 //
 //	@Summary		/auth/oauth/callback
-//	@Description	Google OAuth callback — exchanges code for token, creates/links account, returns JWT
+//	@Description	Google OAuth callback — exchanges code for token, creates/links account, returns access and refresh tokens
 //	@Description	Emits: `user.created` event upon new user registration.
 //	@Tags			Auth
 //	@Produce		json
@@ -92,7 +100,7 @@ func (s *oauthController) Redirect(c *fiber.Ctx) error {
 //	@Success		200		{object}	dto.OAuthResponse				"OAuthResponse"
 //	@Failure		400		{object}	exceptions.BadRequestError		"Missing code or state"
 //	@Failure		401		{object}	exceptions.UnauthorizedError	"Invalid state"
-//	@Failure		500		{object}	exceptions.InternalServerError	"Failed to exchange code OR fetch user info OR generate JWT token"
+//	@Failure		500		{object}	exceptions.InternalServerError	"Failed to exchange code OR fetch user info OR generate token"
 //	@Router			/auth/oauth/callback [get]
 //	@OperationId	oauthCallback
 func (s *oauthController) Callback(c *fiber.Ctx) error {
@@ -113,7 +121,7 @@ func (s *oauthController) Callback(c *fiber.Ctx) error {
 		Value:    "",
 		HTTPOnly: true,
 		SameSite: "lax",
-		Secure:   false,
+		Secure:   s.secure,
 		MaxAge:   -1,
 	})
 
@@ -141,11 +149,7 @@ func (s *oauthController) Callback(c *fiber.Ctx) error {
 	var oauthAccount models.OAuthAccount
 	result := s.db.Where("provider = ? AND provider_id = ?", models.ProviderGoogle, googleUser.Sub).First(&oauthAccount)
 	if result.Error == nil {
-		tkn, jwtErr := s.GenerateToken(oauthAccount.UserID.String())
-		if jwtErr != nil {
-			return exceptions.InternalServer(c, "failed to generate JWT token")
-		}
-		return c.Status(fiber.StatusOK).JSON(dto.OAuthResponse{Token: tkn})
+		return s.authResponse(c, oauthAccount.UserID.String())
 	}
 
 	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
@@ -168,11 +172,7 @@ func (s *oauthController) Callback(c *fiber.Ctx) error {
 			return exceptions.InternalServer(c, "failed to create oauth account")
 		}
 
-		tkn, jwtErr := s.GenerateToken(user.ID.String())
-		if jwtErr != nil {
-			return exceptions.InternalServer(c, "failed to generate JWT token")
-		}
-		return c.Status(fiber.StatusOK).JSON(dto.OAuthResponse{Token: tkn})
+		return s.authResponse(c, user.ID.String())
 	}
 
 	username := s.generateUsername(googleUser.Email)
@@ -206,19 +206,29 @@ func (s *oauthController) Callback(c *fiber.Ctx) error {
 		s.rmq.Produce("user.created", string(jsonData))
 	}
 
-	tkn, jwtErr := s.GenerateToken(user.ID.String())
-	if jwtErr != nil {
-		return exceptions.InternalServer(c, "failed to generate JWT token")
-	}
-	return c.Status(fiber.StatusOK).JSON(dto.OAuthResponse{Token: tkn})
+	return s.authResponse(c, user.ID.String())
 }
 
-func (s *oauthController) GenerateToken(userId string) (string, error) {
-	token, err := s.jwt.GenToken(userId, time.Now().Add(time.Hour*24*90))
-	if err != nil {
-		return "", errors.Wrap(err, "failed to generate JWT token")
+func (s *oauthController) authResponse(ctx *fiber.Ctx, userID string) error {
+	if err := s.token.RevokeAllUserRefreshTokens(userID); err != nil {
+		s.log.Error("failed to revoke refresh tokens on oauth login", zap.Error(err))
+		return exceptions.InternalServer(ctx, "failed to revoke existing refresh tokens")
 	}
-	return token, nil
+
+	accessToken, err := s.token.GenerateAccessToken(userID)
+	if err != nil {
+		return exceptions.InternalServer(ctx, "failed to generate JWT token")
+	}
+
+	refreshToken, err := s.token.GenerateRefreshToken(userID)
+	if err != nil {
+		return exceptions.InternalServer(ctx, "failed to generate refresh token")
+	}
+
+	return ctx.Status(fiber.StatusOK).JSON(dto.OAuthResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	})
 }
 
 func generateState() (string, error) {

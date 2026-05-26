@@ -1,19 +1,22 @@
 package controllers
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
-	"fmt"
-	"time"
 
 	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
+	"github.com/getsnowflake/snowflake/helium/pkg/logger"
 	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
 	"github.com/getsnowflake/snowflake/helium/src/models"
+	"github.com/getsnowflake/snowflake/helium/src/services"
 	"github.com/getsnowflake/snowflake/helium/src/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -22,20 +25,25 @@ type AuthController interface {
 	Profile(ctx *fiber.Ctx) error
 	Register(ctx *fiber.Ctx) error
 	Login(ctx *fiber.Ctx) error
-	GenerateToken(userId string) (string, error)
+	Refresh(ctx *fiber.Ctx) error
+	Logout(ctx *fiber.Ctx) error
 }
 
 type authController struct {
-	db  *gorm.DB
-	jwt *jwt.JWT
-	rmq *messaging.MessagingService
+	db    *gorm.DB
+	jwt   *jwt.JWT
+	rmq   *messaging.MessagingService
+	token *services.TokenService
+	log   *logger.Logger
 }
 
-func NewAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService) AuthController {
+func NewAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService, log *logger.Logger) AuthController {
 	return &authController{
-		db:  db,
-		jwt: jwt,
-		rmq: rmq,
+		db:    db,
+		jwt:   jwt,
+		rmq:   rmq,
+		token: services.NewTokenService(db, jwt),
+		log:   log,
 	}
 }
 
@@ -138,13 +146,19 @@ func (s *authController) Register(c *fiber.Ctx) error {
 
 	s.rmq.Produce("user.created", string(jsonData))
 
-	token, err := s.GenerateToken(user.ID.String())
+	accessToken, err := s.token.GenerateAccessToken(user.ID.String())
 	if err != nil {
 		return exceptions.InternalServer(c, "failed to generate JWT token")
 	}
 
+	refreshToken, err := s.token.GenerateRefreshToken(user.ID.String())
+	if err != nil {
+		return exceptions.InternalServer(c, "failed to generate refresh token")
+	}
+
 	return c.Status(fiber.StatusOK).JSON(dto.RegisterResponse{
-		Token: token,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	})
 }
 
@@ -168,7 +182,7 @@ func (s *authController) Login(c *fiber.Ctx) error {
 	body := new(dto.LoginRequest)
 
 	if err := utils.ParseRequest(c, body); err != nil {
-		fmt.Println(err)
+		s.log.Warn("login parse error", zap.Error(err))
 
 		return err
 	}
@@ -183,21 +197,117 @@ func (s *authController) Login(c *fiber.Ctx) error {
 		return exceptions.Unauthorized(c)
 	}
 
-	token, err := s.GenerateToken(user.ID.String())
+	accessToken, err := s.token.GenerateAccessToken(user.ID.String())
 	if err != nil {
 		return exceptions.InternalServer(c, "failed to generate JWT token")
 	}
 
+	if err := s.token.RevokeAllUserRefreshTokens(user.ID.String()); err != nil {
+		s.log.Error("failed to revoke refresh tokens on login", zap.Error(err))
+		return exceptions.InternalServer(c, "failed to revoke existing refresh tokens")
+	}
+
+	refreshToken, err := s.token.GenerateRefreshToken(user.ID.String())
+	if err != nil {
+		return exceptions.InternalServer(c, "failed to generate refresh token")
+	}
+
 	return c.Status(fiber.StatusOK).JSON(dto.LoginResponse{
-		Token: token,
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
 	})
 }
 
-func (s *authController) GenerateToken(userId string) (string, error) {
-	token, err := s.jwt.GenToken(userId, time.Now().Add(time.Hour*24*90)) // 90 days
-	if err != nil {
-		return "", errors.Wrap(err, "failed to generate JWT token")
+// Refresh godoc
+//
+//	@Summary		/auth/refresh
+//	@Description	Exchange a refresh token for a new access token and refresh token (token rotation).
+//	@Description	The provided refresh token is revoked and a new pair is issued.
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body		dto.RefreshRequest				true	"Refresh Request"
+//	@Success		200		{object}	dto.RefreshResponse				"Refreshed tokens"
+//	@Failure		400		{object}	exceptions.BadRequestError		"Invalid request body"
+//	@Failure		401		{object}	exceptions.UnauthorizedError	"Invalid, revoked, or expired refresh token"
+//	@Failure		500		{object}	exceptions.InternalServerError	"Failed to generate tokens"
+//	@Router			/auth/refresh [post]
+//	@OperationId	refresh
+func (s *authController) Refresh(c *fiber.Ctx) error {
+	body := new(dto.RefreshRequest)
+	if err := utils.ParseRequest(c, body); err != nil {
+		return err
 	}
 
-	return token, nil
+	claims, err := s.jwt.ParseRefreshToken(body.RefreshToken)
+	if err != nil {
+		return exceptions.Unauthorized(c)
+	}
+
+	hash := sha256.Sum256([]byte(body.RefreshToken))
+	tokenHash := hex.EncodeToString(hash[:])
+
+	var token models.RefreshToken
+	result := s.db.Where("token_hash = ?", tokenHash).First(&token)
+	if result.Error != nil {
+		return exceptions.Unauthorized(c)
+	}
+
+	if token.IsExpired() {
+		return exceptions.Unauthorized(c)
+	}
+
+	userID := claims.Subject
+
+	accessToken, err := s.token.GenerateAccessToken(userID)
+	if err != nil {
+		return exceptions.InternalServer(c, "failed to generate JWT token")
+	}
+
+	newRefreshToken, err := s.token.GenerateRefreshToken(userID)
+	if err != nil {
+		return exceptions.InternalServer(c, "failed to generate refresh token")
+	}
+
+	if err := s.db.Delete(&token).Error; err != nil {
+		return exceptions.InternalServer(c, "failed to revoke old refresh token")
+	}
+
+	return c.Status(fiber.StatusOK).JSON(dto.RefreshResponse{
+		AccessToken:  accessToken,
+		RefreshToken: newRefreshToken,
+	})
+}
+
+// Logout godoc
+//
+//	@Summary		/auth/logout
+//	@Description	Revoke a refresh token, invalidating the session.
+//	@Tags			Auth
+//	@Accept			json
+//	@Produce		json
+//	@Param			body	body	dto.LogoutRequest	true	"Logout Request"
+//	@Success		204		"No Content"
+//	@Failure		400		{object}	exceptions.BadRequestError		"Invalid request body"
+//	@Failure		401		{object}	exceptions.UnauthorizedError	"Invalid or already revoked refresh token"
+//	@Router			/auth/logout [post]
+//	@OperationId	logout
+func (s *authController) Logout(c *fiber.Ctx) error {
+	body := new(dto.LogoutRequest)
+	if err := utils.ParseRequest(c, body); err != nil {
+		return err
+	}
+
+	hash := sha256.Sum256([]byte(body.RefreshToken))
+	tokenHash := hex.EncodeToString(hash[:])
+
+	var token models.RefreshToken
+	result := s.db.Where("token_hash = ?", tokenHash).First(&token)
+	if result.Error != nil {
+		return exceptions.Unauthorized(c)
+	}
+
+	s.db.Delete(&token)
+
+	return c.SendStatus(fiber.StatusNoContent)
 }

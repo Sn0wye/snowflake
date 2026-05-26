@@ -4,5 +4,6 @@ func RetrieveAll() []interface{} {
 	return []interface{}{
 		&User{},
 		&OAuthAccount{},
+		&RefreshToken{},
 	}
 }

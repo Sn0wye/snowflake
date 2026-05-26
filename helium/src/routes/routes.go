@@ -18,14 +18,16 @@ func BindAuthRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Log
 
 	router := app.Group("/auth")
 
-	controller := controllers.NewAuthController(db, jwt, rmq)
+	controller := controllers.NewAuthController(db, jwt, rmq, log)
 
 	router.Post("/login", controller.Login)
 	router.Post("/register", controller.Register)
+	router.Post("/refresh", controller.Refresh)
+	router.Post("/logout", controller.Logout)
 
 	router.Get("/profile", jwtMiddleware, controller.Profile)
 
-	oauthController := controllers.NewOAuthController(db, jwt, rmq, conf)
+	oauthController := controllers.NewOAuthController(db, jwt, rmq, conf, log)
 
 	router.Get("/oauth/google", oauthController.Redirect)
 	router.Get("/oauth/google/callback", oauthController.Callback)
