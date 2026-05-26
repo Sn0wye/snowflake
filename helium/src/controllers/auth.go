@@ -254,8 +254,6 @@ func (s *authController) Refresh(c *fiber.Ctx) error {
 		return exceptions.Unauthorized(c)
 	}
 
-	s.db.Delete(&token)
-
 	userID := claims.Subject
 
 	accessToken, err := s.token.GenerateAccessToken(userID)
@@ -267,6 +265,8 @@ func (s *authController) Refresh(c *fiber.Ctx) error {
 	if err != nil {
 		return exceptions.InternalServer(c, "failed to generate refresh token")
 	}
+
+	s.db.Delete(&token)
 
 	return c.Status(fiber.StatusOK).JSON(dto.RefreshResponse{
 		AccessToken:  accessToken,
