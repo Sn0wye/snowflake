@@ -416,7 +416,6 @@ func (s *transactionsController) publishCompleted(t *models.Transaction) {
 //	@Param			body	body		dto.DepositRequest				true	"Deposit Request"
 //	@Success		201		{object}	dto.TransactionResponse			"TransactionResponse"
 //	@Failure		400		{object}	exceptions.BadRequestError		"Invalid amount or account status"
-//	@Failure		403		{object}	exceptions.Error				"Account does not belong to authenticated user"
 //	@Failure		404		{object}	exceptions.NotFoundError		"Account not found"
 //	@Failure		500		{object}	exceptions.InternalServerError	"Deposit failed"
 //	@Router			/account/transactions/deposit [post]
