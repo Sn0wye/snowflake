@@ -19,7 +19,7 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (!context.Response.HasStarted)
         {
             _logger.LogError(ex, "Unhandled exception");
             await HandleExceptionAsync(context, ex);
