@@ -1,16 +1,28 @@
+using Microsoft.Extensions.Configuration;
+
 namespace Oxygen.Infrastructure.Adapters;
 
-public class CreditScoreAdapter: ICreditScoreAdapter
+public class CreditScoreAdapter : ICreditScoreAdapter
 {
-    private readonly HttpClient _httpClient = new();
-    
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly string _scorerBaseUrl;
+
+    public CreditScoreAdapter(IConfiguration configuration, IHttpClientFactory httpClientFactory)
+    {
+        _scorerBaseUrl = configuration.GetConnectionString("CreditScorer")
+            ?? throw new InvalidOperationException(
+                "Configuration 'ConnectionStrings:CreditScorer' is not set or is empty.");
+        _httpClientFactory = httpClientFactory;
+    }
+
     public async Task<int?> GetCreditScoreAsync(string userId)
     {
-        var response = await _httpClient.GetAsync($"http://localhost/scorer/{userId}");
+        var client = _httpClientFactory.CreateClient();
+        using var response = await client.GetAsync($"{_scorerBaseUrl.TrimEnd('/')}/{Uri.EscapeDataString(userId)}");
         if (!response.IsSuccessStatusCode) return null;
-        
+
         var content = await response.Content.ReadAsStringAsync();
-        return int.Parse(content);
+        return int.TryParse(content, out var score) ? score : null;
     }
 }
 
