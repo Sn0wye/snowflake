@@ -23,6 +23,11 @@ public class ExceptionHandlingMiddleware
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
             _logger.LogInformation("Request cancelled by client");
+
+            if (!context.Response.HasStarted)
+            {
+                context.Response.StatusCode = 499;
+            }
         }
         catch (Exception ex) when (!context.Response.HasStarted)
         {
