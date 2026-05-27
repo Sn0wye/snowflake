@@ -21,8 +21,6 @@ public class LoanController(ILoanService loanService) : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ApplyForLoanResponse>> ApplyForLoan([FromBody] ApplyForLoanRequest request)
     {
-        if (!ModelState.IsValid) return BadRequest(ModelState);
-        
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         
         if (userId is null) return Unauthorized();

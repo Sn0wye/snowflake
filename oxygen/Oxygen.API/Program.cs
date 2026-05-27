@@ -2,6 +2,8 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using Oxygen.API.Extensions;
+using Oxygen.API.Filters;
+using Oxygen.API.Middleware;
 using Oxygen.Infrastructure;
 using Oxygen.Infrastructure.Adapters;
 using Oxygen.Repository;
@@ -64,7 +66,10 @@ builder.Services.AddSwaggerGen(options =>
     
     options.IncludeXmlComments(Assembly.GetExecutingAssembly());
 });
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<ValidationFilter>();
+    })
     .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
 builder.Services.AddDbContext<ApplicationDbContext>();
 builder.Services.AddHttpClient();
@@ -109,6 +114,8 @@ builder.Services.AddScoped<ICreditScoreAdapter, CreditScoreAdapter>();
 builder.Services.AddScoped<ILoanService, LoanService>();
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
