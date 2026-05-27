@@ -147,6 +147,7 @@ services:
     environment:
       - ConnectionStrings__DefaultConnection=${OXYGEN_DATABASE_URL:-}
       - ConnectionStrings__UsersGrpc=${OXYGEN_GRPC_URL:-http://snowflake-helium:50050}
+      - ConnectionStrings__CreditScorer=${OXYGEN_CREDITSCORER_URL:-http://snowflake-carbon:8081/scorer}
       - Security__Jwt__SecretKey=${OXYGEN_JWT_SECRET:-}
       - ASPNETCORE_HTTP_PORTS=${OXYGEN_HTTP_PORT:-8082}
       - Logging__LogLevel__Default=${OXYGEN_LOG_LEVEL:-Information}
