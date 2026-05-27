@@ -9,12 +9,9 @@ public class CreditScoreAdapter : ICreditScoreAdapter
 
     public CreditScoreAdapter(IConfiguration configuration, IHttpClientFactory httpClientFactory)
     {
-        _scorerBaseUrl = configuration.GetConnectionString("CreditScorer");
-        if (string.IsNullOrWhiteSpace(_scorerBaseUrl))
-        {
-            throw new InvalidOperationException(
+        _scorerBaseUrl = configuration.GetConnectionString("CreditScorer")
+            ?? throw new InvalidOperationException(
                 "Configuration 'ConnectionStrings:CreditScorer' is not set or is empty.");
-        }
         _httpClientFactory = httpClientFactory;
     }
 
