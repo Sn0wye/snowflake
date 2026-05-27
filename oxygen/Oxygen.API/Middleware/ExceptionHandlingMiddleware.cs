@@ -19,6 +19,10 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            _logger.LogInformation("Request cancelled by client");
+        }
         catch (Exception ex) when (!context.Response.HasStarted)
         {
             _logger.LogError(ex, "Unhandled exception");
@@ -32,7 +36,7 @@ public class ExceptionHandlingMiddleware
         {
             DbException => (StatusCodes.Status503ServiceUnavailable, "Database operation failed."),
             HttpRequestException => (StatusCodes.Status502BadGateway, "External service call failed."),
-            TimeoutException or TaskCanceledException => (StatusCodes.Status504GatewayTimeout, "Request timed out."),
+            OperationCanceledException or TimeoutException => (StatusCodes.Status504GatewayTimeout, "Request timed out."),
             ArgumentException => (StatusCodes.Status400BadRequest, exception.Message),
             _ when IsGrpcException(exception) => (StatusCodes.Status502BadGateway, "Upstream gRPC call failed."),
             _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
