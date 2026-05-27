@@ -22,7 +22,7 @@ public class CreditScoreAdapter : ICreditScoreAdapter
         if (!response.IsSuccessStatusCode) return null;
 
         var content = await response.Content.ReadAsStringAsync();
-        return int.Parse(content);
+        return int.TryParse(content, out var score) ? score : null;
     }
 }
 
