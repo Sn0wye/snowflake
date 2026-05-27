@@ -416,6 +416,7 @@ func (s *transactionsController) publishCompleted(t *models.Transaction) {
 //	@Param			body	body		dto.DepositRequest				true	"Deposit Request"
 //	@Success		201		{object}	dto.TransactionResponse			"TransactionResponse"
 //	@Failure		400		{object}	exceptions.BadRequestError		"Invalid amount or account status"
+//	@Failure		403		{object}	exceptions.ForbiddenError		"Account does not belong to authenticated user"
 //	@Failure		404		{object}	exceptions.NotFoundError		"Account not found"
 //	@Failure		500		{object}	exceptions.InternalServerError	"Deposit failed"
 //	@Router			/account/transactions/deposit [post]
@@ -450,10 +451,7 @@ func (s *transactionsController) Deposit(ctx *fiber.Ctx) error {
 		return exceptions.BadRequest(ctx, "Invalid user ID in token")
 	}
 	if account.UserID != userID {
-		return ctx.Status(fiber.StatusForbidden).JSON(exceptions.Error{
-			StatusCode: fiber.StatusForbidden,
-			Message:    "You can only deposit to your own account",
-		})
+		return exceptions.Forbidden(ctx, "You can only deposit to your own account")
 	}
 	if account.Status != models.AccountStatusActive {
 		return exceptions.BadRequest(ctx, "Account is not active")
