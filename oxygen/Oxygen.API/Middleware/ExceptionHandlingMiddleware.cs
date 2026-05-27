@@ -1,4 +1,5 @@
 using System.Data.Common;
+using Grpc.Core;
 
 namespace Oxygen.API.Middleware;
 
@@ -34,11 +35,10 @@ public class ExceptionHandlingMiddleware
     {
         var (statusCode, detail) = exception switch
         {
+            RpcException rpc => MapGrpcStatus(rpc),
             DbException => (StatusCodes.Status503ServiceUnavailable, "Database operation failed."),
             HttpRequestException => (StatusCodes.Status502BadGateway, "External service call failed."),
             OperationCanceledException or TimeoutException => (StatusCodes.Status504GatewayTimeout, "Request timed out."),
-            ArgumentException => (StatusCodes.Status400BadRequest, "Invalid argument."),
-            _ when IsGrpcException(exception) => (StatusCodes.Status502BadGateway, "Upstream gRPC call failed."),
             _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
         };
 
@@ -54,8 +54,19 @@ public class ExceptionHandlingMiddleware
         await context.Response.WriteAsJsonAsync(response);
     }
 
-    private static bool IsGrpcException(Exception exception)
+    private static (int statusCode, string detail) MapGrpcStatus(RpcException rpc)
     {
-        return exception.GetType().FullName == "Grpc.Core.RpcException";
+        return rpc.StatusCode switch
+        {
+            StatusCode.NotFound => (StatusCodes.Status404NotFound, "Upstream resource not found."),
+            StatusCode.InvalidArgument => (StatusCodes.Status400BadRequest, "Upstream gRPC invalid argument."),
+            StatusCode.Unauthenticated => (StatusCodes.Status401Unauthorized, "Upstream gRPC authentication failed."),
+            StatusCode.PermissionDenied => (StatusCodes.Status403Forbidden, "Upstream gRPC permission denied."),
+            StatusCode.AlreadyExists => (StatusCodes.Status409Conflict, "Upstream resource already exists."),
+            StatusCode.ResourceExhausted => (StatusCodes.Status429TooManyRequests, "Upstream resource exhausted."),
+            StatusCode.Unavailable => (StatusCodes.Status503ServiceUnavailable, "Upstream gRPC service unavailable."),
+            StatusCode.DeadlineExceeded => (StatusCodes.Status504GatewayTimeout, "Upstream gRPC call timed out."),
+            _ => (StatusCodes.Status502BadGateway, "Upstream gRPC call failed.")
+        };
     }
 }
