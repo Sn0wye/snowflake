@@ -37,7 +37,7 @@ public class ExceptionHandlingMiddleware
             DbException => (StatusCodes.Status503ServiceUnavailable, "Database operation failed."),
             HttpRequestException => (StatusCodes.Status502BadGateway, "External service call failed."),
             OperationCanceledException or TimeoutException => (StatusCodes.Status504GatewayTimeout, "Request timed out."),
-            ArgumentException => (StatusCodes.Status400BadRequest, exception.Message),
+            ArgumentException => (StatusCodes.Status400BadRequest, "Invalid argument."),
             _ when IsGrpcException(exception) => (StatusCodes.Status502BadGateway, "Upstream gRPC call failed."),
             _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred.")
         };
