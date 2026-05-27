@@ -416,11 +416,14 @@ func (s *transactionsController) publishCompleted(t *models.Transaction) {
 //	@Param			body	body		dto.DepositRequest				true	"Deposit Request"
 //	@Success		201		{object}	dto.TransactionResponse			"TransactionResponse"
 //	@Failure		400		{object}	exceptions.BadRequestError		"Invalid amount or account status"
+//	@Failure		403		{object}	exceptions.ForbiddenError		"Account does not belong to authenticated user"
 //	@Failure		404		{object}	exceptions.NotFoundError		"Account not found"
 //	@Failure		500		{object}	exceptions.InternalServerError	"Deposit failed"
 //	@Router			/account/transactions/deposit [post]
 //	@OperationId	deposit
 func (s *transactionsController) Deposit(ctx *fiber.Ctx) error {
+	claims := ctx.Locals("claims").(*jwt.Claims)
+
 	body := new(dto.DepositRequest)
 	if err := utils.ParseRequest(ctx, body); err != nil {
 		return err
@@ -443,12 +446,19 @@ func (s *transactionsController) Deposit(ctx *fiber.Ctx) error {
 	if err := s.db.Where("id = ?", body.AccountID).First(&account).Error; err != nil {
 		return exceptions.NotFound(ctx, "Account not found")
 	}
+	userID, err := uuid.Parse(claims.Subject)
+	if err != nil {
+		return exceptions.BadRequest(ctx, "Invalid user ID in token")
+	}
+	if account.UserID != userID {
+		return exceptions.Forbidden(ctx, "You can only deposit to your own account")
+	}
 	if account.Status != models.AccountStatusActive {
 		return exceptions.BadRequest(ctx, "Account is not active")
 	}
 
 	var result *models.Transaction
-	err := s.db.Transaction(func(tx *gorm.DB) error {
+	err = s.db.Transaction(func(tx *gorm.DB) error {
 		var acc models.Account
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("id = ?", account.ID).First(&acc).Error; err != nil {

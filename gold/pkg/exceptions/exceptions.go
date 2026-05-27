@@ -29,6 +29,11 @@ type NotFoundError struct {
 	Message    string `json:"message" example:"Not found :("`
 } // @name NotFoundError
 
+type ForbiddenError struct {
+	StatusCode int    `json:"status_code" example:"403"`
+	Message    string `json:"message" example:"Forbidden :("`
+} // @name ForbiddenError
+
 type UnprocessableEntityError struct {
 	StatusCode int    `json:"status_code" example:"422"`
 	Message    string `json:"message" example:"Unprocessable entity :("`
@@ -55,6 +60,9 @@ var (
 	}
 	NotFound = func(c *fiber.Ctx, message string) error {
 		return writeError(c, message, fiber.StatusNotFound)
+	}
+	Forbidden = func(c *fiber.Ctx, message string) error {
+		return writeError(c, message, fiber.StatusForbidden)
 	}
 	UnprocessableEntity = func(c *fiber.Ctx, message string) error {
 		return writeError(c, message, fiber.StatusUnprocessableEntity)
