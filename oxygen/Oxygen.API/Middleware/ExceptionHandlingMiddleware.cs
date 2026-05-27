@@ -20,7 +20,7 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
-        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        catch (OperationCanceledException ex) when (ex.CancellationToken == context.RequestAborted)
         {
             _logger.LogInformation("Request cancelled by client");
 
@@ -28,6 +28,10 @@ public class ExceptionHandlingMiddleware
             {
                 context.Response.StatusCode = 499;
             }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex) when (!context.Response.HasStarted)
         {
