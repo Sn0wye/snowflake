@@ -4,9 +4,14 @@ import (
 	"context"
 
 	"github.com/getsnowflake/snowflake/helium/pb"
+	"github.com/getsnowflake/snowflake/helium/pkg/config"
+	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/src/models"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/gorm"
 )
@@ -47,6 +52,27 @@ func (s *userService) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.
 }
 
 func (s *userService) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.DeleteUserResponse, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Error(codes.Unauthenticated, "missing metadata")
+	}
+
+	vals := md.Get("authorization")
+	if len(vals) == 0 {
+		return nil, status.Error(codes.Unauthenticated, "missing authorization token")
+	}
+
+	conf := config.GetConfig()
+	j := jwt.NewJwt(conf)
+	claims, err := j.ParseToken(vals[0])
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "invalid token")
+	}
+
+	if claims.Subject != req.Id {
+		return nil, status.Error(codes.PermissionDenied, "cannot delete another user's account")
+	}
+
 	var user models.User
 
 	result := s.db.Where("id = ?", req.Id).First(&user)
