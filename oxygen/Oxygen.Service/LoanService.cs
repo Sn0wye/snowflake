@@ -64,6 +64,6 @@ public class LoanService(
             Status = LoanApplicationStatus.APPROVED
         };
 
-        return await loanRepository.AddAsync(suggestedLoan);
+        return suggestedLoan;
     }
 }
