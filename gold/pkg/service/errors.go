@@ -24,6 +24,7 @@ var (
 	ErrAmountTooHigh         = errors.New("amount exceeds maximum transaction limit")
 	ErrForbidden             = errors.New("you can only deposit to your own account")
 	ErrTransactionNotFound   = errors.New("transaction not found")
+	ErrInvalidTokenSubject    = errors.New("invalid user ID in token")
 )
 
 type IdempotentTransactionError struct {
