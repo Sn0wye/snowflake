@@ -322,7 +322,7 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 	})
 
 	if err != nil {
-		return dto.TransactionResponse{}, ErrDepositFailed
+		return dto.TransactionResponse{}, err
 	}
 
 	s.publishCompleted(result)

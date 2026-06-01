@@ -21,7 +21,6 @@ var (
 	ErrDailyLimitExceeded    = errors.New("daily transaction limit exceeded")
 	ErrDailyCountExceeded    = errors.New("maximum daily transaction count reached")
 	ErrTransferFailed        = errors.New("transfer failed")
-	ErrDepositFailed         = errors.New("deposit failed")
 	ErrAmountTooLow          = errors.New("amount must be at least 1 centavo")
 	ErrAmountTooHigh         = errors.New("amount exceeds maximum transaction limit")
 	ErrForbidden             = errors.New("you can only deposit to your own account")
