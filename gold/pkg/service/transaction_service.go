@@ -32,13 +32,13 @@ type TransactionService interface {
 
 type transactionService struct {
 	repos *repository.Factory
-	forms *ServiceFactory
+	svc *ServiceFactory
 	rmq   *messaging.MessagingService
 	log   *logger.Logger
 }
 
-func NewTransactionService(repos *repository.Factory, forms *ServiceFactory, rmq *messaging.MessagingService, log *logger.Logger) TransactionService {
-	return &transactionService{repos: repos, forms: forms, rmq: rmq, log: log}
+func NewTransactionService(repos *repository.Factory, svc *ServiceFactory, rmq *messaging.MessagingService, log *logger.Logger) TransactionService {
+	return &transactionService{repos: repos, svc: svc, rmq: rmq, log: log}
 }
 
 func (s *transactionService) GetTransactions(db *gorm.DB, userID string, filter repository.TransactionFilter) (dto.PaginatedTransactionsResponse, error) {
@@ -80,7 +80,7 @@ func (s *transactionService) GetTransactionByID(db *gorm.DB, userID string, id u
 
 	transaction, err := s.repos.Transaction.FindByID(db, id)
 	if err != nil {
-		return dto.TransactionResponse{}, err
+		return dto.TransactionResponse{}, mapNotFound(err, ErrTransactionNotFound)
 	}
 
 	isSender := transaction.SenderAccountID != nil && *transaction.SenderAccountID == account.ID
@@ -120,7 +120,7 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 		return dto.TransactionResponse{}, ErrAccountReconciliation
 	}
 
-	receiverAccount, _, err := s.forms.Flake.ResolveReceiver(db, req.ReceiverFlakeKey)
+	receiverAccount, _, err := 	s.svc.Flake.ResolveReceiver(db, req.ReceiverFlakeKey)
 	if err != nil {
 		return dto.TransactionResponse{}, err
 	}
@@ -234,7 +234,7 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 		if errors.Is(err, ErrInsufficientFunds) {
 			return dto.TransactionResponse{}, ErrInsufficientFunds
 		}
-		return dto.TransactionResponse{}, ErrTransferFailed
+		return dto.TransactionResponse{}, err
 	}
 
 	s.publishCompleted(result)
