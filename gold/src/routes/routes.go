@@ -27,7 +27,8 @@ func BindFlakeRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Lo
 	router.Post("/", controller.CreateFlake)
 	router.Get("/", controller.GetFlakes)
 	router.Delete("/:id", controller.DeleteFlake)
-	router.Get("/lookup", controller.PublicLookupFlake)
+
+	app.Get("/account/flake/lookup", controller.PublicLookupFlake)
 }
 
 func BindBalanceRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, rmq *messaging.MessagingService, services *service.ServiceFactory) {
