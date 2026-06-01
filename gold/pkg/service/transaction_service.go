@@ -265,7 +265,7 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 
 	userIDParsed, err := uuid.Parse(userID)
 	if err != nil {
-		return dto.TransactionResponse{}, err
+		return dto.TransactionResponse{}, ErrInvalidTokenSubject
 	}
 	if account.UserID != userIDParsed {
 		return dto.TransactionResponse{}, ErrForbidden

@@ -212,7 +212,8 @@ func (s *transactionsController) Deposit(ctx *fiber.Ctx) error {
 		switch {
 		case errors.Is(err, service.ErrAmountTooLow),
 			errors.Is(err, service.ErrAmountTooHigh),
-			errors.Is(err, service.ErrAccountNotActive):
+			errors.Is(err, service.ErrAccountNotActive),
+			errors.Is(err, service.ErrInvalidTokenSubject):
 			return exceptions.BadRequest(ctx, err.Error())
 		case errors.Is(err, service.ErrForbidden):
 			return exceptions.Forbidden(ctx, err.Error())
