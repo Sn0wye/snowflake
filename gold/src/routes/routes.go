@@ -3,26 +3,20 @@ package routes
 import (
 	"net/http"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/config"
 	"github.com/Sn0wye/snowflake/gold/pkg/jwt"
 	"github.com/Sn0wye/snowflake/gold/pkg/logger"
-	"github.com/Sn0wye/snowflake/gold/pkg/messaging"
 	"github.com/Sn0wye/snowflake/gold/pkg/service"
 	"github.com/Sn0wye/snowflake/gold/src/controllers"
-	"github.com/Sn0wye/snowflake/gold/src/db"
 	"github.com/Sn0wye/snowflake/gold/src/reconciliation"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
-func BindFlakeRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, rmq *messaging.MessagingService, services *service.ServiceFactory) {
-	db := db.GetDB()
-	conf := config.GetConfig()
-	jwt := jwt.NewJwt(conf)
-
+func BindFlakeRoutes(app *fiber.App, db *gorm.DB, j *jwt.JWT, jwtMiddleware fiber.Handler, services *service.ServiceFactory) {
 	router := app.Group("/account/flake", jwtMiddleware)
 
-	controller := controllers.NewFlakeController(db, jwt, services.Flake)
+	controller := controllers.NewFlakeController(db, j, services.Flake)
 
 	router.Post("/", controller.CreateFlake)
 	router.Get("/", controller.GetFlakes)
@@ -31,27 +25,19 @@ func BindFlakeRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Lo
 	app.Get("/account/flake/lookup", controller.PublicLookupFlake)
 }
 
-func BindBalanceRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, rmq *messaging.MessagingService, services *service.ServiceFactory) {
-	db := db.GetDB()
-	conf := config.GetConfig()
-	jwt := jwt.NewJwt(conf)
-
+func BindBalanceRoutes(app *fiber.App, db *gorm.DB, j *jwt.JWT, jwtMiddleware fiber.Handler, services *service.ServiceFactory) {
 	router := app.Group("/account/balance", jwtMiddleware)
 
-	controller := controllers.NewBalanceController(db, jwt, services.Balance)
+	controller := controllers.NewBalanceController(db, j, services.Balance)
 
 	router.Get("/", controller.GetBalance)
 	router.Get("/history", controller.GetBalanceHistory)
 }
 
-func BindTransactionRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, rmq *messaging.MessagingService, services *service.ServiceFactory) {
-	db := db.GetDB()
-	conf := config.GetConfig()
-	jwt := jwt.NewJwt(conf)
-
+func BindTransactionRoutes(app *fiber.App, db *gorm.DB, j *jwt.JWT, jwtMiddleware fiber.Handler, services *service.ServiceFactory) {
 	router := app.Group("/account/transactions", jwtMiddleware)
 
-	controller := controllers.NewTransactionsController(db, jwt, services.Transaction)
+	controller := controllers.NewTransactionsController(db, j, services.Transaction)
 
 	router.Post("/transfer", controller.CreateTransaction)
 	router.Get("/", controller.GetTransactions)

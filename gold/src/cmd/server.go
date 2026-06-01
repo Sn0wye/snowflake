@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Sn0wye/snowflake/gold/pkg/config"
+	jwtpkg "github.com/Sn0wye/snowflake/gold/pkg/jwt"
 	"github.com/Sn0wye/snowflake/gold/pkg/logger"
 	"github.com/Sn0wye/snowflake/gold/pkg/messaging"
 	"github.com/Sn0wye/snowflake/gold/pkg/middleware"
@@ -128,9 +129,9 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 	services := service.NewServiceFactory(db.GetDB(), repos, rmq, logger)
 
 	routes.BindHealthRoutes(app, db.GetDB(), rmq)
-	routes.BindFlakeRoutes(app, jwt, logger, rmq, services)
-	routes.BindBalanceRoutes(app, jwt, logger, rmq, services)
-	routes.BindTransactionRoutes(app, jwt, logger, rmq, services)
+	routes.BindFlakeRoutes(app, db.GetDB(), jwtpkg.NewJwt(conf), jwt, services)
+	routes.BindBalanceRoutes(app, db.GetDB(), jwtpkg.NewJwt(conf), jwt, services)
+	routes.BindTransactionRoutes(app, db.GetDB(), jwtpkg.NewJwt(conf), jwt, services)
 	routes.BindAdminRoutes(app, jwt, logger, reconcileJob)
 
 	port := conf.GetInt("http.port")
