@@ -3,7 +3,6 @@ package service
 import (
 	"github.com/Sn0wye/snowflake/gold/pkg/repository"
 	"github.com/Sn0wye/snowflake/gold/src/dto"
-	"github.com/Sn0wye/snowflake/gold/src/models"
 	"gorm.io/gorm"
 )
 
@@ -50,8 +49,4 @@ func (s *balanceService) GetBalanceHistory(db *gorm.DB, userID string, page, lim
 		Page:    page,
 		Limit:   limit,
 	}, nil
-}
-
-func (s *balanceService) ResolveAccount(db *gorm.DB, userID string) (*models.Account, error) {
-	return s.repos.Account.FindByUserID(db, userID)
 }
