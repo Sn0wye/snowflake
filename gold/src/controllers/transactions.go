@@ -3,31 +3,20 @@ package controllers
 import (
 	"errors"
 	"net/http"
-	"sort"
 	"strconv"
-	"time"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/events"
 	"github.com/Sn0wye/snowflake/gold/pkg/exceptions"
 	"github.com/Sn0wye/snowflake/gold/pkg/jwt"
-	"github.com/Sn0wye/snowflake/gold/pkg/logger"
-	"github.com/Sn0wye/snowflake/gold/pkg/messaging"
+	"github.com/Sn0wye/snowflake/gold/pkg/repository"
+	"github.com/Sn0wye/snowflake/gold/pkg/service"
 	"github.com/Sn0wye/snowflake/gold/src/dto"
-	"github.com/Sn0wye/snowflake/gold/src/models"
 	"github.com/Sn0wye/snowflake/gold/src/utils"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 const (
-	minTransactionAmount  int64 = 1          // 1 cent
-	maxTransactionAmount  int64 = 10_000_000 // R$ 100,000.00
-	dailyTransactionLimit int64 = 5_000_000  // R$ 50,000.00
-	maxDailyTransactions  int64 = 100
-
 	defaultTransactionLimit = 20
 	maxTransactionLimit     = 100
 )
@@ -40,19 +29,13 @@ type TransactionsController interface {
 }
 
 type transactionsController struct {
-	db  *gorm.DB
-	jwt *jwt.JWT
-	rmq *messaging.MessagingService
-	log *logger.Logger
+	db      *gorm.DB
+	jwt     *jwt.JWT
+	service service.TransactionService
 }
 
-func NewTransactionsController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService, log *logger.Logger) TransactionsController {
-	return &transactionsController{
-		db:  db,
-		jwt: jwt,
-		rmq: rmq,
-		log: log,
-	}
+func NewTransactionsController(db *gorm.DB, jwt *jwt.JWT, svc service.TransactionService) TransactionsController {
+	return &transactionsController{db: db, jwt: jwt, service: svc}
 }
 
 // GetTransactions godoc
@@ -75,11 +58,6 @@ func NewTransactionsController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.Messagi
 func (s *transactionsController) GetTransactions(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
 
-	var account models.Account
-	if err := s.db.Where("user_id = ?", claims.Subject).First(&account).Error; err != nil {
-		return exceptions.NotFound(ctx, "Account not found")
-	}
-
 	page := 1
 	limit := defaultTransactionLimit
 	if p := ctx.Query("page"); p != "" {
@@ -96,38 +74,19 @@ func (s *transactionsController) GetTransactions(ctx *fiber.Ctx) error {
 		}
 	}
 
-	offset := (page - 1) * limit
-
-	query := s.db.Model(&models.Transaction{}).
-		Where("sender_account_id = ? OR receiver_account_id = ?", account.ID, account.ID)
-
-	// Optional filters
-	if status := ctx.Query("status"); status != "" {
-		query = query.Where("status = ?", status)
-	}
-	if txType := ctx.Query("type"); txType != "" {
-		query = query.Where("type = ?", txType)
+	filter := repository.TransactionFilter{
+		Status: ctx.Query("status"),
+		Type:   ctx.Query("type"),
+		Page:   page,
+		Limit:  limit,
 	}
 
-	var total int64
-	query.Count(&total)
-
-	var transactions []models.Transaction
-	if err := query.Order("created_at DESC").Limit(limit).Offset(offset).Find(&transactions).Error; err != nil {
-		return exceptions.InternalServer(ctx, "Failed to fetch transactions")
+	resp, err := s.service.GetTransactions(s.db, claims.Subject, filter)
+	if err != nil {
+		return exceptions.NotFound(ctx, "Account not found")
 	}
 
-	response := make([]dto.TransactionResponse, len(transactions))
-	for i, t := range transactions {
-		response[i] = dto.TransactionToResponse(t)
-	}
-
-	return ctx.Status(http.StatusOK).JSON(dto.PaginatedTransactionsResponse{
-		Transactions: response,
-		Total:        total,
-		Page:         page,
-		Limit:        limit,
-	})
+	return ctx.Status(http.StatusOK).JSON(resp)
 }
 
 // GetTransactionByID godoc
@@ -146,29 +105,20 @@ func (s *transactionsController) GetTransactions(ctx *fiber.Ctx) error {
 //	@OperationId	getTransactionByID
 func (s *transactionsController) GetTransactionByID(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
-	id := ctx.Params("id")
-
-	var account models.Account
-	if err := s.db.Where("user_id = ?", claims.Subject).First(&account).Error; err != nil {
-		return exceptions.NotFound(ctx, "Account not found")
+	id, err := uuid.Parse(ctx.Params("id"))
+	if err != nil {
+		return exceptions.BadRequest(ctx, "Invalid transaction ID")
 	}
 
-	var transaction models.Transaction
-	if err := s.db.Where("id = ?", id).First(&transaction).Error; err != nil {
+	resp, err := s.service.GetTransactionByID(s.db, claims.Subject, id)
+	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return exceptions.NotFound(ctx, "Transaction not found")
 		}
-		return exceptions.InternalServer(ctx, "Failed to fetch transaction")
+		return exceptions.NotFound(ctx, "Account not found")
 	}
 
-	// Verify the caller is sender or receiver
-	isSender := transaction.SenderAccountID != nil && *transaction.SenderAccountID == account.ID
-	isReceiver := transaction.ReceiverAccountID != nil && *transaction.ReceiverAccountID == account.ID
-	if !isSender && !isReceiver {
-		return exceptions.NotFound(ctx, "Transaction not found")
-	}
-
-	return ctx.Status(http.StatusOK).JSON(dto.TransactionToResponse(transaction))
+	return ctx.Status(http.StatusOK).JSON(resp)
 }
 
 // CreateTransaction godoc
@@ -195,214 +145,31 @@ func (s *transactionsController) CreateTransaction(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	// Validate amount range
-	if body.Amount < minTransactionAmount {
-		return exceptions.BadRequest(ctx, "Amount must be at least 1 centavo")
-	}
-	if body.Amount > maxTransactionAmount {
-		return exceptions.BadRequest(ctx, "Amount exceeds maximum transaction limit of R$ 100,000.00")
-	}
-
-	// Idempotency: return existing transaction if key already used
-	var existing models.Transaction
-	if err := s.db.Where("idempotency_key = ?", body.IdempotencyKey).First(&existing).Error; err == nil {
-		return ctx.Status(http.StatusOK).JSON(dto.TransactionToResponse(existing))
-	}
-
-	// Resolve sender account
-	var senderAccount models.Account
-	if err := s.db.Where("user_id = ?", claims.Subject).First(&senderAccount).Error; err != nil {
-		return exceptions.NotFound(ctx, "Sender account not found")
-	}
-
-	if senderAccount.Status != models.AccountStatusActive {
-		return exceptions.BadRequest(ctx, "Sender account is not active")
-	}
-	if senderAccount.ReconciliationStatus == models.AccountReconciliationStatusDiscrepancy {
-		return exceptions.BadRequest(ctx, "Sender account is under reconciliation review")
-	}
-
-	// Resolve receiver via flake key
-	var flake models.Flake
-	if err := s.db.Where("key_value = ? AND status = ?", body.ReceiverFlakeKey, models.FlakeStatusActive).
-		First(&flake).Error; err != nil {
-		return exceptions.NotFound(ctx, "Receiver flake key not found or inactive")
-	}
-
-	var receiverAccount models.Account
-	if err := s.db.Where("id = ?", flake.AccountID).First(&receiverAccount).Error; err != nil {
-		return exceptions.NotFound(ctx, "Receiver account not found")
-	}
-
-	if receiverAccount.Status != models.AccountStatusActive {
-		return exceptions.BadRequest(ctx, "Receiver account is not active")
-	}
-
-	// Cannot send to yourself
-	if senderAccount.ID == receiverAccount.ID {
-		return exceptions.BadRequest(ctx, "Cannot transfer to your own account")
-	}
-
-	// Check daily limits
-	startOfDay := time.Now().UTC().Truncate(24 * time.Hour)
-	var dailyAmount int64
-	s.db.Model(&models.Transaction{}).
-		Where("sender_account_id = ? AND status = ? AND created_at >= ?",
-			senderAccount.ID, models.TransactionStatusCompleted, startOfDay).
-		Select("COALESCE(SUM(amount), 0)").Scan(&dailyAmount)
-
-	if dailyAmount+body.Amount > dailyTransactionLimit {
-		return exceptions.BadRequest(ctx, "Daily transaction limit of R$ 50,000.00 exceeded")
-	}
-
-	var dailyCount int64
-	s.db.Model(&models.Transaction{}).
-		Where("sender_account_id = ? AND status = ? AND created_at >= ?",
-			senderAccount.ID, models.TransactionStatusCompleted, startOfDay).
-		Count(&dailyCount)
-	if dailyCount >= maxDailyTransactions {
-		return exceptions.BadRequest(ctx, "Maximum daily transaction count (100) reached")
-	}
-
-	// Execute within a DB transaction with row locking
-	var result *models.Transaction
-	err := s.db.Transaction(func(tx *gorm.DB) error {
-		// Lock accounts in consistent UUID order to prevent deadlock
-		ids := []uuid.UUID{senderAccount.ID, receiverAccount.ID}
-		sort.Slice(ids, func(i, j int) bool {
-			return ids[i].String() < ids[j].String()
-		})
-
-		locked := make(map[uuid.UUID]*models.Account)
-		for _, id := range ids {
-			var acc models.Account
-			if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-				Where("id = ?", id).First(&acc).Error; err != nil {
-				return err
-			}
-			locked[id] = &acc
-		}
-
-		sender := locked[senderAccount.ID]
-		receiver := locked[receiverAccount.ID]
-
-		// Re-check balance after lock
-		if sender.Balance < body.Amount {
-			return errors.New("insufficient funds")
-		}
-
-		now := time.Now()
-
-		// Create transaction record
-		transaction := models.Transaction{
-			Type:              models.TransactionTypeTransfer,
-			Status:            models.TransactionStatusPending,
-			Amount:            body.Amount,
-			SenderAccountID:   &sender.ID,
-			ReceiverAccountID: &receiver.ID,
-			FlakeKeyUsed:      body.ReceiverFlakeKey,
-			Description:       body.Description,
-			IdempotencyKey:    body.IdempotencyKey,
-		}
-		if err := tx.Create(&transaction).Error; err != nil {
-			return err
-		}
-
-		// Debit entry for sender
-		if err := tx.Create(&models.TransactionHistory{
-			TransactionID: transaction.ID,
-			AccountID:     sender.ID,
-			EntryType:     models.TransactionHistoryEntryTypeDebit,
-			Amount:        body.Amount,
-			BalanceBefore: sender.Balance,
-			BalanceAfter:  sender.Balance - body.Amount,
-			Description:   body.Description,
-		}).Error; err != nil {
-			return err
-		}
-
-		// Credit entry for receiver
-		if err := tx.Create(&models.TransactionHistory{
-			TransactionID: transaction.ID,
-			AccountID:     receiver.ID,
-			EntryType:     models.TransactionHistoryEntryTypeCredit,
-			Amount:        body.Amount,
-			BalanceBefore: receiver.Balance,
-			BalanceAfter:  receiver.Balance + body.Amount,
-			Description:   body.Description,
-		}).Error; err != nil {
-			return err
-		}
-
-		// Update balances
-		if err := tx.Model(sender).Update("balance", gorm.Expr("balance - ?", body.Amount)).Error; err != nil {
-			return err
-		}
-		if err := tx.Model(receiver).Update("balance", gorm.Expr("balance + ?", body.Amount)).Error; err != nil {
-			return err
-		}
-
-		// Mark completed
-		transaction.Status = models.TransactionStatusCompleted
-		transaction.CompletedAt = &now
-		if err := tx.Save(&transaction).Error; err != nil {
-			return err
-		}
-
-		result = &transaction
-		return nil
-	})
-
+	resp, err := s.service.CreateTransaction(s.db, claims.Subject, *body)
 	if err != nil {
-		if err.Error() == "insufficient funds" {
-			return exceptions.BadRequest(ctx, "Insufficient funds")
+		var idempotent *service.IdempotentTransactionError
+		if errors.As(err, &idempotent) {
+			return ctx.Status(http.StatusOK).JSON(idempotent.Response)
 		}
-		return exceptions.InternalServer(ctx, "Transfer failed")
+		switch {
+		case errors.Is(err, service.ErrAmountTooLow),
+			errors.Is(err, service.ErrAmountTooHigh),
+			errors.Is(err, service.ErrAccountNotActive),
+			errors.Is(err, service.ErrAccountReconciliation),
+			errors.Is(err, service.ErrSelfTransfer),
+			errors.Is(err, service.ErrInsufficientFunds),
+			errors.Is(err, service.ErrDailyLimitExceeded),
+			errors.Is(err, service.ErrDailyCountExceeded):
+			return exceptions.BadRequest(ctx, err.Error())
+		case errors.Is(err, service.ErrAccountNotFound),
+			errors.Is(err, service.ErrFlakeNotFound):
+			return exceptions.NotFound(ctx, err.Error())
+		default:
+			return exceptions.InternalServer(ctx, "Transfer failed")
+		}
 	}
 
-	s.publishCompleted(result)
-
-	return ctx.Status(http.StatusCreated).JSON(dto.TransactionToResponse(*result))
-}
-
-// publishCompleted fires a transaction.completed event asynchronously.
-// Failures are logged but do not affect the HTTP response.
-func (s *transactionsController) publishCompleted(t *models.Transaction) {
-	go func() {
-		var senderStr, receiverStr *string
-		if t.SenderAccountID != nil {
-			v := t.SenderAccountID.String()
-			senderStr = &v
-		}
-		if t.ReceiverAccountID != nil {
-			v := t.ReceiverAccountID.String()
-			receiverStr = &v
-		}
-
-		completedAt := time.Now()
-		if t.CompletedAt != nil {
-			completedAt = *t.CompletedAt
-		}
-
-		evt := events.NewTransactionCompleted(
-			t.ID.String(),
-			string(t.Type),
-			t.Amount,
-			senderStr,
-			receiverStr,
-			completedAt,
-		)
-
-		payload, err := events.Marshal(evt)
-		if err != nil {
-			s.log.Error("Failed to marshal transaction.completed event", zap.Error(err), zap.String("transactionID", t.ID.String()))
-			return
-		}
-
-		if err := s.rmq.Produce(events.QueueTransactionCompleted, payload); err != nil {
-			s.log.Error("Failed to publish transaction.completed event", zap.Error(err), zap.String("transactionID", t.ID.String()))
-		}
-	}()
+	return ctx.Status(http.StatusCreated).JSON(resp)
 }
 
 // Deposit godoc
@@ -429,88 +196,25 @@ func (s *transactionsController) Deposit(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	if body.Amount < minTransactionAmount {
-		return exceptions.BadRequest(ctx, "Amount must be at least 1 centavo")
-	}
-	if body.Amount > maxTransactionAmount {
-		return exceptions.BadRequest(ctx, "Amount exceeds maximum deposit limit of R$ 100,000.00")
-	}
-
-	// Idempotency check
-	var existing models.Transaction
-	if err := s.db.Where("idempotency_key = ?", body.IdempotencyKey).First(&existing).Error; err == nil {
-		return ctx.Status(http.StatusOK).JSON(dto.TransactionToResponse(existing))
-	}
-
-	var account models.Account
-	if err := s.db.Where("id = ?", body.AccountID).First(&account).Error; err != nil {
-		return exceptions.NotFound(ctx, "Account not found")
-	}
-	userID, err := uuid.Parse(claims.Subject)
+	resp, err := s.service.Deposit(s.db, claims.Subject, *body)
 	if err != nil {
-		return exceptions.BadRequest(ctx, "Invalid user ID in token")
-	}
-	if account.UserID != userID {
-		return exceptions.Forbidden(ctx, "You can only deposit to your own account")
-	}
-	if account.Status != models.AccountStatusActive {
-		return exceptions.BadRequest(ctx, "Account is not active")
-	}
-
-	var result *models.Transaction
-	err = s.db.Transaction(func(tx *gorm.DB) error {
-		var acc models.Account
-		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
-			Where("id = ?", account.ID).First(&acc).Error; err != nil {
-			return err
+		var idempotent *service.IdempotentTransactionError
+		if errors.As(err, &idempotent) {
+			return ctx.Status(http.StatusOK).JSON(idempotent.Response)
 		}
-
-		now := time.Now()
-
-		transaction := models.Transaction{
-			Type:              models.TransactionTypeDeposit,
-			Status:            models.TransactionStatusPending,
-			Amount:            body.Amount,
-			ReceiverAccountID: &acc.ID,
-			Description:       body.Description,
-			IdempotencyKey:    body.IdempotencyKey,
+		switch {
+		case errors.Is(err, service.ErrAmountTooLow),
+			errors.Is(err, service.ErrAmountTooHigh),
+			errors.Is(err, service.ErrAccountNotActive):
+			return exceptions.BadRequest(ctx, err.Error())
+		case errors.Is(err, service.ErrForbidden):
+			return exceptions.Forbidden(ctx, err.Error())
+		case errors.Is(err, service.ErrAccountNotFound):
+			return exceptions.NotFound(ctx, err.Error())
+		default:
+			return exceptions.InternalServer(ctx, "Deposit failed")
 		}
-		if err := tx.Create(&transaction).Error; err != nil {
-			return err
-		}
-
-		// Credit entry only (deposit from external source)
-		if err := tx.Create(&models.TransactionHistory{
-			TransactionID: transaction.ID,
-			AccountID:     acc.ID,
-			EntryType:     models.TransactionHistoryEntryTypeCredit,
-			Amount:        body.Amount,
-			BalanceBefore: acc.Balance,
-			BalanceAfter:  acc.Balance + body.Amount,
-			Description:   body.Description,
-		}).Error; err != nil {
-			return err
-		}
-
-		if err := tx.Model(&acc).Update("balance", gorm.Expr("balance + ?", body.Amount)).Error; err != nil {
-			return err
-		}
-
-		transaction.Status = models.TransactionStatusCompleted
-		transaction.CompletedAt = &now
-		if err := tx.Save(&transaction).Error; err != nil {
-			return err
-		}
-
-		result = &transaction
-		return nil
-	})
-
-	if err != nil {
-		return exceptions.InternalServer(ctx, "Deposit failed")
 	}
 
-	s.publishCompleted(result)
-
-	return ctx.Status(http.StatusCreated).JSON(dto.TransactionToResponse(*result))
+	return ctx.Status(http.StatusCreated).JSON(resp)
 }

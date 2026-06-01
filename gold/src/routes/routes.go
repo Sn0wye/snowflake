@@ -7,6 +7,7 @@ import (
 	"github.com/Sn0wye/snowflake/gold/pkg/jwt"
 	"github.com/Sn0wye/snowflake/gold/pkg/logger"
 	"github.com/Sn0wye/snowflake/gold/pkg/messaging"
+	"github.com/Sn0wye/snowflake/gold/pkg/service"
 	"github.com/Sn0wye/snowflake/gold/src/controllers"
 	"github.com/Sn0wye/snowflake/gold/src/db"
 	"github.com/Sn0wye/snowflake/gold/src/reconciliation"
@@ -14,14 +15,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func BindFlakeRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, rmq *messaging.MessagingService) {
+func BindFlakeRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, rmq *messaging.MessagingService, services *service.ServiceFactory) {
 	db := db.GetDB()
 	conf := config.GetConfig()
 	jwt := jwt.NewJwt(conf)
 
 	router := app.Group("/account/flake", jwtMiddleware)
 
-	controller := controllers.NewFlakeController(db, jwt)
+	controller := controllers.NewFlakeController(db, jwt, services.Flake)
 
 	router.Post("/", controller.CreateFlake)
 	router.Get("/", controller.GetFlakes)
@@ -29,27 +30,27 @@ func BindFlakeRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Lo
 	router.Get("/lookup", controller.PublicLookupFlake)
 }
 
-func BindBalanceRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, rmq *messaging.MessagingService) {
+func BindBalanceRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, rmq *messaging.MessagingService, services *service.ServiceFactory) {
 	db := db.GetDB()
 	conf := config.GetConfig()
 	jwt := jwt.NewJwt(conf)
 
 	router := app.Group("/account/balance", jwtMiddleware)
 
-	controller := controllers.NewBalanceController(db, jwt)
+	controller := controllers.NewBalanceController(db, jwt, services.Balance)
 
 	router.Get("/", controller.GetBalance)
 	router.Get("/history", controller.GetBalanceHistory)
 }
 
-func BindTransactionRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, rmq *messaging.MessagingService) {
+func BindTransactionRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, rmq *messaging.MessagingService, services *service.ServiceFactory) {
 	db := db.GetDB()
 	conf := config.GetConfig()
 	jwt := jwt.NewJwt(conf)
 
 	router := app.Group("/account/transactions", jwtMiddleware)
 
-	controller := controllers.NewTransactionsController(db, jwt, rmq, log)
+	controller := controllers.NewTransactionsController(db, jwt, services.Transaction)
 
 	router.Post("/transfer", controller.CreateTransaction)
 	router.Get("/", controller.GetTransactions)
@@ -60,7 +61,6 @@ func BindTransactionRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *log
 func BindAdminRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, job *reconciliation.Job) {
 	router := app.Group("/account/admin", jwtMiddleware)
 
-	// On-demand reconciliation trigger (JWT required; no admin-role check yet)
 	router.Post("/reconcile", func(c *fiber.Ctx) error {
 		go job.Run()
 		return c.Status(http.StatusAccepted).JSON(fiber.Map{

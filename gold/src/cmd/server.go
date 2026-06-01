@@ -14,6 +14,8 @@ import (
 	"github.com/Sn0wye/snowflake/gold/pkg/logger"
 	"github.com/Sn0wye/snowflake/gold/pkg/messaging"
 	"github.com/Sn0wye/snowflake/gold/pkg/middleware"
+	"github.com/Sn0wye/snowflake/gold/pkg/repository"
+	"github.com/Sn0wye/snowflake/gold/pkg/service"
 	"github.com/Sn0wye/snowflake/gold/pkg/validator"
 	"github.com/Sn0wye/snowflake/gold/src/db"
 	"github.com/Sn0wye/snowflake/gold/src/migration"
@@ -122,10 +124,13 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 	// JWT Middleware
 	jwt := middleware.JWTMiddleware(conf, logger)
 
+	repos := repository.NewFactory(db.GetDB())
+	services := service.NewServiceFactory(db.GetDB(), repos, rmq, logger)
+
 	routes.BindHealthRoutes(app, db.GetDB(), rmq)
-	routes.BindFlakeRoutes(app, jwt, logger, rmq)
-	routes.BindBalanceRoutes(app, jwt, logger, rmq)
-	routes.BindTransactionRoutes(app, jwt, logger, rmq)
+	routes.BindFlakeRoutes(app, jwt, logger, rmq, services)
+	routes.BindBalanceRoutes(app, jwt, logger, rmq, services)
+	routes.BindTransactionRoutes(app, jwt, logger, rmq, services)
 	routes.BindAdminRoutes(app, jwt, logger, reconcileJob)
 
 	port := conf.GetInt("http.port")

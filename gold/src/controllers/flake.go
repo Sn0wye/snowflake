@@ -1,26 +1,18 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/Sn0wye/snowflake/gold/pkg/exceptions"
 	"github.com/Sn0wye/snowflake/gold/pkg/jwt"
+	"github.com/Sn0wye/snowflake/gold/pkg/service"
 	"github.com/Sn0wye/snowflake/gold/src/dto"
-	"github.com/Sn0wye/snowflake/gold/src/models"
 	"github.com/Sn0wye/snowflake/gold/src/utils"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
-
-// maxTypedFlakeKeys is the maximum number of non-unlimited flake keys per account.
-// random and handle types are excluded from this limit.
-const maxTypedFlakeKeys = 5
-
-// unlimitedKeyTypes are key types not subject to the per-account limit.
-var unlimitedKeyTypes = map[models.FlakeType]bool{
-	models.FlakeTypeRandom: true,
-	models.FlakeTypeHandle: true,
-}
 
 type FlakeController interface {
 	CreateFlake(ctx *fiber.Ctx) error
@@ -30,15 +22,13 @@ type FlakeController interface {
 }
 
 type flakeController struct {
-	db  *gorm.DB
-	jwt *jwt.JWT
+	db      *gorm.DB
+	jwt     *jwt.JWT
+	service service.FlakeService
 }
 
-func NewFlakeController(db *gorm.DB, jwt *jwt.JWT) FlakeController {
-	return &flakeController{
-		db:  db,
-		jwt: jwt,
-	}
+func NewFlakeController(db *gorm.DB, jwt *jwt.JWT, svc service.FlakeService) FlakeController {
+	return &flakeController{db: db, jwt: jwt, service: svc}
 }
 
 // CreateFlake godoc
@@ -64,61 +54,26 @@ func (s *flakeController) CreateFlake(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	// Validate key value format for the given key type
 	if err := utils.ValidateFlakeKeyValue(body.KeyType, body.KeyValue); err != nil {
 		return exceptions.BadRequest(ctx, err.Error())
 	}
 
-	var account models.Account
-	if err := s.db.Where("user_id = ?", claims.Subject).First(&account).Error; err != nil {
-		return exceptions.NotFound(ctx, "Account not found")
-	}
-
-	// Block transactions on accounts with reconciliation discrepancies
-	if account.ReconciliationStatus == models.AccountReconciliationStatusDiscrepancy {
-		return exceptions.BadRequest(ctx, "Account is under reconciliation review and cannot be modified")
-	}
-
-	// Enforce key limits for non-unlimited types
-	if !unlimitedKeyTypes[body.KeyType] {
-		// Check one-per-type rule
-		var existing models.Flake
-		if s.db.Where("key_type = ? AND account_id = ? AND status = ?",
-			body.KeyType, account.ID, models.FlakeStatusActive).First(&existing).Error == nil {
-			return exceptions.BadRequest(ctx, "You already have an active flake key of this type")
-		}
-
-		// Check total limit (count only non-unlimited active keys)
-		var count int64
-		s.db.Model(&models.Flake{}).
-			Where("account_id = ? AND status = ? AND key_type NOT IN ?",
-				account.ID, models.FlakeStatusActive,
-				[]models.FlakeType{models.FlakeTypeRandom, models.FlakeTypeHandle}).
-			Count(&count)
-		if count >= maxTypedFlakeKeys {
-			return exceptions.BadRequest(ctx, "Maximum number of flake keys reached (5 typed keys per account)")
+	resp, err := s.service.CreateFlake(s.db, claims.Subject, *body)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrAccountNotFound):
+			return exceptions.NotFound(ctx, "Account not found")
+		case errors.Is(err, service.ErrAccountReconciliation),
+			errors.Is(err, service.ErrDuplicateFlakeType),
+			errors.Is(err, service.ErrFlakeLimitReached),
+			errors.Is(err, service.ErrFlakeKeyConflict):
+			return exceptions.BadRequest(ctx, err.Error())
+		default:
+			return exceptions.InternalServer(ctx, "Failed to create flake key")
 		}
 	}
 
-	// Check global uniqueness of key_value
-	var conflict models.Flake
-	if s.db.Where("key_value = ? AND status = ?", body.KeyValue, models.FlakeStatusActive).
-		First(&conflict).Error == nil {
-		return exceptions.BadRequest(ctx, "This key value is already registered to another account")
-	}
-
-	flake := models.Flake{
-		AccountID: account.ID,
-		KeyType:   body.KeyType,
-		KeyValue:  body.KeyValue,
-		Status:    models.FlakeStatusActive,
-	}
-
-	if err := s.db.Create(&flake).Error; err != nil {
-		return exceptions.InternalServer(ctx, "Failed to create flake key")
-	}
-
-	return ctx.Status(http.StatusCreated).JSON(dto.FlakeToResponse(flake))
+	return ctx.Status(http.StatusCreated).JSON(resp)
 }
 
 // GetFlakes godoc
@@ -137,22 +92,15 @@ func (s *flakeController) CreateFlake(ctx *fiber.Ctx) error {
 func (s *flakeController) GetFlakes(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
 
-	var account models.Account
-	if err := s.db.Where("user_id = ?", claims.Subject).First(&account).Error; err != nil {
-		return exceptions.NotFound(ctx, "Account not found")
-	}
-
-	var flakes []models.Flake
-	if err := s.db.Where("account_id = ?", account.ID).Find(&flakes).Error; err != nil {
+	resp, err := s.service.GetFlakes(s.db, claims.Subject)
+	if err != nil {
+		if errors.Is(err, service.ErrAccountNotFound) {
+			return exceptions.NotFound(ctx, "Account not found")
+		}
 		return exceptions.InternalServer(ctx, "Failed to fetch flake keys")
 	}
 
-	response := make([]dto.FlakeResponse, len(flakes))
-	for i, f := range flakes {
-		response[i] = dto.FlakeToResponse(f)
-	}
-
-	return ctx.Status(http.StatusOK).JSON(response)
+	return ctx.Status(http.StatusOK).JSON(resp)
 }
 
 // DeleteFlake godoc
@@ -172,27 +120,26 @@ func (s *flakeController) GetFlakes(ctx *fiber.Ctx) error {
 //	@OperationId	deleteFlake
 func (s *flakeController) DeleteFlake(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
-	id := ctx.Params("id")
-
-	var account models.Account
-	if err := s.db.Where("user_id = ?", claims.Subject).First(&account).Error; err != nil {
-		return exceptions.NotFound(ctx, "Account not found")
+	id, err := uuid.Parse(ctx.Params("id"))
+	if err != nil {
+		return exceptions.BadRequest(ctx, "Invalid flake key ID")
 	}
 
-	var flake models.Flake
-	if err := s.db.Where("id = ? AND account_id = ?", id, account.ID).First(&flake).Error; err != nil {
-		return exceptions.NotFound(ctx, "Flake key not found")
+	resp, err := s.service.DeleteFlake(s.db, claims.Subject, id)
+	if err != nil {
+		switch {
+		case errors.Is(err, service.ErrAccountNotFound):
+			return exceptions.NotFound(ctx, "Account not found")
+		case errors.Is(err, service.ErrFlakeNotFound):
+			return exceptions.NotFound(ctx, "Flake key not found")
+		case errors.Is(err, service.ErrFlakeAlreadyInactive):
+			return exceptions.BadRequest(ctx, err.Error())
+		default:
+			return exceptions.InternalServer(ctx, "Failed to deactivate flake key")
+		}
 	}
 
-	if flake.Status == models.FlakeStatusInactive {
-		return exceptions.BadRequest(ctx, "Flake key is already inactive")
-	}
-
-	if err := s.db.Model(&flake).Update("status", models.FlakeStatusInactive).Error; err != nil {
-		return exceptions.InternalServer(ctx, "Failed to deactivate flake key")
-	}
-
-	return ctx.Status(http.StatusOK).JSON(dto.FlakeToResponse(flake))
+	return ctx.Status(http.StatusOK).JSON(resp)
 }
 
 // PublicLookupFlake godoc
@@ -214,20 +161,10 @@ func (s *flakeController) PublicLookupFlake(ctx *fiber.Ctx) error {
 		return exceptions.BadRequest(ctx, "key_value query parameter is required")
 	}
 
-	var flake models.Flake
-	if err := s.db.Where("key_value = ? AND status = ?", keyValue, models.FlakeStatusActive).
-		First(&flake).Error; err != nil {
+	resp, err := s.service.PublicLookup(s.db, keyValue)
+	if err != nil {
 		return exceptions.NotFound(ctx, "Flake key not found")
 	}
 
-	var account models.Account
-	if err := s.db.Where("id = ?", flake.AccountID).First(&account).Error; err != nil {
-		return exceptions.NotFound(ctx, "Account not found")
-	}
-
-	return ctx.Status(http.StatusOK).JSON(dto.LookupFlakeResponse{
-		AccountID: account.ID,
-		KeyType:   flake.KeyType,
-		KeyValue:  flake.KeyValue,
-	})
+	return ctx.Status(http.StatusOK).JSON(resp)
 }
