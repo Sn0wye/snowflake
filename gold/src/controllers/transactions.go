@@ -118,7 +118,7 @@ func (s *transactionsController) GetTransactionByID(ctx *fiber.Ctx) error {
 		switch {
 		case errors.Is(err, service.ErrAccountNotFound):
 			return exceptions.NotFound(ctx, "Account not found")
-		case errors.Is(err, gorm.ErrRecordNotFound):
+		case errors.Is(err, service.ErrTransactionNotFound):
 			return exceptions.NotFound(ctx, "Transaction not found")
 		default:
 			return exceptions.InternalServer(ctx, "Failed to fetch transaction")

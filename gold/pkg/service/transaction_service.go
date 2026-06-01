@@ -86,7 +86,7 @@ func (s *transactionService) GetTransactionByID(db *gorm.DB, userID string, id u
 	isSender := transaction.SenderAccountID != nil && *transaction.SenderAccountID == account.ID
 	isReceiver := transaction.ReceiverAccountID != nil && *transaction.ReceiverAccountID == account.ID
 	if !isSender && !isReceiver {
-		return dto.TransactionResponse{}, gorm.ErrRecordNotFound
+		return dto.TransactionResponse{}, ErrTransactionNotFound
 	}
 
 	return dto.TransactionToResponse(*transaction), nil
