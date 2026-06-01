@@ -1,13 +1,13 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/Sn0wye/snowflake/gold/pkg/exceptions"
 	"github.com/Sn0wye/snowflake/gold/pkg/jwt"
-	"github.com/Sn0wye/snowflake/gold/src/dto"
-	"github.com/Sn0wye/snowflake/gold/src/models"
+	"github.com/Sn0wye/snowflake/gold/pkg/service"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
@@ -23,15 +23,13 @@ type BalanceController interface {
 }
 
 type balanceController struct {
-	db  *gorm.DB
-	jwt *jwt.JWT
+	db      *gorm.DB
+	jwt     *jwt.JWT
+	service service.BalanceService
 }
 
-func NewBalanceController(db *gorm.DB, jwt *jwt.JWT) BalanceController {
-	return &balanceController{
-		db:  db,
-		jwt: jwt,
-	}
+func NewBalanceController(db *gorm.DB, jwt *jwt.JWT, svc service.BalanceService) BalanceController {
+	return &balanceController{db: db, jwt: jwt, service: svc}
 }
 
 // GetBalance godoc
@@ -49,12 +47,12 @@ func NewBalanceController(db *gorm.DB, jwt *jwt.JWT) BalanceController {
 func (s *balanceController) GetBalance(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
 
-	var account models.Account
-	if err := s.db.Where("user_id = ?", claims.Subject).First(&account).Error; err != nil {
+	resp, err := s.service.GetBalance(s.db, claims.Subject)
+	if err != nil {
 		return exceptions.NotFound(ctx, "Account not found")
 	}
 
-	return ctx.Status(http.StatusOK).JSON(dto.AccountToBalanceResponse(account))
+	return ctx.Status(http.StatusOK).JSON(resp)
 }
 
 // GetBalanceHistory godoc
@@ -75,11 +73,6 @@ func (s *balanceController) GetBalance(ctx *fiber.Ctx) error {
 func (s *balanceController) GetBalanceHistory(ctx *fiber.Ctx) error {
 	claims := ctx.Locals("claims").(*jwt.Claims)
 
-	var account models.Account
-	if err := s.db.Where("user_id = ?", claims.Subject).First(&account).Error; err != nil {
-		return exceptions.NotFound(ctx, "Account not found")
-	}
-
 	page := 1
 	limit := defaultBalanceHistoryLimit
 
@@ -97,32 +90,13 @@ func (s *balanceController) GetBalanceHistory(ctx *fiber.Ctx) error {
 		}
 	}
 
-	offset := (page - 1) * limit
-
-	var total int64
-	s.db.Model(&models.TransactionHistory{}).
-		Where("account_id = ?", account.ID).
-		Count(&total)
-
-	var entries []models.TransactionHistory
-	if err := s.db.
-		Where("account_id = ?", account.ID).
-		Order("created_at DESC").
-		Limit(limit).
-		Offset(offset).
-		Find(&entries).Error; err != nil {
+	resp, err := s.service.GetBalanceHistory(s.db, claims.Subject, page, limit)
+	if err != nil {
+		if errors.Is(err, service.ErrAccountNotFound) {
+			return exceptions.NotFound(ctx, "Account not found")
+		}
 		return exceptions.InternalServer(ctx, "Failed to fetch balance history")
 	}
 
-	response := make([]dto.BalanceHistoryEntry, len(entries))
-	for i, e := range entries {
-		response[i] = dto.TransactionHistoryToEntry(e)
-	}
-
-	return ctx.Status(http.StatusOK).JSON(dto.BalanceHistoryResponse{
-		Entries: response,
-		Total:   total,
-		Page:    page,
-		Limit:   limit,
-	})
+	return ctx.Status(http.StatusOK).JSON(resp)
 }
