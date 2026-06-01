@@ -79,9 +79,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         var jwtSecret = builder.Configuration["Security:Jwt:SecretKey"];
 
-        if (string.IsNullOrWhiteSpace(jwtSecret))
+        if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret == "change-me-in-production-jwt-secret")
         {
-            throw new InvalidOperationException("Configuration 'Security:Jwt:SecretKey' is not set or is empty.");
+            throw new InvalidOperationException("Security:Jwt:SecretKey is set to insecure default 'change-me-in-production-jwt-secret'. Set a real secret via environment variable.");
         }
 
         options.TokenValidationParameters = new TokenValidationParameters

@@ -5,8 +5,8 @@ http:
 grpc:
   port: 50050
 security:
-  jwt_secret: super-secret-key
-  refresh_secret: super-refresh-secret
+  jwt_secret: change-me-in-production-jwt-secret
+  refresh_secret: change-me-in-production-refresh-secret
   jwt_issuer: snowflake
 db:
   driver: postgres
