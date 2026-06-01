@@ -126,7 +126,7 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 	jwt := middleware.JWTMiddleware(conf, logger)
 
 	repos := repository.NewFactory()
-	services := service.NewServiceFactory(db.GetDB(), repos, rmq, logger)
+	services := service.NewServiceFactory(repos, rmq, logger)
 
 	routes.BindHealthRoutes(app, db.GetDB(), rmq)
 	routes.BindFlakeRoutes(app, db.GetDB(), jwtpkg.NewJwt(conf), jwt, services)

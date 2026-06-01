@@ -4,7 +4,6 @@ import (
 	"github.com/Sn0wye/snowflake/gold/pkg/logger"
 	"github.com/Sn0wye/snowflake/gold/pkg/messaging"
 	"github.com/Sn0wye/snowflake/gold/pkg/repository"
-	"gorm.io/gorm"
 )
 
 type ServiceFactory struct {
@@ -13,7 +12,7 @@ type ServiceFactory struct {
 	Transaction TransactionService
 }
 
-func NewServiceFactory(db *gorm.DB, repos *repository.Factory, rmq *messaging.MessagingService, log *logger.Logger) *ServiceFactory {
+func NewServiceFactory(repos *repository.Factory, rmq *messaging.MessagingService, log *logger.Logger) *ServiceFactory {
 	svc := &ServiceFactory{}
 	svc.Balance = NewBalanceService(repos)
 	svc.Flake = NewFlakeService(repos)
