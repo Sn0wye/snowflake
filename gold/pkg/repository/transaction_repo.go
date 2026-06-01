@@ -42,7 +42,9 @@ func (r *transactionRepo) FindByAccountID(db *gorm.DB, accountID uuid.UUID, filt
 	}
 
 	var total int64
-	query.Count(&total)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
 
 	offset := (filter.Page - 1) * filter.Limit
 

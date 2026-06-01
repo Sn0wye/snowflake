@@ -49,7 +49,10 @@ func (s *balanceController) GetBalance(ctx *fiber.Ctx) error {
 
 	resp, err := s.service.GetBalance(s.db, claims.Subject)
 	if err != nil {
-		return exceptions.NotFound(ctx, "Account not found")
+		if errors.Is(err, service.ErrAccountNotFound) {
+			return exceptions.NotFound(ctx, "Account not found")
+		}
+		return exceptions.InternalServer(ctx, "Failed to fetch balance")
 	}
 
 	return ctx.Status(http.StatusOK).JSON(resp)

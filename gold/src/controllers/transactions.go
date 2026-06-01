@@ -83,7 +83,10 @@ func (s *transactionsController) GetTransactions(ctx *fiber.Ctx) error {
 
 	resp, err := s.service.GetTransactions(s.db, claims.Subject, filter)
 	if err != nil {
-		return exceptions.NotFound(ctx, "Account not found")
+		if errors.Is(err, service.ErrAccountNotFound) {
+			return exceptions.NotFound(ctx, "Account not found")
+		}
+		return exceptions.InternalServer(ctx, "Failed to fetch transactions")
 	}
 
 	return ctx.Status(http.StatusOK).JSON(resp)
@@ -112,10 +115,14 @@ func (s *transactionsController) GetTransactionByID(ctx *fiber.Ctx) error {
 
 	resp, err := s.service.GetTransactionByID(s.db, claims.Subject, id)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		switch {
+		case errors.Is(err, service.ErrAccountNotFound):
+			return exceptions.NotFound(ctx, "Account not found")
+		case errors.Is(err, gorm.ErrRecordNotFound):
 			return exceptions.NotFound(ctx, "Transaction not found")
+		default:
+			return exceptions.InternalServer(ctx, "Failed to fetch transaction")
 		}
-		return exceptions.NotFound(ctx, "Account not found")
 	}
 
 	return ctx.Status(http.StatusOK).JSON(resp)

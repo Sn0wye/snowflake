@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/Sn0wye/snowflake/gold/src/dto"
+	"gorm.io/gorm"
 )
 
 var (
@@ -32,4 +33,11 @@ type IdempotentTransactionError struct {
 
 func (e *IdempotentTransactionError) Error() string {
 	return "transaction already exists (idempotent)"
+}
+
+func mapNotFound(err error, domainErr error) error {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return domainErr
+	}
+	return err
 }
