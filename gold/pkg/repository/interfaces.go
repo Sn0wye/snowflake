@@ -58,7 +58,7 @@ type Factory struct {
 	Flake               FlakeRepository
 }
 
-func NewFactory(db *gorm.DB) *Factory {
+func NewFactory() *Factory {
 	return &Factory{
 		Account:            NewAccountRepo(),
 		Transaction:        NewTransactionRepo(),
