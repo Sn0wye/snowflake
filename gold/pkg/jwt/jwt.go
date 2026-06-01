@@ -18,6 +18,10 @@ type Claims struct {
 }
 
 func NewJwt(conf *viper.Viper) *JWT {
+	if conf.GetString("security.jwt_secret") == "change-me-in-production-jwt-secret" {
+		panic("security.jwt_secret is set to insecure default 'change-me-in-production-jwt-secret'. Set JWT_SECRET env var.")
+	}
+
 	return &JWT{
 		key:    []byte(conf.GetString("security.jwt_secret")),
 		issuer: conf.GetString("security.jwt_issuer"),
