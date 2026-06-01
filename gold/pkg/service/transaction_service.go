@@ -44,7 +44,7 @@ func NewTransactionService(repos *repository.Factory, forms *ServiceFactory, rmq
 func (s *transactionService) GetTransactions(db *gorm.DB, userID string, filter repository.TransactionFilter) (dto.PaginatedTransactionsResponse, error) {
 	account, err := s.repos.Account.FindByUserID(db, userID)
 	if err != nil {
-		return dto.PaginatedTransactionsResponse{}, err
+		return dto.PaginatedTransactionsResponse{}, mapNotFound(err, ErrAccountNotFound)
 	}
 
 	if filter.Page <= 0 {
@@ -75,7 +75,7 @@ func (s *transactionService) GetTransactions(db *gorm.DB, userID string, filter 
 func (s *transactionService) GetTransactionByID(db *gorm.DB, userID string, id uuid.UUID) (dto.TransactionResponse, error) {
 	account, err := s.repos.Account.FindByUserID(db, userID)
 	if err != nil {
-		return dto.TransactionResponse{}, err
+		return dto.TransactionResponse{}, mapNotFound(err, ErrAccountNotFound)
 	}
 
 	transaction, err := s.repos.Transaction.FindByID(db, id)
@@ -100,13 +100,17 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 		return dto.TransactionResponse{}, ErrAmountTooHigh
 	}
 
-	if existing, err := s.repos.Transaction.FindByIdempotencyKey(db, req.IdempotencyKey); err == nil {
+	existing, err := s.repos.Transaction.FindByIdempotencyKey(db, req.IdempotencyKey)
+	if err == nil {
 		return dto.TransactionResponse{}, &IdempotentTransactionError{Response: dto.TransactionToResponse(*existing)}
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return dto.TransactionResponse{}, err
 	}
 
 	senderAccount, err := s.repos.Account.FindByUserID(db, userID)
 	if err != nil {
-		return dto.TransactionResponse{}, ErrAccountNotFound
+		return dto.TransactionResponse{}, mapNotFound(err, ErrAccountNotFound)
 	}
 
 	if senderAccount.Status != models.AccountStatusActive {
@@ -246,13 +250,17 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 		return dto.TransactionResponse{}, ErrAmountTooHigh
 	}
 
-	if existing, err := s.repos.Transaction.FindByIdempotencyKey(db, req.IdempotencyKey); err == nil {
+	existing, err := s.repos.Transaction.FindByIdempotencyKey(db, req.IdempotencyKey)
+	if err == nil {
 		return dto.TransactionResponse{}, &IdempotentTransactionError{Response: dto.TransactionToResponse(*existing)}
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return dto.TransactionResponse{}, err
 	}
 
 	account, err := s.repos.Account.FindByID(db, req.AccountID)
 	if err != nil {
-		return dto.TransactionResponse{}, ErrAccountNotFound
+		return dto.TransactionResponse{}, mapNotFound(err, ErrAccountNotFound)
 	}
 
 	userIDParsed, err := uuid.Parse(userID)
@@ -299,7 +307,7 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 			return err
 		}
 
-		if err := tx.Model(&acc).Update("balance", gorm.Expr("balance + ?", req.Amount)).Error; err != nil {
+		if err := tx.Model(acc).Update("balance", gorm.Expr("balance + ?", req.Amount)).Error; err != nil {
 			return err
 		}
 

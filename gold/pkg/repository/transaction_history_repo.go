@@ -18,9 +18,11 @@ func (r *transactionHistoryRepo) Create(db *gorm.DB, history *models.Transaction
 
 func (r *transactionHistoryRepo) FindByAccountID(db *gorm.DB, accountID uuid.UUID, page, limit int) ([]models.TransactionHistory, int64, error) {
 	var total int64
-	db.Model(&models.TransactionHistory{}).
+	if err := db.Model(&models.TransactionHistory{}).
 		Where("account_id = ?", accountID).
-		Count(&total)
+		Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
 
 	offset := (page - 1) * limit
 

@@ -1,6 +1,8 @@
 package service
 
 import (
+	"errors"
+
 	"github.com/Sn0wye/snowflake/gold/pkg/repository"
 	"github.com/Sn0wye/snowflake/gold/src/dto"
 	"github.com/Sn0wye/snowflake/gold/src/models"
@@ -34,7 +36,7 @@ var unlimitedKeyTypes = map[models.FlakeType]bool{
 func (s *flakeService) CreateFlake(db *gorm.DB, userID string, req dto.CreateFlakeRequest) (dto.FlakeResponse, error) {
 	account, err := s.repos.Account.FindByUserID(db, userID)
 	if err != nil {
-		return dto.FlakeResponse{}, ErrAccountNotFound
+		return dto.FlakeResponse{}, mapNotFound(err, ErrAccountNotFound)
 	}
 
 	if account.ReconciliationStatus == models.AccountReconciliationStatusDiscrepancy {
@@ -42,8 +44,12 @@ func (s *flakeService) CreateFlake(db *gorm.DB, userID string, req dto.CreateFla
 	}
 
 	if !unlimitedKeyTypes[req.KeyType] {
-		if _, err := s.repos.Flake.FindByTypeAndAccount(db, req.KeyType, account.ID); err == nil {
+		_, err := s.repos.Flake.FindByTypeAndAccount(db, req.KeyType, account.ID)
+		if err == nil {
 			return dto.FlakeResponse{}, ErrDuplicateFlakeType
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return dto.FlakeResponse{}, err
 		}
 
 		count, err := s.repos.Flake.CountNonUnlimited(db, account.ID)
@@ -55,8 +61,12 @@ func (s *flakeService) CreateFlake(db *gorm.DB, userID string, req dto.CreateFla
 		}
 	}
 
-	if _, err := s.repos.Flake.FindByKeyValue(db, req.KeyValue); err == nil {
+	_, err = s.repos.Flake.FindByKeyValue(db, req.KeyValue)
+	if err == nil {
 		return dto.FlakeResponse{}, ErrFlakeKeyConflict
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return dto.FlakeResponse{}, err
 	}
 
 	flake := &models.Flake{
@@ -76,7 +86,7 @@ func (s *flakeService) CreateFlake(db *gorm.DB, userID string, req dto.CreateFla
 func (s *flakeService) GetFlakes(db *gorm.DB, userID string) ([]dto.FlakeResponse, error) {
 	account, err := s.repos.Account.FindByUserID(db, userID)
 	if err != nil {
-		return nil, ErrAccountNotFound
+		return nil, mapNotFound(err, ErrAccountNotFound)
 	}
 
 	flakes, err := s.repos.Flake.FindByAccountID(db, account.ID)
@@ -95,12 +105,12 @@ func (s *flakeService) GetFlakes(db *gorm.DB, userID string) ([]dto.FlakeRespons
 func (s *flakeService) DeleteFlake(db *gorm.DB, userID string, flakeID uuid.UUID) (dto.FlakeResponse, error) {
 	account, err := s.repos.Account.FindByUserID(db, userID)
 	if err != nil {
-		return dto.FlakeResponse{}, ErrAccountNotFound
+		return dto.FlakeResponse{}, mapNotFound(err, ErrAccountNotFound)
 	}
 
 	flake, err := s.repos.Flake.FindByIDAndAccount(db, flakeID, account.ID)
 	if err != nil {
-		return dto.FlakeResponse{}, ErrFlakeNotFound
+		return dto.FlakeResponse{}, mapNotFound(err, ErrFlakeNotFound)
 	}
 
 	if flake.Status == models.FlakeStatusInactive {
@@ -117,12 +127,12 @@ func (s *flakeService) DeleteFlake(db *gorm.DB, userID string, flakeID uuid.UUID
 func (s *flakeService) PublicLookup(db *gorm.DB, keyValue string) (dto.LookupFlakeResponse, error) {
 	flake, err := s.repos.Flake.FindByKeyValue(db, keyValue)
 	if err != nil {
-		return dto.LookupFlakeResponse{}, ErrFlakeNotFound
+		return dto.LookupFlakeResponse{}, mapNotFound(err, ErrFlakeNotFound)
 	}
 
 	account, err := s.repos.Account.FindByID(db, flake.AccountID)
 	if err != nil {
-		return dto.LookupFlakeResponse{}, ErrAccountNotFound
+		return dto.LookupFlakeResponse{}, mapNotFound(err, ErrAccountNotFound)
 	}
 
 	return dto.LookupFlakeResponse{
@@ -135,12 +145,12 @@ func (s *flakeService) PublicLookup(db *gorm.DB, keyValue string) (dto.LookupFla
 func (s *flakeService) ResolveReceiver(db *gorm.DB, keyValue string) (*models.Account, *models.Flake, error) {
 	flake, err := s.repos.Flake.FindByKeyValue(db, keyValue)
 	if err != nil {
-		return nil, nil, ErrFlakeNotFound
+		return nil, nil, mapNotFound(err, ErrFlakeNotFound)
 	}
 
 	account, err := s.repos.Account.FindByID(db, flake.AccountID)
 	if err != nil {
-		return nil, nil, ErrAccountNotFound
+		return nil, nil, mapNotFound(err, ErrAccountNotFound)
 	}
 
 	return account, flake, nil

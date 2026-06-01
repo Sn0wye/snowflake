@@ -23,7 +23,7 @@ func NewBalanceService(repos *repository.Factory) BalanceService {
 func (s *balanceService) GetBalance(db *gorm.DB, userID string) (dto.BalanceResponse, error) {
 	account, err := s.repos.Account.FindByUserID(db, userID)
 	if err != nil {
-		return dto.BalanceResponse{}, err
+		return dto.BalanceResponse{}, mapNotFound(err, ErrAccountNotFound)
 	}
 	return dto.AccountToBalanceResponse(*account), nil
 }
@@ -31,7 +31,7 @@ func (s *balanceService) GetBalance(db *gorm.DB, userID string) (dto.BalanceResp
 func (s *balanceService) GetBalanceHistory(db *gorm.DB, userID string, page, limit int) (dto.BalanceHistoryResponse, error) {
 	account, err := s.repos.Account.FindByUserID(db, userID)
 	if err != nil {
-		return dto.BalanceHistoryResponse{}, err
+		return dto.BalanceHistoryResponse{}, mapNotFound(err, ErrAccountNotFound)
 	}
 
 	entries, total, err := s.repos.TransactionHistory.FindByAccountID(db, account.ID, page, limit)
