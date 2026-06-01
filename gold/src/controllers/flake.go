@@ -163,7 +163,14 @@ func (s *flakeController) PublicLookupFlake(ctx *fiber.Ctx) error {
 
 	resp, err := s.service.PublicLookup(s.db, keyValue)
 	if err != nil {
-		return exceptions.NotFound(ctx, "Flake key not found")
+		switch {
+		case errors.Is(err, service.ErrFlakeNotFound):
+			return exceptions.NotFound(ctx, "Flake key not found")
+		case errors.Is(err, service.ErrAccountNotFound):
+			return exceptions.NotFound(ctx, "Account not found")
+		default:
+			return exceptions.InternalServer(ctx, "Failed to lookup flake key")
+		}
 	}
 
 	return ctx.Status(http.StatusOK).JSON(resp)
