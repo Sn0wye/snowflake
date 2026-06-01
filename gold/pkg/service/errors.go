@@ -25,6 +25,7 @@ var (
 	ErrAmountTooLow          = errors.New("amount must be at least 1 centavo")
 	ErrAmountTooHigh         = errors.New("amount exceeds maximum transaction limit")
 	ErrForbidden             = errors.New("you can only deposit to your own account")
+	ErrTransactionNotFound   = errors.New("transaction not found")
 )
 
 type IdempotentTransactionError struct {
