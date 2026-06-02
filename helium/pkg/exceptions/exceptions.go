@@ -29,6 +29,11 @@ type NotFoundError struct {
 	Message    string `json:"message" example:"Not found :("`
 } // @name NotFoundError
 
+type ConflictError struct {
+	StatusCode int    `json:"status_code" example:"409"`
+	Message    string `json:"message" example:"Conflict :("`
+} // @name ConflictError
+
 type UnprocessableEntityError struct {
 	StatusCode int    `json:"status_code" example:"422"`
 	Message    string `json:"message" example:"Unprocessable entity :("`
@@ -52,6 +57,9 @@ var (
 	}
 	Unauthorized = func(c *fiber.Ctx) error {
 		return writeError(c, "Unauthorized", fiber.StatusUnauthorized)
+	}
+	Conflict = func(c *fiber.Ctx, message string) error {
+		return writeError(c, message, fiber.StatusConflict)
 	}
 	NotFound = func(c *fiber.Ctx, message string) error {
 		return writeError(c, message, fiber.StatusNotFound)

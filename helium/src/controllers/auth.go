@@ -94,7 +94,7 @@ func (s *authController) Profile(c *fiber.Ctx) error {
 //	@Param			body	body		dto.RegisterRequest					true	"Register Request"
 //	@Success		200		{object}	dto.RegisterResponse				"RegisterResponse"
 //	@Failure		400		{object}	exceptions.BadRequestError			"Invalid request body"
-//	@Failure		422		{object}	exceptions.UnprocessableEntityError	"Email already taken"
+//	@Failure		409		{object}	exceptions.ConflictError	"Email already taken"
 //	@Failure		500		{object}	exceptions.InternalServerError		"Failed to hash password OR Failed to marshal data OR Failed to generate JWT token"
 //	@Router			/auth/register [post]
 //	@OperationId	register
@@ -108,7 +108,7 @@ func (s *authController) Register(c *fiber.Ctx) error {
 	var user models.User
 	exists := db.Where("email = ?", body.Email).First(&user).RowsAffected
 	if exists > 0 {
-		return exceptions.UnprocessableEntity(c, "Email already taken")
+		return exceptions.Conflict(c, "Email already taken")
 	}
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
