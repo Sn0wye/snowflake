@@ -145,7 +145,7 @@ func (s *authController) Refresh(c *fiber.Ctx) error {
 
 	resp, err := s.services.Refresh(s.db, body.RefreshToken)
 	if err != nil {
-		if errors.Is(err, service.ErrRefreshTokenNotFound) || errors.Is(err, service.ErrRefreshTokenExpired) || errors.Is(err, service.ErrInvalidCredentials) {
+		if errors.Is(err, service.ErrRefreshTokenNotFound) || errors.Is(err, service.ErrInvalidCredentials) {
 			return exceptions.Unauthorized(c)
 		}
 		return exceptions.InternalServer(c, "failed to refresh tokens")
