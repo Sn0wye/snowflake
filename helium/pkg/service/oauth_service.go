@@ -99,19 +99,16 @@ func (s *oauthService) upsertOAuthUserInTx(db *gorm.DB, googleSub, email, name s
 		Provider:   models.ProviderGoogle,
 		ProviderID: googleSub,
 	}
-	if createErr := 	s.repos.OAuthAccount.Create(tx, &newOAuthAccount); createErr != nil {
+	if createErr := s.repos.OAuthAccount.Create(tx, &newOAuthAccount); createErr != nil {
 		tx.Rollback()
 		return "", errors.Wrap(createErr, "failed to create oauth account")
-	}
-
-	userJSON, marshalErr := buildUserCreatedJSON(newUser)
-	if marshalErr == nil {
-		s.rmq.Produce("user.created", userJSON)
 	}
 
 	if commitErr := tx.Commit().Error; commitErr != nil {
 		return "", errors.Wrap(commitErr, "failed to commit transaction")
 	}
+
+	publishUserCreated(s.rmq, newUser)
 
 	return newUser.ID.String(), nil
 }
@@ -165,4 +162,11 @@ func buildUserCreatedJSON(user models.User) (string, error) {
 		return "", err
 	}
 	return string(jsonData), nil
+}
+
+func publishUserCreated(rmq *messaging.MessagingService, user models.User) {
+	userJSON, marshalErr := buildUserCreatedJSON(user)
+	if marshalErr == nil {
+		rmq.Produce("user.created", userJSON)
+	}
 }
