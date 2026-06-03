@@ -4,7 +4,7 @@ import (
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/pkg/logger"
 	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
-	"github.com/getsnowflake/snowflake/helium/pkg/repository"
+	"github.com/getsnowflake/snowflake/helium/src/repository"
 )
 
 type Factory struct {

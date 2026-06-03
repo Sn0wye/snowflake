@@ -3,7 +3,7 @@ package service
 import (
 	"errors"
 
-	"github.com/getsnowflake/snowflake/helium/pkg/repository"
+	"github.com/getsnowflake/snowflake/helium/src/repository"
 )
 
 var (

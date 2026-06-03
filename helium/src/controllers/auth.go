@@ -4,7 +4,7 @@ import (
 	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/pkg/logger"
-	"github.com/getsnowflake/snowflake/helium/pkg/service"
+	"github.com/getsnowflake/snowflake/helium/src/service"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
 	"github.com/getsnowflake/snowflake/helium/src/utils"
 

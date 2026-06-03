@@ -8,7 +8,7 @@ import (
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/pkg/logger"
 	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
-	"github.com/getsnowflake/snowflake/helium/pkg/repository"
+	"github.com/getsnowflake/snowflake/helium/src/repository"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
 	"github.com/getsnowflake/snowflake/helium/src/models"
 

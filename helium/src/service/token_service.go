@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
-	"github.com/getsnowflake/snowflake/helium/pkg/repository"
+	"github.com/getsnowflake/snowflake/helium/src/repository"
 	"github.com/getsnowflake/snowflake/helium/src/models"
 
 	"github.com/google/uuid"
