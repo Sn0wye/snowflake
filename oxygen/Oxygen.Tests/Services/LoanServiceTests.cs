@@ -1,3 +1,4 @@
+using System.Threading;
 using FluentAssertions;
 using Oxygen.Domain.Entities;
 using Oxygen.Domain.Enums;
@@ -101,15 +102,22 @@ public class LoanServiceTests
     }
 
     [Fact]
-    public async Task apply_for_loan_fires_user_and_score_lookups_in_parallel()
+    public async Task apply_for_loan_starts_both_io_calls_before_awaiting_either()
     {
-        _creditScore.Delay = TimeSpan.FromMilliseconds(50);
-        _usersGrpc.Delay = TimeSpan.FromMilliseconds(50);
+        var gate = new TaskCompletionSource();
+        var callCount = 0;
+        _creditScore.Gate = gate;
+        _creditScore.OnCallStarted = () => Interlocked.Increment(ref callCount);
+        _usersGrpc.Gate = gate;
+        _usersGrpc.OnCallStarted = () => Interlocked.Increment(ref callCount);
 
-        var start = DateTime.UtcNow;
-        await _sut.ApplyForLoan("user-5", 10_000, 12);
-        var elapsed = DateTime.UtcNow - start;
+        var sutTask = _sut.ApplyForLoan("user-5", 10_000, 12);
 
-        elapsed.Should().BeLessThan(TimeSpan.FromMilliseconds(150));
+        // Both calls should have started (blocked on gate) while we're still waiting
+        await Task.Delay(50);
+        Interlocked.CompareExchange(ref callCount, 0, 0).Should().Be(2);
+
+        gate.SetResult();
+        await sutTask;
     }
 }
