@@ -19,7 +19,7 @@ func BindAuthRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Log
 	j := jwt.NewJwt(conf)
 
 	repos := repository.NewFactory()
-	services := service.NewFactory(repos, j, rmq)
+	services := service.NewFactory(repos, j, rmq, log)
 
 	router := app.Group("/auth")
 
