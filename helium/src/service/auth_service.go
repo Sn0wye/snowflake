@@ -141,15 +141,6 @@ func (s *authService) Refresh(db *gorm.DB, refreshTokenString string) (dto.Refre
 	}
 
 	tokenHash := hashToken(refreshTokenString)
-
-	deleted, err := s.repos.RefreshToken.DeleteByTokenHash(db, tokenHash)
-	if err != nil {
-		return dto.RefreshResponse{}, errors.Wrap(err, "failed to revoke old refresh token")
-	}
-	if !deleted {
-		return dto.RefreshResponse{}, ErrRefreshTokenNotFound
-	}
-
 	userID := claims.Subject
 
 	accessToken, err := s.token.GenerateAccessToken(userID)
@@ -157,9 +148,23 @@ func (s *authService) Refresh(db *gorm.DB, refreshTokenString string) (dto.Refre
 		return dto.RefreshResponse{}, errors.Wrap(err, "failed to generate JWT token")
 	}
 
-	newRefreshToken, err := s.token.GenerateRefreshToken(db, userID)
+	var newRefreshToken string
+	err = db.Transaction(func(tx *gorm.DB) error {
+		deleted, delErr := s.repos.RefreshToken.DeleteByTokenHash(tx, tokenHash)
+		if delErr != nil {
+			return errors.Wrap(delErr, "failed to revoke old refresh token")
+		}
+		if !deleted {
+			return ErrRefreshTokenNotFound
+		}
+		newRefreshToken, delErr = s.token.GenerateRefreshToken(tx, userID)
+		return delErr
+	})
 	if err != nil {
-		return dto.RefreshResponse{}, errors.Wrap(err, "failed to generate refresh token")
+		if errors.Is(err, ErrRefreshTokenNotFound) {
+			return dto.RefreshResponse{}, ErrRefreshTokenNotFound
+		}
+		return dto.RefreshResponse{}, err
 	}
 
 	return dto.RefreshResponse{
@@ -171,12 +176,14 @@ func (s *authService) Refresh(db *gorm.DB, refreshTokenString string) (dto.Refre
 func (s *authService) Logout(db *gorm.DB, refreshTokenString string) error {
 	tokenHash := hashToken(refreshTokenString)
 
-	token, err := s.repos.RefreshToken.FindByTokenHash(db, tokenHash)
+	deleted, err := s.repos.RefreshToken.DeleteByTokenHash(db, tokenHash)
 	if err != nil {
-		return mapNotFound(err, ErrRefreshTokenNotFound)
+		return err
 	}
-
-	return s.repos.RefreshToken.Delete(db, token)
+	if !deleted {
+		return ErrRefreshTokenNotFound
+	}
+	return nil
 }
 
 func (s *authService) emitUserCreated(user models.User) {
