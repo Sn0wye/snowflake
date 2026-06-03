@@ -22,10 +22,10 @@ type AuthController interface {
 }
 
 type authController struct {
-	db      *gorm.DB
-	jwt     *jwt.JWT
+	db       *gorm.DB
+	jwt      *jwt.JWT
 	services service.AuthService
-	log     *logger.Logger
+	log      *logger.Logger
 }
 
 func NewAuthController(db *gorm.DB, j *jwt.JWT, svc service.AuthService, log *logger.Logger) AuthController {
@@ -71,7 +71,7 @@ func (s *authController) Profile(c *fiber.Ctx) error {
 //	@Success		200		{object}	dto.RegisterResponse				"RegisterResponse"
 //	@Failure		400		{object}	exceptions.BadRequestError			"Invalid request body"
 //	@Failure		409		{object}	exceptions.ConflictError	"Email already taken"
-//	@Failure		500		{object}	exceptions.InternalServerError		"Failed to hash password OR Failed to marshal data OR Failed to generate JWT token"
+//	@Failure		500		{object}	exceptions.InternalServerError		"Failed to hash password or generate token"
 //	@Router			/auth/register [post]
 //	@OperationId	register
 func (s *authController) Register(c *fiber.Ctx) error {
@@ -85,7 +85,7 @@ func (s *authController) Register(c *fiber.Ctx) error {
 		if errors.Is(err, service.ErrEmailAlreadyTaken) {
 			return exceptions.Conflict(c, "Email already taken")
 		}
-		return exceptions.InternalServer(c, err.Error())
+		return exceptions.InternalServer(c, "failed to register user")
 	}
 
 	return c.Status(fiber.StatusOK).JSON(resp)
@@ -102,7 +102,7 @@ func (s *authController) Register(c *fiber.Ctx) error {
 //	@Success		200		{object}	dto.LoginResponse
 //	@Failure		400		{object}	exceptions.BadRequestError		"Invalid request body"
 //	@Failure		401		{object}	exceptions.UnauthorizedError	"Wrong email or password"
-//	@Failure		500		{object}	exceptions.InternalServerError	"Failed to generate JWT token"
+//	@Failure		500		{object}	exceptions.InternalServerError	"Failed to sign in"
 //	@Router			/auth/login [post]
 //	@OperationId	login
 func (s *authController) Login(c *fiber.Ctx) error {
@@ -116,7 +116,7 @@ func (s *authController) Login(c *fiber.Ctx) error {
 		if errors.Is(err, service.ErrInvalidCredentials) {
 			return exceptions.Unauthorized(c)
 		}
-		return exceptions.InternalServer(c, err.Error())
+		return exceptions.InternalServer(c, "failed to sign in")
 	}
 
 	return c.Status(fiber.StatusOK).JSON(resp)
@@ -134,7 +134,7 @@ func (s *authController) Login(c *fiber.Ctx) error {
 //	@Success		200		{object}	dto.RefreshResponse				"Refreshed tokens"
 //	@Failure		400		{object}	exceptions.BadRequestError		"Invalid request body"
 //	@Failure		401		{object}	exceptions.UnauthorizedError	"Invalid, revoked, or expired refresh token"
-//	@Failure		500		{object}	exceptions.InternalServerError	"Failed to generate tokens"
+//	@Failure		500		{object}	exceptions.InternalServerError	"Failed to refresh tokens"
 //	@Router			/auth/refresh [post]
 //	@OperationId	refresh
 func (s *authController) Refresh(c *fiber.Ctx) error {
@@ -148,7 +148,7 @@ func (s *authController) Refresh(c *fiber.Ctx) error {
 		if errors.Is(err, service.ErrRefreshTokenNotFound) || errors.Is(err, service.ErrRefreshTokenExpired) || errors.Is(err, service.ErrInvalidCredentials) {
 			return exceptions.Unauthorized(c)
 		}
-		return exceptions.InternalServer(c, err.Error())
+		return exceptions.InternalServer(c, "failed to refresh tokens")
 	}
 
 	return c.Status(fiber.StatusOK).JSON(resp)
@@ -177,7 +177,7 @@ func (s *authController) Logout(c *fiber.Ctx) error {
 		if errors.Is(err, service.ErrRefreshTokenNotFound) {
 			return exceptions.Unauthorized(c)
 		}
-		return exceptions.InternalServer(c, err.Error())
+		return exceptions.InternalServer(c, "failed to sign out")
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
