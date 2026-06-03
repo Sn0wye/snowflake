@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/getsnowflake/snowflake/helium/pkg/logger"
 	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
 	"github.com/getsnowflake/snowflake/helium/pkg/repository"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -24,10 +26,11 @@ type oauthService struct {
 	repos *repository.Factory
 	token TokenService
 	rmq   *messaging.MessagingService
+	log   *logger.Logger
 }
 
-func newOAuthService(repos *repository.Factory, token TokenService, rmq *messaging.MessagingService) OAuthService {
-	return &oauthService{repos: repos, token: token, rmq: rmq}
+func newOAuthService(repos *repository.Factory, token TokenService, rmq *messaging.MessagingService, log *logger.Logger) OAuthService {
+	return &oauthService{repos: repos, token: token, rmq: rmq, log: log}
 }
 
 func (s *oauthService) UpsertOAuthUser(db *gorm.DB, googleSub, email, name string) (string, error) {
@@ -104,7 +107,7 @@ func (s *oauthService) UpsertOAuthUser(db *gorm.DB, googleSub, email, name strin
 		return "", errors.Wrap(commitErr, "failed to commit transaction")
 	}
 
-	publishUserCreated(s.rmq, newUser)
+	publishUserCreated(s.rmq, s.log, newUser)
 
 	return newUser.ID.String(), nil
 }
@@ -164,9 +167,11 @@ func buildUserCreatedJSON(user models.User) (string, error) {
 	return string(jsonData), nil
 }
 
-func publishUserCreated(rmq *messaging.MessagingService, user models.User) {
+func publishUserCreated(rmq *messaging.MessagingService, log *logger.Logger, user models.User) {
 	userJSON, marshalErr := buildUserCreatedJSON(user)
-	if marshalErr == nil {
-		rmq.Produce("user.created", userJSON)
+	if marshalErr != nil {
+		log.Error("failed to marshal user.created event", zap.Error(marshalErr))
+		return
 	}
+	rmq.Produce("user.created", userJSON)
 }

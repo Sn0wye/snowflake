@@ -6,12 +6,14 @@ import (
 	"encoding/json"
 
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
+	"github.com/getsnowflake/snowflake/helium/pkg/logger"
 	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
 	"github.com/getsnowflake/snowflake/helium/pkg/repository"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
 	"github.com/getsnowflake/snowflake/helium/src/models"
 
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -29,10 +31,11 @@ type authService struct {
 	jwt   *jwt.JWT
 	token TokenService
 	rmq   *messaging.MessagingService
+	log   *logger.Logger
 }
 
-func newAuthService(repos *repository.Factory, j *jwt.JWT, token TokenService, rmq *messaging.MessagingService) AuthService {
-	return &authService{repos: repos, jwt: j, token: token, rmq: rmq}
+func newAuthService(repos *repository.Factory, j *jwt.JWT, token TokenService, rmq *messaging.MessagingService, log *logger.Logger) AuthService {
+	return &authService{repos: repos, jwt: j, token: token, rmq: rmq, log: log}
 }
 
 func (s *authService) Profile(db *gorm.DB, userID string) (dto.ProfileResponse, error) {
@@ -192,8 +195,9 @@ func (s *authService) emitUserCreated(user models.User) {
 		"created_at":    user.CreatedAt,
 	}
 
-	jsonData, err := json.Marshal(data)
-	if err != nil {
+	jsonData, marshalErr := json.Marshal(data)
+	if marshalErr != nil {
+		s.log.Error("failed to marshal user.created event", zap.Error(marshalErr))
 		return
 	}
 
