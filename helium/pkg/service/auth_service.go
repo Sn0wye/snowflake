@@ -57,7 +57,7 @@ func (s *authService) Register(db *gorm.DB, req dto.RegisterRequest) (dto.Regist
 	if err == nil {
 		return dto.RegisterResponse{}, ErrEmailAlreadyTaken
 	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
+	if !errors.Is(err, repository.ErrNotFound) {
 		return dto.RegisterResponse{}, err
 	}
 
@@ -101,7 +101,7 @@ func (s *authService) Register(db *gorm.DB, req dto.RegisterRequest) (dto.Regist
 func (s *authService) Login(db *gorm.DB, req dto.LoginRequest) (dto.LoginResponse, error) {
 	user, err := s.repos.User.FindByEmail(db, req.Email)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		if errors.Is(err, repository.ErrNotFound) {
 			return dto.LoginResponse{}, ErrInvalidCredentials
 		}
 		return dto.LoginResponse{}, err

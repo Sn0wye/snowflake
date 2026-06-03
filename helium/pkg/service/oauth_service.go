@@ -53,7 +53,7 @@ func (s *oauthService) upsertOAuthUserInTx(db *gorm.DB, googleSub, email, name s
 		}
 		return oauthAccount.UserID.String(), nil
 	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
+	if !errors.Is(err, repository.ErrNotFound) {
 		tx.Rollback()
 		return "", errors.Wrap(err, "failed to query oauth account")
 	}
@@ -75,7 +75,7 @@ func (s *oauthService) upsertOAuthUserInTx(db *gorm.DB, googleSub, email, name s
 		}
 		return user.ID.String(), nil
 	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
+	if !errors.Is(err, repository.ErrNotFound) {
 		tx.Rollback()
 		return "", errors.Wrap(err, "failed to query user")
 	}
