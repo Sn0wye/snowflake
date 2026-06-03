@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"time"
+
 	"github.com/getsnowflake/snowflake/helium/src/models"
 	"github.com/google/uuid"
 
@@ -27,6 +29,15 @@ func (r *refreshTokenRepo) Create(db *gorm.DB, token *models.RefreshToken) error
 
 func (r *refreshTokenRepo) Delete(db *gorm.DB, token *models.RefreshToken) error {
 	return db.Delete(token).Error
+}
+
+func (r *refreshTokenRepo) DeleteByTokenHash(db *gorm.DB, tokenHash string) (bool, error) {
+	result := db.Where("token_hash = ? AND expires_at > ?", tokenHash, time.Now()).
+		Delete(&models.RefreshToken{})
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return result.RowsAffected > 0, nil
 }
 
 func (r *refreshTokenRepo) DeleteAllByUserID(db *gorm.DB, userID uuid.UUID) error {

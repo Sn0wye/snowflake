@@ -142,20 +142,15 @@ func (s *authService) Refresh(db *gorm.DB, refreshTokenString string) (dto.Refre
 
 	tokenHash := hashToken(refreshTokenString)
 
-	token, err := s.repos.RefreshToken.FindByTokenHash(db, tokenHash)
+	deleted, err := s.repos.RefreshToken.DeleteByTokenHash(db, tokenHash)
 	if err != nil {
-		return dto.RefreshResponse{}, mapNotFound(err, ErrRefreshTokenNotFound)
+		return dto.RefreshResponse{}, errors.Wrap(err, "failed to revoke old refresh token")
 	}
-
-	if token.IsExpired() {
-		return dto.RefreshResponse{}, ErrRefreshTokenExpired
+	if !deleted {
+		return dto.RefreshResponse{}, ErrRefreshTokenNotFound
 	}
 
 	userID := claims.Subject
-
-	if err := s.repos.RefreshToken.Delete(db, token); err != nil {
-		return dto.RefreshResponse{}, errors.Wrap(err, "failed to revoke old refresh token")
-	}
 
 	accessToken, err := s.token.GenerateAccessToken(userID)
 	if err != nil {

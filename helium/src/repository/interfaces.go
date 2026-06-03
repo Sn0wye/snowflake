@@ -21,6 +21,7 @@ type RefreshTokenRepository interface {
 	FindByTokenHash(db *gorm.DB, tokenHash string) (*models.RefreshToken, error)
 	Create(db *gorm.DB, token *models.RefreshToken) error
 	Delete(db *gorm.DB, token *models.RefreshToken) error
+	DeleteByTokenHash(db *gorm.DB, tokenHash string) (bool, error)
 	DeleteAllByUserID(db *gorm.DB, userID uuid.UUID) error
 }
 
