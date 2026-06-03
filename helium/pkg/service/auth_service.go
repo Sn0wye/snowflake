@@ -150,6 +150,10 @@ func (s *authService) Refresh(db *gorm.DB, refreshTokenString string) (dto.Refre
 
 	userID := claims.Subject
 
+	if err := s.repos.RefreshToken.Delete(db, token); err != nil {
+		return dto.RefreshResponse{}, errors.Wrap(err, "failed to revoke old refresh token")
+	}
+
 	accessToken, err := s.token.GenerateAccessToken(userID)
 	if err != nil {
 		return dto.RefreshResponse{}, errors.Wrap(err, "failed to generate JWT token")
@@ -158,10 +162,6 @@ func (s *authService) Refresh(db *gorm.DB, refreshTokenString string) (dto.Refre
 	newRefreshToken, err := s.token.GenerateRefreshToken(db, userID)
 	if err != nil {
 		return dto.RefreshResponse{}, errors.Wrap(err, "failed to generate refresh token")
-	}
-
-	if err := s.repos.RefreshToken.Delete(db, token); err != nil {
-		return dto.RefreshResponse{}, errors.Wrap(err, "failed to revoke old refresh token")
 	}
 
 	return dto.RefreshResponse{
