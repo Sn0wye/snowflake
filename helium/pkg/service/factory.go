@@ -14,7 +14,7 @@ type Factory struct {
 
 func NewFactory(repos *repository.Factory, j *jwt.JWT, rmq *messaging.MessagingService) *Factory {
 	svc := &Factory{}
-	svc.Token = newTokenService(j)
+	svc.Token = newTokenService(j, repos.RefreshToken)
 	svc.Auth = newAuthService(repos, j, svc.Token, rmq)
 	svc.OAuth = newOAuthService(repos, svc.Token, rmq)
 	return svc
