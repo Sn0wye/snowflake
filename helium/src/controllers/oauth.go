@@ -138,12 +138,12 @@ func (s *oauthController) Callback(c *fiber.Ctx) error {
 
 	userID, err := s.services.UpsertOAuthUser(s.db, googleUser.Sub, googleUser.Email, googleUser.Name)
 	if err != nil {
-		return exceptions.InternalServer(c, err.Error())
+		return exceptions.InternalServer(c, "failed to complete oauth sign-in")
 	}
 
 	oauthResp, err := s.services.GenerateAuthResponse(s.db, userID)
 	if err != nil {
-		return exceptions.InternalServer(c, err.Error())
+		return exceptions.InternalServer(c, "failed to complete oauth sign-in")
 	}
 
 	return c.Status(fiber.StatusOK).JSON(oauthResp)
