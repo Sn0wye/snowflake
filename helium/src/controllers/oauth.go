@@ -4,22 +4,14 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
-	"strings"
 
 	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/pkg/logger"
-	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
-	"github.com/getsnowflake/snowflake/helium/src/dto"
-	"github.com/getsnowflake/snowflake/helium/src/models"
-	"github.com/getsnowflake/snowflake/helium/src/services"
+	"github.com/getsnowflake/snowflake/helium/pkg/service"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"gorm.io/gorm"
@@ -31,20 +23,18 @@ type OAuthController interface {
 }
 
 type oauthController struct {
-	db     *gorm.DB
-	jwt    *jwt.JWT
-	rmq    *messaging.MessagingService
-	oauth  *oauth2.Config
-	secure bool
-	token  *services.TokenService
-	log    *logger.Logger
+	db       *gorm.DB
+	jwt      *jwt.JWT
+	oauth    *oauth2.Config
+	secure   bool
+	services service.OAuthService
+	log      *logger.Logger
 }
 
-func NewOAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService, conf *viper.Viper, log *logger.Logger) OAuthController {
+func NewOAuthController(db *gorm.DB, j *jwt.JWT, conf *viper.Viper, svc service.OAuthService, log *logger.Logger) OAuthController {
 	return &oauthController{
 		db:  db,
-		jwt: jwt,
-		rmq: rmq,
+		jwt: j,
 		oauth: &oauth2.Config{
 			ClientID:     conf.GetString("google.client_id"),
 			ClientSecret: conf.GetString("google.client_secret"),
@@ -52,9 +42,9 @@ func NewOAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingServi
 			Scopes:       []string{"openid", "email", "profile"},
 			Endpoint:     google.Endpoint,
 		},
-		secure: conf.GetBool("http.secure"),
-		token:  services.NewTokenService(db, jwt),
-		log:    log,
+		secure:   conf.GetBool("http.secure"),
+		services: svc,
+		log:      log,
 	}
 }
 
@@ -146,89 +136,17 @@ func (s *oauthController) Callback(c *fiber.Ctx) error {
 		return exceptions.InternalServer(c, "failed to decode user info")
 	}
 
-	var oauthAccount models.OAuthAccount
-	result := s.db.Where("provider = ? AND provider_id = ?", models.ProviderGoogle, googleUser.Sub).First(&oauthAccount)
-	if result.Error == nil {
-		return s.authResponse(c, oauthAccount.UserID.String())
-	}
-
-	if !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return exceptions.InternalServer(c, "failed to query oauth account")
-	}
-
-	var user models.User
-	result = s.db.Where("email = ?", googleUser.Email).First(&user)
-	if result.Error != nil && !errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return exceptions.InternalServer(c, "failed to query user")
-	}
-
-	if result.Error == nil {
-		oauthAccount = models.OAuthAccount{
-			UserID:     user.ID,
-			Provider:   models.ProviderGoogle,
-			ProviderID: googleUser.Sub,
-		}
-		if err := s.db.Create(&oauthAccount).Error; err != nil {
-			return exceptions.InternalServer(c, "failed to create oauth account")
-		}
-
-		return s.authResponse(c, user.ID.String())
-	}
-
-	username := s.generateUsername(googleUser.Email)
-	user = models.User{
-		Name:     googleUser.Name,
-		Email:    googleUser.Email,
-		Username: username,
-		Password: "",
-	}
-	if err := s.db.Create(&user).Error; err != nil {
-		return exceptions.InternalServer(c, "failed to create user")
-	}
-
-	oauthAccount = models.OAuthAccount{
-		UserID:     user.ID,
-		Provider:   models.ProviderGoogle,
-		ProviderID: googleUser.Sub,
-	}
-	if err := s.db.Create(&oauthAccount).Error; err != nil {
-		return exceptions.InternalServer(c, "failed to create oauth account")
-	}
-
-	data := map[string]interface{}{
-		"id":         user.ID.String(),
-		"username":   user.Username,
-		"email":      user.Email,
-		"created_at": user.CreatedAt,
-	}
-	jsonData, marshalErr := json.Marshal(data)
-	if marshalErr == nil {
-		s.rmq.Produce("user.created", string(jsonData))
-	}
-
-	return s.authResponse(c, user.ID.String())
-}
-
-func (s *oauthController) authResponse(ctx *fiber.Ctx, userID string) error {
-	if err := s.token.RevokeAllUserRefreshTokens(userID); err != nil {
-		s.log.Error("failed to revoke refresh tokens on oauth login", zap.Error(err))
-		return exceptions.InternalServer(ctx, "failed to revoke existing refresh tokens")
-	}
-
-	accessToken, err := s.token.GenerateAccessToken(userID)
+	userID, err := s.services.UpsertOAuthUser(s.db, googleUser.Sub, googleUser.Email, googleUser.Name)
 	if err != nil {
-		return exceptions.InternalServer(ctx, "failed to generate JWT token")
+		return exceptions.InternalServer(c, err.Error())
 	}
 
-	refreshToken, err := s.token.GenerateRefreshToken(userID)
+	oauthResp, err := s.services.GenerateAuthResponse(s.db, userID)
 	if err != nil {
-		return exceptions.InternalServer(ctx, "failed to generate refresh token")
+		return exceptions.InternalServer(c, err.Error())
 	}
 
-	return ctx.Status(fiber.StatusOK).JSON(dto.OAuthResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	})
+	return c.Status(fiber.StatusOK).JSON(oauthResp)
 }
 
 func generateState() (string, error) {
@@ -237,19 +155,4 @@ func generateState() (string, error) {
 		return "", err
 	}
 	return hex.EncodeToString(b), nil
-}
-
-func (s *oauthController) generateUsername(email string) string {
-	parts := strings.Split(email, "@")
-	base := strings.ToLower(parts[0])
-	username := base
-
-	for {
-		var count int64
-		s.db.Model(&models.User{}).Where("username = ?", username).Count(&count)
-		if count == 0 {
-			return username
-		}
-		username = fmt.Sprintf("%s_%s", base, uuid.New().String()[:8])
-	}
 }
