@@ -105,17 +105,16 @@ public class LoanServiceTests
     public async Task apply_for_loan_starts_both_io_calls_before_awaiting_either()
     {
         var gate = new TaskCompletionSource();
-        var callCount = 0;
+        var started = new CountdownEvent(2);
         _creditScore.Gate = gate;
-        _creditScore.OnCallStarted = () => Interlocked.Increment(ref callCount);
+        _creditScore.OnCallStarted = () => started.Signal();
         _usersGrpc.Gate = gate;
-        _usersGrpc.OnCallStarted = () => Interlocked.Increment(ref callCount);
+        _usersGrpc.OnCallStarted = () => started.Signal();
 
         var sutTask = _sut.ApplyForLoan("user-5", 10_000, 12);
 
-        // Both calls should have started (blocked on gate) while we're still waiting
-        await Task.Delay(50);
-        Interlocked.CompareExchange(ref callCount, 0, 0).Should().Be(2);
+        started.Wait(TimeSpan.FromSeconds(5)).Should().BeTrue(
+            "both adapters should start before either completes");
 
         gate.SetResult();
         await sutTask;
