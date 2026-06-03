@@ -12,7 +12,6 @@ var (
 	ErrInvalidCredentials       = errors.New("invalid email or password")
 	ErrRefreshTokenNotFound     = errors.New("refresh token not found")
 	ErrRefreshTokenExpired      = errors.New("refresh token expired")
-	ErrOAuthAccountNotFound     = errors.New("oauth account not found")
 )
 
 func mapNotFound(err error, domainErr error) error {
