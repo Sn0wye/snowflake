@@ -3,21 +3,15 @@ using System.Text.Json;
 using FluentAssertions;
 using Grpc.Core;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using Moq;
 using Oxygen.API.Middleware;
+using Oxygen.Tests.Fakes;
 using Xunit;
 
 namespace Oxygen.Tests.Middleware;
 
 public class ExceptionHandlingMiddlewareTests
 {
-    private readonly Mock<ILogger<ExceptionHandlingMiddleware>> _loggerMock;
-
-    public ExceptionHandlingMiddlewareTests()
-    {
-        _loggerMock = new Mock<ILogger<ExceptionHandlingMiddleware>>();
-    }
+    private readonly FakeLogger<ExceptionHandlingMiddleware> _logger = new();
 
     [Fact]
     public async Task invokes_next_when_no_exception()
@@ -25,7 +19,7 @@ public class ExceptionHandlingMiddlewareTests
         var context = new DefaultHttpContext();
         var called = false;
         RequestDelegate next = (ctx) => { called = true; return Task.CompletedTask; };
-        var middleware = new ExceptionHandlingMiddleware(next, _loggerMock.Object);
+        var middleware = new ExceptionHandlingMiddleware(next, _logger);
 
         await middleware.InvokeAsync(context);
 
@@ -42,7 +36,7 @@ public class ExceptionHandlingMiddlewareTests
         context.RequestAborted = cts.Token;
         RequestDelegate next = (ctx) =>
             throw new OperationCanceledException("cancelled", cts.Token);
-        var middleware = new ExceptionHandlingMiddleware(next, _loggerMock.Object);
+        var middleware = new ExceptionHandlingMiddleware(next, _logger);
 
         await middleware.InvokeAsync(context);
 
@@ -64,7 +58,7 @@ public class ExceptionHandlingMiddlewareTests
         var context = CreateResponseCaptureContext();
         var rpcEx = new RpcException(new Status(grpcCode, "grpc error"), new Metadata(), "detail");
         RequestDelegate next = (ctx) => throw rpcEx;
-        var middleware = new ExceptionHandlingMiddleware(next, _loggerMock.Object);
+        var middleware = new ExceptionHandlingMiddleware(next, _logger);
 
         await middleware.InvokeAsync(context);
 
@@ -80,7 +74,7 @@ public class ExceptionHandlingMiddlewareTests
         var context = CreateResponseCaptureContext();
         RequestDelegate next = (ctx) =>
             throw new TestDbException("db error");
-        var middleware = new ExceptionHandlingMiddleware(next, _loggerMock.Object);
+        var middleware = new ExceptionHandlingMiddleware(next, _logger);
 
         await middleware.InvokeAsync(context);
 
@@ -96,7 +90,7 @@ public class ExceptionHandlingMiddlewareTests
         var context = CreateResponseCaptureContext();
         RequestDelegate next = (ctx) =>
             throw new HttpRequestException("external error");
-        var middleware = new ExceptionHandlingMiddleware(next, _loggerMock.Object);
+        var middleware = new ExceptionHandlingMiddleware(next, _logger);
 
         await middleware.InvokeAsync(context);
 
@@ -112,7 +106,7 @@ public class ExceptionHandlingMiddlewareTests
         var context = CreateResponseCaptureContext();
         RequestDelegate next = (ctx) =>
             throw new TimeoutException("service timed out");
-        var middleware = new ExceptionHandlingMiddleware(next, _loggerMock.Object);
+        var middleware = new ExceptionHandlingMiddleware(next, _logger);
 
         await middleware.InvokeAsync(context);
 
@@ -125,7 +119,7 @@ public class ExceptionHandlingMiddlewareTests
         var context = CreateResponseCaptureContext();
         RequestDelegate next = (ctx) =>
             throw new InvalidOperationException("something broke");
-        var middleware = new ExceptionHandlingMiddleware(next, _loggerMock.Object);
+        var middleware = new ExceptionHandlingMiddleware(next, _logger);
 
         await middleware.InvokeAsync(context);
 

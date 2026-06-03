@@ -1,10 +1,8 @@
 using FluentAssertions;
-using Moq;
 using Oxygen.Domain.Entities;
 using Oxygen.Domain.Enums;
-using Oxygen.Infrastructure.Adapters;
-using Oxygen.Repository;
 using Oxygen.Service;
+using Oxygen.Tests.Fakes;
 using Pb;
 using Xunit;
 
@@ -12,63 +10,38 @@ namespace Oxygen.Tests.Services;
 
 public class LoanServiceTests
 {
-    private readonly Mock<ILoanRepository> _loanRepoMock;
-    private readonly Mock<ICreditScoreAdapter> _creditScoreMock;
-    private readonly Mock<IUsersGRPCAdapter> _usersGrpcMock;
+    private readonly FakeLoanRepository _loanRepo = new();
+    private readonly FakeCreditScoreAdapter _creditScore = new();
+    private readonly FakeUsersGRPCAdapter _usersGrpc = new();
     private readonly LoanService _sut;
 
     public LoanServiceTests()
     {
-        _loanRepoMock = new Mock<ILoanRepository>();
-        _creditScoreMock = new Mock<ICreditScoreAdapter>();
-        _usersGrpcMock = new Mock<IUsersGRPCAdapter>();
-        _sut = new LoanService(
-            _loanRepoMock.Object,
-            _creditScoreMock.Object,
-            _usersGrpcMock.Object);
-    }
-
-    private static User CreateUser(string id = "user-1", long annualIncome = 100_000)
-    {
-        return new User
-        {
-            Id = id,
-            Name = "Test User",
-            Username = "testuser",
-            Email = "test@example.com",
-            AnnualIncome = annualIncome
-        };
+        _sut = new LoanService(_loanRepo, _creditScore, _usersGrpc);
     }
 
     [Fact]
     public async Task apply_for_loan_approves_when_credit_score_at_least_600()
     {
-        var userId = "user-1";
-        var loanAmount = 10_000;
-        var term = 12;
-        var user = CreateUser(userId);
-        _usersGrpcMock.Setup(a => a.GetUserAsync(userId)).ReturnsAsync(user);
-        _creditScoreMock.Setup(a => a.GetCreditScoreAsync(userId)).ReturnsAsync(650);
-        _loanRepoMock.Setup(r => r.AddAsync(It.IsAny<LoanApplication>()))
-            .ReturnsAsync((LoanApplication la) => la);
+        const string userId = "user-1";
+        var user = new User { Id = userId, AnnualIncome = 100_000 };
+        _usersGrpc.User = user;
+        _creditScore.Score = 650;
 
-        var result = await _sut.ApplyForLoan(userId, loanAmount, term);
+        var result = await _sut.ApplyForLoan(userId, 10_000, 12);
 
         result.LoanApplication.Status.Should().Be(LoanApplicationStatus.APPROVED);
         result.LoanApplication.UserId.Should().Be(userId);
-        result.LoanApplication.Amount.Should().Be(loanAmount);
-        result.LoanApplication.Term.Should().Be(term);
+        result.LoanApplication.Amount.Should().Be(10_000);
+        result.LoanApplication.Term.Should().Be(12);
     }
 
     [Fact]
     public async Task apply_for_loan_rejects_when_credit_score_below_600()
     {
-        var userId = "user-2";
-        var user = CreateUser(userId);
-        _usersGrpcMock.Setup(a => a.GetUserAsync(userId)).ReturnsAsync(user);
-        _creditScoreMock.Setup(a => a.GetCreditScoreAsync(userId)).ReturnsAsync(550);
-        _loanRepoMock.Setup(r => r.AddAsync(It.IsAny<LoanApplication>()))
-            .ReturnsAsync((LoanApplication la) => la);
+        const string userId = "user-2";
+        _usersGrpc.User = new User { Id = userId, AnnualIncome = 100_000 };
+        _creditScore.Score = 550;
 
         var result = await _sut.ApplyForLoan(userId, 10_000, 12);
 
@@ -78,12 +51,9 @@ public class LoanServiceTests
     [Fact]
     public async Task apply_for_loan_returns_no_suggestion_when_score_is_null()
     {
-        var userId = "user-3";
-        var user = CreateUser(userId);
-        _usersGrpcMock.Setup(a => a.GetUserAsync(userId)).ReturnsAsync(user);
-        _creditScoreMock.Setup(a => a.GetCreditScoreAsync(userId)).ReturnsAsync((int?)null);
-        _loanRepoMock.Setup(r => r.AddAsync(It.IsAny<LoanApplication>()))
-            .ReturnsAsync((LoanApplication la) => la);
+        const string userId = "user-3";
+        _usersGrpc.User = new User { Id = userId, AnnualIncome = 100_000 };
+        _creditScore.Score = null;
 
         var result = await _sut.ApplyForLoan(userId, 10_000, 12);
 
@@ -94,17 +64,15 @@ public class LoanServiceTests
     [Fact]
     public async Task apply_for_loan_persists_the_original_application()
     {
-        var userId = "user-4";
-        var user = CreateUser(userId);
-        _usersGrpcMock.Setup(a => a.GetUserAsync(userId)).ReturnsAsync(user);
-        _creditScoreMock.Setup(a => a.GetCreditScoreAsync(userId)).ReturnsAsync(700);
-        _loanRepoMock.Setup(r => r.AddAsync(It.IsAny<LoanApplication>()))
-            .ReturnsAsync((LoanApplication la) => la);
+        const string userId = "user-4";
+        _usersGrpc.User = new User { Id = userId, AnnualIncome = 100_000 };
+        _creditScore.Score = 700;
 
         await _sut.ApplyForLoan(userId, 5_000, 6);
 
-        _loanRepoMock.Verify(r => r.AddAsync(It.Is<LoanApplication>(
-            la => la.UserId == userId && la.Amount == 5_000 && la.Term == 6)), Times.Once);
+        _loanRepo.AddedLoans.Should().ContainSingle()
+            .Which.Should().Match<LoanApplication>(
+                la => la.UserId == userId && la.Amount == 5_000 && la.Term == 6);
     }
 
     [Theory]
@@ -120,16 +88,13 @@ public class LoanServiceTests
     {
         const long annualIncome = 200_000;
         const string userId = "user-suggest";
-        var user = CreateUser(userId, annualIncome);
-        _usersGrpcMock.Setup(a => a.GetUserAsync(userId)).ReturnsAsync(user);
-        _creditScoreMock.Setup(a => a.GetCreditScoreAsync(userId)).ReturnsAsync(score);
-        _loanRepoMock.Setup(r => r.AddAsync(It.IsAny<LoanApplication>()))
-            .ReturnsAsync((LoanApplication la) => la);
+        _usersGrpc.User = new User { Id = userId, AnnualIncome = annualIncome };
+        _creditScore.Score = score;
 
         var result = await _sut.ApplyForLoan(userId, 10_000, 12);
 
         result.SuggestedLoan.Should().NotBeNull();
-        result.SuggestedLoan.Status.Should().Be(LoanApplicationStatus.APPROVED);
+        result.SuggestedLoan!.Status.Should().Be(LoanApplicationStatus.APPROVED);
         result.SuggestedLoan.Amount.Should().Be(annualIncome * incomeFraction);
         result.SuggestedLoan.Term.Should().Be(expectedTerm);
         result.SuggestedLoan.UserId.Should().Be(userId);
@@ -138,16 +103,11 @@ public class LoanServiceTests
     [Fact]
     public async Task apply_for_loan_fires_user_and_score_lookups_in_parallel()
     {
-        var userId = "user-5";
-        _usersGrpcMock.Setup(a => a.GetUserAsync(userId))
-            .ReturnsAsync(CreateUser(userId), TimeSpan.FromMilliseconds(50));
-        _creditScoreMock.Setup(a => a.GetCreditScoreAsync(userId))
-            .ReturnsAsync(700, TimeSpan.FromMilliseconds(50));
-        _loanRepoMock.Setup(r => r.AddAsync(It.IsAny<LoanApplication>()))
-            .ReturnsAsync((LoanApplication la) => la);
+        _creditScore.Delay = TimeSpan.FromMilliseconds(50);
+        _usersGrpc.Delay = TimeSpan.FromMilliseconds(50);
 
         var start = DateTime.UtcNow;
-        await _sut.ApplyForLoan(userId, 10_000, 12);
+        await _sut.ApplyForLoan("user-5", 10_000, 12);
         var elapsed = DateTime.UtcNow - start;
 
         elapsed.Should().BeLessThan(TimeSpan.FromMilliseconds(150));

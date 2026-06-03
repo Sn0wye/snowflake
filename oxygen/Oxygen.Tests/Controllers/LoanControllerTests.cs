@@ -2,26 +2,24 @@ using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Moq;
 using Oxygen.API.Controllers;
 using Oxygen.Domain.Entities;
 using Oxygen.Domain.Enums;
 using Oxygen.DTO;
 using Oxygen.DTO.Response;
-using Oxygen.Service;
+using Oxygen.Tests.Fakes;
 using Xunit;
 
 namespace Oxygen.Tests.Controllers;
 
 public class LoanControllerTests
 {
-    private readonly Mock<ILoanService> _loanServiceMock;
+    private readonly FakeLoanService _loanService = new();
     private readonly LoanController _sut;
 
     public LoanControllerTests()
     {
-        _loanServiceMock = new Mock<ILoanService>();
-        _sut = new LoanController(_loanServiceMock.Object);
+        _sut = new LoanController(_loanService);
     }
 
     private void SetUserIdClaim(string userId)
@@ -68,9 +66,7 @@ public class LoanControllerTests
     public async Task apply_for_loan_returns_approved_message_when_status_is_approved_and_no_suggestion()
     {
         SetUserIdClaim("user-1");
-        var dto = CreateApplication(LoanApplicationStatus.APPROVED);
-        _loanServiceMock.Setup(s => s.ApplyForLoan("user-1", 10_000, 12))
-            .ReturnsAsync(dto);
+        _loanService.Result = CreateApplication(LoanApplicationStatus.APPROVED);
 
         var result = await _sut.ApplyForLoan(new ApplyForLoanRequest { LoanAmount = 10_000, Term = 12 });
 
@@ -85,9 +81,7 @@ public class LoanControllerTests
     public async Task apply_for_loan_returns_rejected_message_when_status_is_rejected_and_no_suggestion()
     {
         SetUserIdClaim("user-1");
-        var dto = CreateApplication(LoanApplicationStatus.REJECTED);
-        _loanServiceMock.Setup(s => s.ApplyForLoan("user-1", 10_000, 12))
-            .ReturnsAsync(dto);
+        _loanService.Result = CreateApplication(LoanApplicationStatus.REJECTED);
 
         var result = await _sut.ApplyForLoan(new ApplyForLoanRequest { LoanAmount = 10_000, Term = 12 });
 
@@ -108,9 +102,7 @@ public class LoanControllerTests
             Amount = 50_000,
             Term = 36
         };
-        var dto = CreateApplication(LoanApplicationStatus.APPROVED, suggested);
-        _loanServiceMock.Setup(s => s.ApplyForLoan("user-1", 10_000, 12))
-            .ReturnsAsync(dto);
+        _loanService.Result = CreateApplication(LoanApplicationStatus.APPROVED, suggested);
 
         var result = await _sut.ApplyForLoan(new ApplyForLoanRequest { LoanAmount = 10_000, Term = 12 });
 
@@ -133,9 +125,7 @@ public class LoanControllerTests
             Amount = 20_000,
             Term = 24
         };
-        var dto = CreateApplication(LoanApplicationStatus.REJECTED, suggested);
-        _loanServiceMock.Setup(s => s.ApplyForLoan("user-1", 10_000, 12))
-            .ReturnsAsync(dto);
+        _loanService.Result = CreateApplication(LoanApplicationStatus.REJECTED, suggested);
 
         var result = await _sut.ApplyForLoan(new ApplyForLoanRequest { LoanAmount = 10_000, Term = 12 });
 
