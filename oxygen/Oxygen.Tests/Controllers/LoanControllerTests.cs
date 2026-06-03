@@ -88,7 +88,7 @@ public class LoanControllerTests
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<ApplyForLoanResponse>().Subject;
         response.Status.Should().Be(LoanApplicationStatus.REJECTED);
-        response.Message.Should().Contain("rejected");
+        response.Message.Should().Be("Loan rejected, unfortunately we don't have a better option for you at the moment :(");
     }
 
     [Fact]
