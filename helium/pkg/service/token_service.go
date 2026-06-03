@@ -26,11 +26,12 @@ type TokenService interface {
 }
 
 type tokenService struct {
-	jwt *jwt.JWT
+	jwt  *jwt.JWT
+	repo repository.RefreshTokenRepository
 }
 
-func newTokenService(j *jwt.JWT) TokenService {
-	return &tokenService{jwt: j}
+func newTokenService(j *jwt.JWT, repo repository.RefreshTokenRepository) TokenService {
+	return &tokenService{jwt: j, repo: repo}
 }
 
 func (s *tokenService) GenerateAccessToken(userID string) (string, error) {
@@ -57,7 +58,7 @@ func (s *tokenService) GenerateRefreshToken(db *gorm.DB, userID string) (string,
 		ExpiresAt: time.Now().Add(refreshTokenDuration),
 	}
 
-	if err := repository.NewRefreshTokenRepo().Create(db, &rt); err != nil {
+	if err := s.repo.Create(db, &rt); err != nil {
 		return "", errors.Wrap(err, "failed to store refresh token")
 	}
 
@@ -69,5 +70,5 @@ func (s *tokenService) RevokeAllUserRefreshTokens(db *gorm.DB, userID string) er
 	if err != nil {
 		return errors.Wrap(err, "failed to parse user ID")
 	}
-	return repository.NewRefreshTokenRepo().DeleteAllByUserID(db, parsedUserID)
+	return s.repo.DeleteAllByUserID(db, parsedUserID)
 }
