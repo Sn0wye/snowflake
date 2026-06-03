@@ -31,10 +31,6 @@ func newOAuthService(repos *repository.Factory, token TokenService, rmq *messagi
 }
 
 func (s *oauthService) UpsertOAuthUser(db *gorm.DB, googleSub, email, name string) (string, error) {
-	return s.upsertOAuthUserInTx(db, googleSub, email, name)
-}
-
-func (s *oauthService) upsertOAuthUserInTx(db *gorm.DB, googleSub, email, name string) (userID string, err error) {
 	tx := db.Begin()
 	if tx.Error != nil {
 		return "", errors.Wrap(tx.Error, "failed to begin transaction")
