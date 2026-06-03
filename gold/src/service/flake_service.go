@@ -3,7 +3,7 @@ package service
 import (
 	"errors"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/repository"
+	"github.com/Sn0wye/snowflake/gold/src/repository"
 	"github.com/Sn0wye/snowflake/gold/src/dto"
 	"github.com/Sn0wye/snowflake/gold/src/models"
 	"github.com/google/uuid"

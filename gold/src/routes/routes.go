@@ -5,7 +5,7 @@ import (
 
 	"github.com/Sn0wye/snowflake/gold/pkg/jwt"
 	"github.com/Sn0wye/snowflake/gold/pkg/logger"
-	"github.com/Sn0wye/snowflake/gold/pkg/service"
+	"github.com/Sn0wye/snowflake/gold/src/service"
 	"github.com/Sn0wye/snowflake/gold/src/controllers"
 	"github.com/Sn0wye/snowflake/gold/src/reconciliation"
 

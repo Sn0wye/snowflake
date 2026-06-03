@@ -7,8 +7,8 @@ import (
 
 	"github.com/Sn0wye/snowflake/gold/pkg/exceptions"
 	"github.com/Sn0wye/snowflake/gold/pkg/jwt"
-	"github.com/Sn0wye/snowflake/gold/pkg/repository"
-	"github.com/Sn0wye/snowflake/gold/pkg/service"
+	"github.com/Sn0wye/snowflake/gold/src/repository"
+	"github.com/Sn0wye/snowflake/gold/src/service"
 	"github.com/Sn0wye/snowflake/gold/src/dto"
 	"github.com/Sn0wye/snowflake/gold/src/utils"
 	"github.com/gofiber/fiber/v2"
