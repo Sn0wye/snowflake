@@ -1,8 +1,6 @@
 package service
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"time"
 
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
@@ -44,8 +42,7 @@ func (s *tokenService) GenerateRefreshToken(db *gorm.DB, userID string) (string,
 		return "", errors.Wrap(err, "failed to generate refresh token")
 	}
 
-	hash := sha256.Sum256([]byte(tokenString))
-	tokenHash := hex.EncodeToString(hash[:])
+	tokenHash := hashToken(tokenString)
 
 	parsedUserID, err := uuid.Parse(userID)
 	if err != nil {
