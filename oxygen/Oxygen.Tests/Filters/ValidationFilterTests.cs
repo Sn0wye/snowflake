@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -36,16 +37,15 @@ public class ValidationFilterTests
         _sut.OnActionExecuting(context);
 
         var badRequest = context.Result.Should().BeOfType<BadRequestObjectResult>().Subject;
-        var value = badRequest.Value.Should().BeAssignableTo<object>().Subject;
-        var type = value!.GetType();
+        var json = JsonSerializer.Serialize(badRequest.Value);
+        var body = JsonSerializer.Deserialize<JsonElement>(json);
 
-        type.GetProperty("message")!.GetValue(value).Should().Be("Invalid request body.");
-        var statusCode = type.GetProperty("status_code")!.GetValue(value);
-        Convert.ToInt32(statusCode).Should().Be(400);
+        body.GetProperty("message").GetString().Should().Be("Invalid request body.");
+        body.GetProperty("status_code").GetInt32().Should().Be(400);
 
-        var errorsValue = type.GetProperty("errors")!.GetValue(value);
-        var errorsDict = errorsValue.As<System.Collections.Generic.Dictionary<string, string>>();
-        errorsDict.Should().ContainKeys("LoanAmount", "Term");
+        var errors = body.GetProperty("errors");
+        errors.GetProperty("LoanAmount").GetString().Should().NotBeNullOrWhiteSpace();
+        errors.GetProperty("Term").GetString().Should().NotBeNullOrWhiteSpace();
     }
 
     [Fact]
