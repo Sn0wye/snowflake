@@ -141,7 +141,11 @@ func generateUsername(db *gorm.DB, repos *repository.Factory, email string) stri
 
 	for attempt := 0; attempt < 10; attempt++ {
 		count, err := repos.User.CountByUsername(db, username)
-		if err != nil || count == 0 {
+		if err != nil {
+			username = fmt.Sprintf("%s_%s", base, uuid.New().String()[:8])
+			continue
+		}
+		if count == 0 {
 			return username
 		}
 		username = fmt.Sprintf("%s_%s", base, uuid.New().String()[:8])
