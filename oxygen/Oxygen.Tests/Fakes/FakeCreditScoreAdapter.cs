@@ -1,16 +1,17 @@
 using Oxygen.Infrastructure.Adapters;
-using Pb;
 
 namespace Oxygen.Tests.Fakes;
 
 public class FakeCreditScoreAdapter : ICreditScoreAdapter
 {
     public int? Score { get; set; }
-    public TimeSpan Delay { get; set; } = TimeSpan.Zero;
+    public TaskCompletionSource? Gate { get; set; }
+    public Action? OnCallStarted { get; set; }
 
     public async Task<int?> GetCreditScoreAsync(string userId)
     {
-        if (Delay > TimeSpan.Zero) await Task.Delay(Delay);
+        OnCallStarted?.Invoke();
+        if (Gate is not null) await Gate.Task;
         return Score;
     }
 }

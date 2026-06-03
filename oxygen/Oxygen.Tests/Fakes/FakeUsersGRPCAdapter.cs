@@ -14,11 +14,13 @@ public class FakeUsersGRPCAdapter : IUsersGRPCAdapter
         AnnualIncome = 100_000
     };
 
-    public TimeSpan Delay { get; set; } = TimeSpan.Zero;
+    public TaskCompletionSource? Gate { get; set; }
+    public Action? OnCallStarted { get; set; }
 
     public async Task<User> GetUserAsync(string userId)
     {
-        if (Delay > TimeSpan.Zero) await Task.Delay(Delay);
+        OnCallStarted?.Invoke();
+        if (Gate is not null) await Gate.Task;
         return User;
     }
 }
