@@ -1,5 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# 
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Oxygen.API", "Oxygen.API\Oxygen.API.csproj", "{30DC24F1-1C0D-45D0-8529-B3E05F5648C1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Oxygen.Service", "Oxygen.Service\Oxygen.Service.csproj", "{2177C917-1800-42D9-A876-B8FA9B30480D}"
@@ -13,6 +14,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Oxygen.Infrastructure", "Oxygen.Infrastructure\Oxygen.Infrastructure.csproj", "{CB48A9D4-037F-4916-844F-01C93F1F3571}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Oxygen.Proto", "Oxygen.Proto\Oxygen.Proto.csproj", "{9F55A424-D43C-445E-9EA0-DCBCFC44A5C9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Oxygen.Tests", "Oxygen.Tests\Oxygen.Tests.csproj", "{17F78F72-0E7A-4ECA-ACF0-12E189369911}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -48,5 +51,9 @@ Global
 		{9F55A424-D43C-445E-9EA0-DCBCFC44A5C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9F55A424-D43C-445E-9EA0-DCBCFC44A5C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9F55A424-D43C-445E-9EA0-DCBCFC44A5C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{17F78F72-0E7A-4ECA-ACF0-12E189369911}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17F78F72-0E7A-4ECA-ACF0-12E189369911}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17F78F72-0E7A-4ECA-ACF0-12E189369911}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17F78F72-0E7A-4ECA-ACF0-12E189369911}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

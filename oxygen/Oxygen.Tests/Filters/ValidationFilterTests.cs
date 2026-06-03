@@ -1,0 +1,76 @@
+using FluentAssertions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
+using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Routing;
+using Oxygen.API.Filters;
+using Xunit;
+
+namespace Oxygen.Tests.Filters;
+
+public class ValidationFilterTests
+{
+    private readonly ValidationFilter _sut = new();
+
+    [Fact]
+    public void does_nothing_when_model_state_is_valid()
+    {
+        var modelState = new ModelStateDictionary();
+        var context = CreateActionExecutingContext(modelState);
+
+        _sut.OnActionExecuting(context);
+
+        context.Result.Should().BeNull();
+    }
+
+    [Fact]
+    public void returns_400_with_errors_when_model_state_is_invalid()
+    {
+        var modelState = new ModelStateDictionary();
+        modelState.AddModelError("LoanAmount", "Loan amount must be greater than 300.");
+        modelState.AddModelError("Term", "Term is required.");
+        var context = CreateActionExecutingContext(modelState);
+
+        _sut.OnActionExecuting(context);
+
+        var badRequest = context.Result.Should().BeOfType<BadRequestObjectResult>().Subject;
+        var value = badRequest.Value.Should().BeAssignableTo<object>().Subject;
+        var type = value!.GetType();
+
+        type.GetProperty("message")!.GetValue(value).Should().Be("Invalid request body.");
+        var statusCode = type.GetProperty("status_code")!.GetValue(value);
+        Convert.ToInt32(statusCode).Should().Be(400);
+
+        var errorsValue = type.GetProperty("errors")!.GetValue(value);
+        var errorsDict = errorsValue.As<System.Collections.Generic.Dictionary<string, string>>();
+        errorsDict.Should().ContainKeys("LoanAmount", "Term");
+    }
+
+    [Fact]
+    public void on_action_executed_is_noop()
+    {
+        var context = new ActionExecutedContext(
+            new ActionContext(new DefaultHttpContext(), new RouteData(), new ActionDescriptor()),
+            [],
+            controller: null!);
+
+        var act = () => _sut.OnActionExecuted(context);
+
+        act.Should().NotThrow();
+    }
+
+    private static ActionExecutingContext CreateActionExecutingContext(ModelStateDictionary modelState)
+    {
+        return new ActionExecutingContext(
+            new ActionContext(
+                new DefaultHttpContext(),
+                new RouteData(),
+                new ActionDescriptor(),
+                modelState),
+            [],
+            new Dictionary<string, object?>(),
+            controller: null!);
+    }
+}
