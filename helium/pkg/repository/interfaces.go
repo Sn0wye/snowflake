@@ -1,10 +1,14 @@
 package repository
 
 import (
+	"errors"
+
 	"github.com/getsnowflake/snowflake/helium/src/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
+
+var ErrNotFound = errors.New("record not found")
 
 type UserRepository interface {
 	FindByID(db *gorm.DB, id string) (*models.User, error)
@@ -26,9 +30,9 @@ type OAuthAccountRepository interface {
 }
 
 type Factory struct {
-	User          UserRepository
-	RefreshToken  RefreshTokenRepository
-	OAuthAccount  OAuthAccountRepository
+	User         UserRepository
+	RefreshToken RefreshTokenRepository
+	OAuthAccount OAuthAccountRepository
 }
 
 func NewFactory() *Factory {
@@ -37,4 +41,11 @@ func NewFactory() *Factory {
 		RefreshToken: NewRefreshTokenRepo(),
 		OAuthAccount: NewOAuthAccountRepo(),
 	}
+}
+
+func wrapNotFound(err error) error {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return ErrNotFound
+	}
+	return err
 }

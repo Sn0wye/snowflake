@@ -3,6 +3,7 @@ package repository
 import (
 	"github.com/getsnowflake/snowflake/helium/src/models"
 	"github.com/google/uuid"
+
 	"gorm.io/gorm"
 )
 
@@ -15,7 +16,7 @@ func NewRefreshTokenRepo() RefreshTokenRepository {
 func (r *refreshTokenRepo) FindByTokenHash(db *gorm.DB, tokenHash string) (*models.RefreshToken, error) {
 	var token models.RefreshToken
 	if err := db.Where("token_hash = ?", tokenHash).First(&token).Error; err != nil {
-		return nil, err
+		return nil, wrapNotFound(err)
 	}
 	return &token, nil
 }
