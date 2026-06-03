@@ -32,7 +32,7 @@ func (r *refreshTokenRepo) Delete(db *gorm.DB, token *models.RefreshToken) error
 }
 
 func (r *refreshTokenRepo) DeleteByTokenHash(db *gorm.DB, tokenHash string) (bool, error) {
-	result := db.Where("token_hash = ? AND expires_at > ?", tokenHash, time.Now()).
+	result := db.Where("token_hash = ? AND expires_at >= ?", tokenHash, time.Now()).
 		Delete(&models.RefreshToken{})
 	if result.Error != nil {
 		return false, result.Error
