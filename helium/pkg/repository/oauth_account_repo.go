@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/getsnowflake/snowflake/helium/src/models"
+
 	"gorm.io/gorm"
 )
 
@@ -14,7 +15,7 @@ func NewOAuthAccountRepo() OAuthAccountRepository {
 func (r *oauthAccountRepo) FindByProviderAndProviderID(db *gorm.DB, provider models.OAuthProvider, providerID string) (*models.OAuthAccount, error) {
 	var account models.OAuthAccount
 	if err := db.Where("provider = ? AND provider_id = ?", provider, providerID).First(&account).Error; err != nil {
-		return nil, err
+		return nil, wrapNotFound(err)
 	}
 	return &account, nil
 }

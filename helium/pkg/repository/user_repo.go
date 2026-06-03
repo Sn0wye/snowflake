@@ -2,6 +2,7 @@ package repository
 
 import (
 	"github.com/getsnowflake/snowflake/helium/src/models"
+
 	"gorm.io/gorm"
 )
 
@@ -14,7 +15,7 @@ func NewUserRepo() UserRepository {
 func (r *userRepo) FindByID(db *gorm.DB, id string) (*models.User, error) {
 	var user models.User
 	if err := db.Where("id = ?", id).First(&user).Error; err != nil {
-		return nil, err
+		return nil, wrapNotFound(err)
 	}
 	return &user, nil
 }
@@ -22,7 +23,7 @@ func (r *userRepo) FindByID(db *gorm.DB, id string) (*models.User, error) {
 func (r *userRepo) FindByEmail(db *gorm.DB, email string) (*models.User, error) {
 	var user models.User
 	if err := db.Where("email = ?", email).First(&user).Error; err != nil {
-		return nil, err
+		return nil, wrapNotFound(err)
 	}
 	return &user, nil
 }
