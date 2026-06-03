@@ -48,6 +48,7 @@ func (s *oauthService) UpsertOAuthUser(db *gorm.DB, googleSub, email, name strin
 	oauthAccount, err := s.repos.OAuthAccount.FindByProviderAndProviderID(tx, models.ProviderGoogle, googleSub)
 	if err == nil {
 		if commitErr := tx.Commit().Error; commitErr != nil {
+			tx.Rollback()
 			return "", errors.Wrap(commitErr, "failed to commit transaction")
 		}
 		return oauthAccount.UserID.String(), nil
@@ -70,6 +71,7 @@ func (s *oauthService) UpsertOAuthUser(db *gorm.DB, googleSub, email, name strin
 		}
 
 		if commitErr := tx.Commit().Error; commitErr != nil {
+			tx.Rollback()
 			return "", errors.Wrap(commitErr, "failed to commit transaction")
 		}
 		return user.ID.String(), nil
@@ -104,6 +106,7 @@ func (s *oauthService) UpsertOAuthUser(db *gorm.DB, googleSub, email, name strin
 	}
 
 	if commitErr := tx.Commit().Error; commitErr != nil {
+		tx.Rollback()
 		return "", errors.Wrap(commitErr, "failed to commit transaction")
 	}
 
