@@ -16,6 +16,7 @@ public class FakeLoanService : ILoanService
         LastUserId = userId;
         LastLoanAmount = loanAmount;
         LastTerm = term;
-        return Task.FromResult(Result!);
+        return Task.FromResult(Result ?? throw new InvalidOperationException(
+            $"{nameof(FakeLoanService)}.{nameof(Result)} must be set before calling {nameof(ApplyForLoan)}."));
     }
 }
