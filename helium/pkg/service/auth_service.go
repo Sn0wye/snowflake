@@ -201,7 +201,9 @@ func (s *authService) emitUserCreated(user models.User) {
 		return
 	}
 
-	s.rmq.Produce("user.created", string(jsonData))
+	if err := s.rmq.Produce("user.created", string(jsonData)); err != nil {
+		s.log.Error("failed to publish user.created event", zap.Error(err))
+	}
 }
 
 func hashToken(token string) string {
