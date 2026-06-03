@@ -1,23 +1,15 @@
 package controllers
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
-
 	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/pkg/logger"
-	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
+	"github.com/getsnowflake/snowflake/helium/pkg/service"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
-	"github.com/getsnowflake/snowflake/helium/src/models"
-	"github.com/getsnowflake/snowflake/helium/src/services"
 	"github.com/getsnowflake/snowflake/helium/src/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/pkg/errors"
-	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -30,21 +22,14 @@ type AuthController interface {
 }
 
 type authController struct {
-	db    *gorm.DB
-	jwt   *jwt.JWT
-	rmq   *messaging.MessagingService
-	token *services.TokenService
-	log   *logger.Logger
+	db      *gorm.DB
+	jwt     *jwt.JWT
+	services service.AuthService
+	log     *logger.Logger
 }
 
-func NewAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingService, log *logger.Logger) AuthController {
-	return &authController{
-		db:    db,
-		jwt:   jwt,
-		rmq:   rmq,
-		token: services.NewTokenService(db, jwt),
-		log:   log,
-	}
+func NewAuthController(db *gorm.DB, j *jwt.JWT, svc service.AuthService, log *logger.Logger) AuthController {
+	return &authController{db: db, jwt: j, services: svc, log: log}
 }
 
 // Profile godoc
@@ -62,25 +47,16 @@ func NewAuthController(db *gorm.DB, jwt *jwt.JWT, rmq *messaging.MessagingServic
 //	@OperationId	profile
 func (s *authController) Profile(c *fiber.Ctx) error {
 	claims := c.Locals("claims").(*jwt.Claims)
-	user := models.User{}
 
-	result := s.db.Where("id = ?", claims.Subject).First(&user)
-	if result.Error != nil {
-		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	resp, err := s.services.Profile(s.db, claims.Subject)
+	if err != nil {
+		if errors.Is(err, service.ErrUserNotFound) {
 			return exceptions.Unauthorized(c)
 		}
 		return exceptions.InternalServer(c, "failed to fetch user")
 	}
 
-	return c.Status(fiber.StatusOK).JSON(dto.ProfileResponse{
-		ID:           user.ID.String(),
-		Name:         user.Name,
-		Username:     user.Username,
-		Email:        user.Email,
-		AnnualIncome: user.AnnualIncome,
-		Debt:         user.Debt,
-		AssetsValue:  user.AssetsValue,
-	})
+	return c.Status(fiber.StatusOK).JSON(resp)
 }
 
 // Register godoc
@@ -99,67 +75,20 @@ func (s *authController) Profile(c *fiber.Ctx) error {
 //	@Router			/auth/register [post]
 //	@OperationId	register
 func (s *authController) Register(c *fiber.Ctx) error {
-	db := s.db
 	body := new(dto.RegisterRequest)
 	if err := utils.ParseRequest(c, body); err != nil {
 		return err
 	}
 
-	var user models.User
-	exists := db.Where("email = ?", body.Email).First(&user).RowsAffected
-	if exists > 0 {
-		return exceptions.Conflict(c, "Email already taken")
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
+	resp, err := s.services.Register(s.db, *body)
 	if err != nil {
-		return exceptions.InternalServer(c, "failed to hash password")
+		if errors.Is(err, service.ErrEmailAlreadyTaken) {
+			return exceptions.Conflict(c, "Email already taken")
+		}
+		return exceptions.InternalServer(c, err.Error())
 	}
 
-	user = models.User{
-		Username:     body.Username,
-		Password:     string(hashedPassword),
-		Email:        body.Email,
-		Name:         body.Name,
-		AnnualIncome: body.AnnualIncome,
-		Debt:         body.Debt,
-		AssetsValue:  body.AssetsValue,
-	}
-
-	db.Create(&user)
-
-	data := map[string]interface{}{
-		"id":            user.ID.String(),
-		"username":      user.Username,
-		"email":         user.Email,
-		"annual_income": user.AnnualIncome,
-		"debt":          user.Debt,
-		"assets_value":  user.AssetsValue,
-		"created_at":    user.CreatedAt,
-	}
-
-	jsonData, err := json.Marshal(data)
-
-	if err != nil {
-		return exceptions.InternalServer(c, "failed to marshal data")
-	}
-
-	s.rmq.Produce("user.created", string(jsonData))
-
-	accessToken, err := s.token.GenerateAccessToken(user.ID.String())
-	if err != nil {
-		return exceptions.InternalServer(c, "failed to generate JWT token")
-	}
-
-	refreshToken, err := s.token.GenerateRefreshToken(user.ID.String())
-	if err != nil {
-		return exceptions.InternalServer(c, "failed to generate refresh token")
-	}
-
-	return c.Status(fiber.StatusOK).JSON(dto.RegisterResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	})
+	return c.Status(fiber.StatusOK).JSON(resp)
 }
 
 // Login godoc
@@ -177,45 +106,20 @@ func (s *authController) Register(c *fiber.Ctx) error {
 //	@Router			/auth/login [post]
 //	@OperationId	login
 func (s *authController) Login(c *fiber.Ctx) error {
-	db := s.db
-
 	body := new(dto.LoginRequest)
-
 	if err := utils.ParseRequest(c, body); err != nil {
-		s.log.Warn("login parse error", zap.Error(err))
-
 		return err
 	}
 
-	var user models.User
-	db.Where("email = ?", body.Email).First(&user)
-
-	if user.Password == "" {
-		return exceptions.Unauthorized(c)
-	}
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Password)); err != nil {
-		return exceptions.Unauthorized(c)
-	}
-
-	accessToken, err := s.token.GenerateAccessToken(user.ID.String())
+	resp, err := s.services.Login(s.db, *body)
 	if err != nil {
-		return exceptions.InternalServer(c, "failed to generate JWT token")
+		if errors.Is(err, service.ErrInvalidCredentials) {
+			return exceptions.Unauthorized(c)
+		}
+		return exceptions.InternalServer(c, err.Error())
 	}
 
-	if err := s.token.RevokeAllUserRefreshTokens(user.ID.String()); err != nil {
-		s.log.Error("failed to revoke refresh tokens on login", zap.Error(err))
-		return exceptions.InternalServer(c, "failed to revoke existing refresh tokens")
-	}
-
-	refreshToken, err := s.token.GenerateRefreshToken(user.ID.String())
-	if err != nil {
-		return exceptions.InternalServer(c, "failed to generate refresh token")
-	}
-
-	return c.Status(fiber.StatusOK).JSON(dto.LoginResponse{
-		AccessToken:  accessToken,
-		RefreshToken: refreshToken,
-	})
+	return c.Status(fiber.StatusOK).JSON(resp)
 }
 
 // Refresh godoc
@@ -239,44 +143,15 @@ func (s *authController) Refresh(c *fiber.Ctx) error {
 		return err
 	}
 
-	claims, err := s.jwt.ParseRefreshToken(body.RefreshToken)
+	resp, err := s.services.Refresh(s.db, body.RefreshToken)
 	if err != nil {
-		return exceptions.Unauthorized(c)
+		if errors.Is(err, service.ErrRefreshTokenNotFound) || errors.Is(err, service.ErrRefreshTokenExpired) || errors.Is(err, service.ErrInvalidCredentials) {
+			return exceptions.Unauthorized(c)
+		}
+		return exceptions.InternalServer(c, err.Error())
 	}
 
-	hash := sha256.Sum256([]byte(body.RefreshToken))
-	tokenHash := hex.EncodeToString(hash[:])
-
-	var token models.RefreshToken
-	result := s.db.Where("token_hash = ?", tokenHash).First(&token)
-	if result.Error != nil {
-		return exceptions.Unauthorized(c)
-	}
-
-	if token.IsExpired() {
-		return exceptions.Unauthorized(c)
-	}
-
-	userID := claims.Subject
-
-	accessToken, err := s.token.GenerateAccessToken(userID)
-	if err != nil {
-		return exceptions.InternalServer(c, "failed to generate JWT token")
-	}
-
-	newRefreshToken, err := s.token.GenerateRefreshToken(userID)
-	if err != nil {
-		return exceptions.InternalServer(c, "failed to generate refresh token")
-	}
-
-	if err := s.db.Delete(&token).Error; err != nil {
-		return exceptions.InternalServer(c, "failed to revoke old refresh token")
-	}
-
-	return c.Status(fiber.StatusOK).JSON(dto.RefreshResponse{
-		AccessToken:  accessToken,
-		RefreshToken: newRefreshToken,
-	})
+	return c.Status(fiber.StatusOK).JSON(resp)
 }
 
 // Logout godoc
@@ -298,16 +173,12 @@ func (s *authController) Logout(c *fiber.Ctx) error {
 		return err
 	}
 
-	hash := sha256.Sum256([]byte(body.RefreshToken))
-	tokenHash := hex.EncodeToString(hash[:])
-
-	var token models.RefreshToken
-	result := s.db.Where("token_hash = ?", tokenHash).First(&token)
-	if result.Error != nil {
-		return exceptions.Unauthorized(c)
+	if err := s.services.Logout(s.db, body.RefreshToken); err != nil {
+		if errors.Is(err, service.ErrRefreshTokenNotFound) {
+			return exceptions.Unauthorized(c)
+		}
+		return exceptions.InternalServer(c, err.Error())
 	}
-
-	s.db.Delete(&token)
 
 	return c.SendStatus(fiber.StatusNoContent)
 }
