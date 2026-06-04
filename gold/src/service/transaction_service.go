@@ -186,7 +186,10 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 		}
 		if err := s.repos.Transaction.Create(tx, &transaction); err != nil {
 			if isUniqueViolation(err) {
-				existing, _ := s.repos.Transaction.FindByIdempotencyKey(tx, req.IdempotencyKey)
+				existing, fetchErr := s.repos.Transaction.FindByIdempotencyKey(tx, req.IdempotencyKey)
+				if fetchErr != nil {
+					return fetchErr
+				}
 				return &IdempotentTransactionError{Response: dto.TransactionToResponse(*existing)}
 			}
 			return err
@@ -298,7 +301,10 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 		}
 		if err := s.repos.Transaction.Create(tx, &transaction); err != nil {
 			if isUniqueViolation(err) {
-				existing, _ := s.repos.Transaction.FindByIdempotencyKey(tx, req.IdempotencyKey)
+				existing, fetchErr := s.repos.Transaction.FindByIdempotencyKey(tx, req.IdempotencyKey)
+				if fetchErr != nil {
+					return fetchErr
+				}
 				return &IdempotentTransactionError{Response: dto.TransactionToResponse(*existing)}
 			}
 			return err
