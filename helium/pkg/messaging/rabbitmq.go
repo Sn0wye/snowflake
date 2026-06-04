@@ -118,8 +118,26 @@ func (m *MessagingService) ProduceToExchange(exchangeName, message string) error
 		return fmt.Errorf("failed to publish message: %w", err)
 	}
 
+	// NotifyReturn receives unroutable mandatory messages asynchronously;
+	// Publish itself does not error when no queues are bound.
+	go m.notifyReturn(channel, exchangeName)
+
 	log.Info("Published message to exchange", zap.String("exchangeName", exchangeName), zap.String("message", message))
 	return nil
+}
+
+// notifyReturn drains basic.return notifications for a channel's lifetime.
+// Without this, mandatory:true messages with no bound queues are silently dropped.
+func (m *MessagingService) notifyReturn(channel *amqp091.Channel, exchangeName string) {
+	returns := channel.NotifyReturn(make(chan amqp091.Return, 1))
+	for ret := range returns {
+		m.logger.Error("Message returned unroutable",
+			zap.String("exchange", ret.Exchange),
+			zap.String("routingKey", ret.RoutingKey),
+			zap.Int("replyCode", int(ret.ReplyCode)),
+			zap.String("replyText", ret.ReplyText),
+		)
+	}
 }
 
 // Consume listens for messages from a specific queue
