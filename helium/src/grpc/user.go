@@ -18,7 +18,8 @@ import (
 
 type userService struct {
 	pb.UnimplementedUserServiceServer
-	db *gorm.DB
+	db    *gorm.DB
+	jwter *jwt.JWT
 }
 
 func (s *userService) GetUsers(context.Context, *emptypb.Empty) (*pb.GetUsersResponse, error) {
@@ -62,9 +63,7 @@ func (s *userService) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest)
 		return nil, status.Error(codes.Unauthenticated, "missing authorization token")
 	}
 
-	conf := config.GetConfig()
-	j := jwt.NewJwt(conf)
-	claims, err := j.ParseToken(vals[0])
+	claims, err := s.jwter.ParseToken(vals[0])
 	if err != nil {
 		return nil, status.Error(codes.Unauthenticated, "invalid token")
 	}
@@ -89,5 +88,6 @@ func (s *userService) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest)
 }
 
 func RegisterUserService(s *grpc.Server, db *gorm.DB) {
-	pb.RegisterUserServiceServer(s, &userService{db: db})
+	jwter := jwt.NewJwt(config.GetConfig())
+	pb.RegisterUserServiceServer(s, &userService{db: db, jwter: jwter})
 }
