@@ -1,4 +1,5 @@
 .idea
+*.DotSettings.user
 postgres_data
 .DS_Store
 **/.DS_Store
