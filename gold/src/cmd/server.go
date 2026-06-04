@@ -144,9 +144,10 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 }
 
 func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logger.Logger) {
-	queueName := "user.created"
+	exchangeName := "user.created"
+	queueName := "user.created.account"
 
-	messages, err := rmq.Consume(queueName)
+	messages, err := rmq.ConsumeFromExchange(exchangeName, queueName)
 	if err != nil {
 		logger.Fatal("Failed to start consumer", zap.Error(err), zap.String("queueName", queueName))
 	}

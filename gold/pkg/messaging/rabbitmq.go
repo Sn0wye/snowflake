@@ -80,6 +80,76 @@ func (m *MessagingService) Produce(queueName, message string) error {
 	return nil
 }
 
+// ConsumeFromExchange starts consuming from a queue bound to a fanout exchange
+func (m *MessagingService) ConsumeFromExchange(exchangeName, queueName string) (<-chan amqp091.Delivery, error) {
+	channel, err := m.conn.Channel()
+	if err != nil {
+		m.logger.Error("Failed to open a channel", zap.Error(err))
+		return nil, fmt.Errorf("failed to open a channel: %w", err)
+	}
+
+	err = channel.ExchangeDeclare(
+		exchangeName, // name
+		"fanout",     // type
+		true,         // durable
+		false,        // auto-deleted
+		false,        // internal
+		false,        // no-wait
+		nil,          // arguments
+	)
+	if err != nil {
+		m.logger.Error("Failed to declare exchange", zap.Error(err), zap.String("exchangeName", exchangeName))
+		channel.Close()
+		return nil, fmt.Errorf("failed to declare exchange: %w", err)
+	}
+
+	_, err = channel.QueueDeclare(
+		queueName, // name
+		true,      // durable
+		false,     // delete when unused
+		false,     // exclusive
+		false,     // no-wait
+		nil,       // arguments
+	)
+	if err != nil {
+		m.logger.Error("Failed to declare queue", zap.Error(err), zap.String("queueName", queueName))
+		channel.Close()
+		return nil, fmt.Errorf("failed to declare queue: %w", err)
+	}
+
+	err = channel.QueueBind(
+		queueName,    // queue name
+		"",           // routing key (ignored by fanout)
+		exchangeName, // exchange
+		false,        // no-wait
+		nil,          // arguments
+	)
+	if err != nil {
+		m.logger.Error("Failed to bind queue to exchange", zap.Error(err),
+			zap.String("queueName", queueName), zap.String("exchangeName", exchangeName))
+		channel.Close()
+		return nil, fmt.Errorf("failed to bind queue to exchange: %w", err)
+	}
+
+	messages, err := channel.Consume(
+		queueName, // queue
+		"",        // consumer
+		false,     // auto-ack (manual ack for reliability)
+		false,     // exclusive
+		false,     // no-local
+		false,     // no-wait
+		nil,       // arguments
+	)
+	if err != nil {
+		m.logger.Error("Failed to start consuming messages", zap.Error(err), zap.String("queueName", queueName))
+		channel.Close()
+		return nil, fmt.Errorf("failed to start consuming messages: %w", err)
+	}
+
+	m.logger.Info("Started consuming from exchange", zap.String("exchangeName", exchangeName), zap.String("queueName", queueName))
+	return messages, nil
+}
+
 // Consume listens for messages from a specific queue
 func (m *MessagingService) Consume(queueName string) (<-chan amqp091.Delivery, error) {
 	// Create a new channel for the operation

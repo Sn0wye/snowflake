@@ -176,7 +176,7 @@ func publishUserCreated(rmq *messaging.MessagingService, log *logger.Logger, use
 		log.Error("failed to marshal user.created event", zap.Error(marshalErr))
 		return
 	}
-	if err := rmq.Produce("user.created", userJSON); err != nil {
+	if err := rmq.ProduceToExchange("user.created", userJSON); err != nil {
 		log.Error("failed to publish user.created event", zap.Error(err))
 	}
 }
