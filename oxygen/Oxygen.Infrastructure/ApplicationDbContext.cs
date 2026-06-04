@@ -5,12 +5,13 @@ namespace Oxygen.Infrastructure;
 
 public class ApplicationDbContext : DbContext
 {
-    private readonly string _connectionString = null!;
-    
+    private readonly string _connectionString;
+
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IConfiguration configuration)
         : base(options)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection")!;
+        _connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? throw new InvalidOperationException("DefaultConnection is not configured.");
     }
     
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
