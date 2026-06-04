@@ -158,10 +158,13 @@ func generateUsername(db *gorm.DB, repos *repository.Factory, email string) stri
 
 func buildUserCreatedJSON(user models.User) (string, error) {
 	data := map[string]interface{}{
-		"id":         user.ID.String(),
-		"username":   user.Username,
-		"email":      user.Email,
-		"created_at": user.CreatedAt,
+		"id":            user.ID.String(),
+		"username":      user.Username,
+		"email":         user.Email,
+		"annual_income": user.AnnualIncome,
+		"debt":          user.Debt,
+		"assets_value":  user.AssetsValue,
+		"created_at":    user.CreatedAt,
 	}
 	jsonData, err := json.Marshal(data)
 	if err != nil {
