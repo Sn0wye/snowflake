@@ -1,0 +1,340 @@
+asyncapi: 3.1.0
+info:
+  title: Snowflake Async API
+  version: 1.0.0
+  description: >
+    Message-driven API for Snowflake fintech platform.
+    Covers RabbitMQ (AMQP 0-9-1) event channels across all 4 services.
+    WebSocket channels to be added in a future version.
+defaultContentType: application/json
+servers:
+  rabbitmq:
+    host: localhost:5672
+    protocol: amqp
+    description: RabbitMQ broker (pub/sub via default exchange with direct queue routing)
+
+channels:
+  userCreated:
+    address: user.created
+    description: |
+      Published by Helium when a new user registers.
+      Consumed by Carbon (triggers score calculation) and Gold (triggers account provisioning).
+      NOTE: Both consumers read from the same queue via default exchange — messages are
+      round-robin distributed, not fanned out. Consider a fanout exchange if both services
+      must process every event independently.
+    bindings:
+      amqp:
+        is: queue
+        queue:
+          name: user.created
+          durable: true
+          exclusive: false
+          autoDelete: false
+        bindingVersion: 0.3.0
+    messages:
+      UserCreated:
+        $ref: '#/components/messages/UserCreated'
+
+  scoreUpdated:
+    address: score-updated
+    description: >
+      Published by Carbon after computing a credit score for a user.
+      No active consumer — reserved for future integration.
+    bindings:
+      amqp:
+        is: queue
+        queue:
+          name: score-updated
+          durable: true
+          exclusive: false
+          autoDelete: false
+        bindingVersion: 0.3.0
+    messages:
+      ScoreUpdated:
+        $ref: '#/components/messages/ScoreUpdated'
+
+  transactionCreated:
+    address: transaction.created
+    description: >
+      Published by Gold when a transaction is initiated.
+      No active consumer — reserved for future integration.
+    bindings:
+      amqp:
+        is: queue
+        queue:
+          name: transaction.created
+          durable: true
+          exclusive: false
+          autoDelete: false
+        bindingVersion: 0.3.0
+    messages:
+      TransactionCreated:
+        $ref: '#/components/messages/TransactionCreated'
+
+  transactionCompleted:
+    address: transaction.completed
+    description: >
+      Published by Gold when a transaction completes (transfer or deposit).
+    bindings:
+      amqp:
+        is: queue
+        queue:
+          name: transaction.completed
+          durable: true
+          exclusive: false
+          autoDelete: false
+        bindingVersion: 0.3.0
+    messages:
+      TransactionCompleted:
+        $ref: '#/components/messages/TransactionCompleted'
+
+  transactionFailed:
+    address: transaction.failed
+    description: >
+      Published by Gold when a transaction fails.
+      No active consumer — reserved for future integration.
+    bindings:
+      amqp:
+        is: queue
+        queue:
+          name: transaction.failed
+          durable: true
+          exclusive: false
+          autoDelete: false
+        bindingVersion: 0.3.0
+    messages:
+      TransactionFailed:
+        $ref: '#/components/messages/TransactionFailed'
+
+operations:
+  heliumSendUserCreated:
+    action: send
+    channel:
+      $ref: '#/channels/userCreated'
+    summary: Helium publishes user.created on new user registration
+    messages:
+      - $ref: '#/channels/userCreated/messages/UserCreated'
+
+  carbonReceiveUserCreated:
+    action: receive
+    channel:
+      $ref: '#/channels/userCreated'
+    summary: Carbon consumes user.created to trigger credit score calculation
+    messages:
+      - $ref: '#/channels/userCreated/messages/UserCreated'
+
+  goldReceiveUserCreated:
+    action: receive
+    channel:
+      $ref: '#/channels/userCreated'
+    summary: Gold consumes user.created to provision a new account
+    messages:
+      - $ref: '#/channels/userCreated/messages/UserCreated'
+
+  carbonSendScoreUpdated:
+    action: send
+    channel:
+      $ref: '#/channels/scoreUpdated'
+    summary: Carbon publishes score-updated after computing credit score (0-900)
+    messages:
+      - $ref: '#/channels/scoreUpdated/messages/ScoreUpdated'
+
+  goldSendTransactionCreated:
+    action: send
+    channel:
+      $ref: '#/channels/transactionCreated'
+    summary: Gold publishes transaction.created on transaction initiation
+    messages:
+      - $ref: '#/channels/transactionCreated/messages/TransactionCreated'
+
+  goldSendTransactionCompleted:
+    action: send
+    channel:
+      $ref: '#/channels/transactionCompleted'
+    summary: Gold publishes transaction.completed on successful transfer or deposit
+    messages:
+      - $ref: '#/channels/transactionCompleted/messages/TransactionCompleted'
+
+  goldSendTransactionFailed:
+    action: send
+    channel:
+      $ref: '#/channels/transactionFailed'
+    summary: Gold publishes transaction.failed when a transaction cannot be processed
+    messages:
+      - $ref: '#/channels/transactionFailed/messages/TransactionFailed'
+
+components:
+  messages:
+    UserCreated:
+      name: UserCreated
+      title: User Created Event
+      summary: Emitted by Helium when a new user registers. Triggers score calculation and account provisioning.
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - id
+          - username
+          - email
+          - annual_income
+          - debt
+          - assets_value
+          - created_at
+        properties:
+          id:
+            type: string
+            format: uuid
+            description: Unique user identifier
+          username:
+            type: string
+            description: User's chosen username
+          email:
+            type: string
+            format: email
+            description: User's email address
+          annual_income:
+            type: number
+            description: Annual income in USD
+          debt:
+            type: number
+            description: Total debt in USD
+          assets_value:
+            type: number
+            description: Total assets value in USD
+          created_at:
+            type: string
+            format: date-time
+            description: ISO 8601 timestamp of user registration
+
+    ScoreUpdated:
+      name: ScoreUpdated
+      title: Score Updated Event
+      summary: Published by Carbon after computing a user's credit score. Score ranges from 0 to 900.
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - userId
+          - creditScore
+        properties:
+          userId:
+            type: string
+            format: uuid
+            description: User identifier for the scored user
+          creditScore:
+            type: integer
+            minimum: 0
+            maximum: 900
+            description: Computed credit score (sum of income, asset, and debt sub-scores)
+
+    TransactionCreated:
+      name: TransactionCreated
+      title: Transaction Created Event
+      summary: Published by Gold when a transaction is initiated (transfer or deposit).
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - transaction_id
+          - type
+          - amount
+          - created_at
+        properties:
+          transaction_id:
+            type: string
+            format: uuid
+            description: Unique transaction identifier
+          type:
+            type: string
+            description: Transaction type (e.g. transfer, deposit)
+          amount:
+            type: integer
+            description: Amount in USD cents
+          sender_account_id:
+            type: string
+            format: uuid
+            description: Sender account UUID (present for transfers)
+          receiver_account_id:
+            type: string
+            format: uuid
+            description: Receiver account UUID
+          created_at:
+            type: string
+            format: date-time
+            description: ISO 8601 timestamp of transaction creation
+
+    TransactionCompleted:
+      name: TransactionCompleted
+      title: Transaction Completed Event
+      summary: Published by Gold when a transaction completes successfully.
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - transaction_id
+          - type
+          - amount
+          - completed_at
+        properties:
+          transaction_id:
+            type: string
+            format: uuid
+            description: Unique transaction identifier
+          type:
+            type: string
+            description: Transaction type (e.g. transfer, deposit)
+          amount:
+            type: integer
+            description: Amount in USD cents
+          sender_account_id:
+            type: string
+            format: uuid
+            description: Sender account UUID (present for transfers)
+          receiver_account_id:
+            type: string
+            format: uuid
+            description: Receiver account UUID
+          completed_at:
+            type: string
+            format: date-time
+            description: ISO 8601 timestamp of completion
+
+    TransactionFailed:
+      name: TransactionFailed
+      title: Transaction Failed Event
+      summary: Published by Gold when a transaction cannot be processed.
+      contentType: application/json
+      payload:
+        type: object
+        required:
+          - transaction_id
+          - type
+          - amount
+          - reason
+          - failed_at
+        properties:
+          transaction_id:
+            type: string
+            format: uuid
+            description: Unique transaction identifier
+          type:
+            type: string
+            description: Transaction type (e.g. transfer, deposit)
+          amount:
+            type: integer
+            description: Amount in USD cents
+          sender_account_id:
+            type: string
+            format: uuid
+            description: Sender account UUID (present for transfers)
+          receiver_account_id:
+            type: string
+            format: uuid
+            description: Receiver account UUID
+          reason:
+            type: string
+            description: Human-readable failure reason
+          failed_at:
+            type: string
+            format: date-time
+            description: ISO 8601 timestamp of failure
