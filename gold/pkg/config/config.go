@@ -1,21 +1,30 @@
 package config
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/spf13/viper"
 )
 
+var (
+	configOnce   sync.Once
+	cachedConfig *viper.Viper
+)
+
 func GetConfig() *viper.Viper {
-	configPath := os.Getenv("APP_CONF")
-	if configPath == "" {
-		configPath = filepath.Join(getAppRootPath(), "config", "local.yml") // Default path relative to root
-	}
-	fmt.Println("Using config path:", configPath)
-	return getConfig(configPath)
+	configOnce.Do(func() {
+		configPath := os.Getenv("APP_CONF")
+		if configPath == "" {
+			configPath = filepath.Join(getAppRootPath(), "config", "local.yml") // Default path relative to root
+		}
+		log.Printf("Using config path: %s", configPath)
+		cachedConfig = getConfig(configPath)
+	})
+	return cachedConfig
 }
 
 func getConfig(path string) *viper.Viper {
