@@ -19,7 +19,7 @@ google:
   redirect_url: ''
 
 log:
-  log_level: info
+  level: info
   encoding: console # json or console
   log_file_name: './storage/logs/server.log'
   max_backups: 30

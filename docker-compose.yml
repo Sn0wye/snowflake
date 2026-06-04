@@ -74,7 +74,7 @@ services:
       - JWT_ISSUER=${HELIUM_JWT_ISSUER:-}
       - HTTP_PORT=${HELIUM_HTTP_PORT:-8080}
       - GRPC_PORT=${HELIUM_GRPC_PORT:-50050}
-      - LOG_LOG_LEVEL=${HELIUM_LOG_LEVEL:-info}
+      - LOG_LEVEL=${HELIUM_LOG_LEVEL:-info}
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -123,7 +123,7 @@ services:
       - JWT_SECRET=${GOLD_JWT_SECRET:-}
       - JWT_ISSUER=${GOLD_JWT_ISSUER:-}
       - HTTP_PORT=${GOLD_HTTP_PORT:-8083}
-      - LOG_LOG_LEVEL=${GOLD_LOG_LEVEL:-info}
+      - LOG_LEVEL=${GOLD_LOG_LEVEL:-info}
     depends_on:
       rabbitmq:
         condition: service_healthy

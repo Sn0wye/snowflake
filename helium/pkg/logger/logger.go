@@ -23,7 +23,7 @@ func NewLog(conf *viper.Viper) *Logger {
 
 func initZap(conf *viper.Viper) *Logger {
 	lp := conf.GetString("log.log_file_name")
-	lv := conf.GetString("log.log_level")
+	lv := conf.GetString("log.level")
 	var level zapcore.Level
 	switch lv {
 	case "debug":
