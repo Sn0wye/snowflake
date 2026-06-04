@@ -10,10 +10,10 @@ public class ValidationFilter : IActionFilter
         if (context.ModelState.IsValid) return;
 
         var errors = context.ModelState
-            .Where(entry => entry.Value.Errors.Any())
+            .Where(entry => entry.Value!.Errors.Count > 0)
             .ToDictionary(
                 entry => entry.Key,
-                entry => entry.Value.Errors.First().ErrorMessage
+                entry => entry.Value!.Errors.First().ErrorMessage
             );
 
 

@@ -41,7 +41,7 @@ public class LoanService(
         };
     }
 
-    private async Task<Domain.Entities.LoanApplication?> SuggestBetterLoan(User user, int score)
+    private Task<Domain.Entities.LoanApplication?> SuggestBetterLoan(User user, int score)
     {
         double incomePercentage = score switch
         {
@@ -64,6 +64,6 @@ public class LoanService(
             Status = LoanApplicationStatus.APPROVED
         };
 
-        return suggestedLoan;
+        return Task.FromResult<Domain.Entities.LoanApplication?>(suggestedLoan);
     }
 }
