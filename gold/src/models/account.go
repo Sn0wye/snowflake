@@ -57,17 +57,3 @@ func (a *Account) BeforeUpdate(tx *gorm.DB) error {
 
 	return nil
 }
-
-// func (a *Account) ToGRPC() *pb.Account {
-// 	return &pb.Account{
-// 		Id:           a.ID.String(),
-// 		Name:         a.Name,
-// 		Username:     a.Username,
-// 		Email:        a.Email,
-// 		AnnualIncome: int64(a.AnnualIncome),
-// 		Debt:         int64(a.Debt),
-// 		AssetsValue:  int64(a.AssetsValue),
-// 		CreatedAt:    a.CreatedAt.Format(time.RFC3339),
-// 		UpdatedAt:    a.UpdatedAt.Format(time.RFC3339),
-// 	}
-// }
