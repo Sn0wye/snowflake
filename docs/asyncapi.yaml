@@ -11,22 +11,51 @@ servers:
   rabbitmq:
     host: localhost:5672
     protocol: amqp
-    description: RabbitMQ broker (pub/sub via default exchange with direct queue routing)
+    description: RabbitMQ broker (pub/sub via fanout exchange)
 
 channels:
   userCreated:
     address: user.created
     description: |
-      Published by Helium when a new user registers.
-      Consumed by Carbon (triggers score calculation) and Gold (triggers account provisioning).
-      NOTE: Both consumers read from the same queue via default exchange — messages are
-      round-robin distributed, not fanned out. Consider a fanout exchange if both services
-      must process every event independently.
+      Fanout exchange published by Helium when a new user registers.
+      All bound queues receive every event independently.
+    bindings:
+      amqp:
+        is: routingKey
+        exchange:
+          name: user.created
+          type: fanout
+          durable: true
+          autoDelete: false
+        bindingVersion: 0.3.0
+    messages:
+      UserCreated:
+        $ref: '#/components/messages/UserCreated'
+
+  userCreatedScore:
+    address: user.created.score
+    description: Queue consumed by Carbon. Bound to user.created fanout exchange. Triggers credit score calculation.
     bindings:
       amqp:
         is: queue
         queue:
-          name: user.created
+          name: user.created.score
+          durable: true
+          exclusive: false
+          autoDelete: false
+        bindingVersion: 0.3.0
+    messages:
+      UserCreated:
+        $ref: '#/components/messages/UserCreated'
+
+  userCreatedAccount:
+    address: user.created.account
+    description: Queue consumed by Gold. Bound to user.created fanout exchange. Triggers account provisioning.
+    bindings:
+      amqp:
+        is: queue
+        queue:
+          name: user.created.account
           durable: true
           exclusive: false
           autoDelete: false
@@ -118,18 +147,18 @@ operations:
   carbonReceiveUserCreated:
     action: receive
     channel:
-      $ref: '#/channels/userCreated'
-    summary: Carbon consumes user.created to trigger credit score calculation
+      $ref: '#/channels/userCreatedScore'
+    summary: Carbon consumes user.created.score to trigger credit score calculation
     messages:
-      - $ref: '#/channels/userCreated/messages/UserCreated'
+      - $ref: '#/channels/userCreatedScore/messages/UserCreated'
 
   goldReceiveUserCreated:
     action: receive
     channel:
-      $ref: '#/channels/userCreated'
-    summary: Gold consumes user.created to provision a new account
+      $ref: '#/channels/userCreatedAccount'
+    summary: Gold consumes user.created.account to provision a new account
     messages:
-      - $ref: '#/channels/userCreated/messages/UserCreated'
+      - $ref: '#/channels/userCreatedAccount/messages/UserCreated'
 
   carbonSendScoreUpdated:
     action: send
