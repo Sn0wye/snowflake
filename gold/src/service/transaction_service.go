@@ -100,14 +100,6 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 		return dto.TransactionResponse{}, ErrAmountTooHigh
 	}
 
-	existing, err := s.repos.Transaction.FindByIdempotencyKey(db, req.IdempotencyKey)
-	if err == nil {
-		return dto.TransactionResponse{}, &IdempotentTransactionError{Response: dto.TransactionToResponse(*existing)}
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return dto.TransactionResponse{}, err
-	}
-
 	senderAccount, err := s.repos.Account.FindByUserID(db, userID)
 	if err != nil {
 		return dto.TransactionResponse{}, mapNotFound(err, ErrAccountNotFound)
@@ -120,7 +112,7 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 		return dto.TransactionResponse{}, ErrAccountReconciliation
 	}
 
-	receiverAccount, _, err := 	s.svc.Flake.ResolveReceiver(db, req.ReceiverFlakeKey)
+	receiverAccount, _, err := s.svc.Flake.ResolveReceiver(db, req.ReceiverFlakeKey)
 	if err != nil {
 		return dto.TransactionResponse{}, err
 	}
@@ -134,24 +126,34 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 	}
 
 	startOfDay := time.Now().UTC().Truncate(24 * time.Hour)
-	dailyAmount, err := s.repos.Transaction.SumDailyAmount(db, senderAccount.ID, startOfDay)
-	if err != nil {
-		return dto.TransactionResponse{}, err
-	}
-	if dailyAmount+req.Amount > dailyTransactionLimit {
-		return dto.TransactionResponse{}, ErrDailyLimitExceeded
-	}
-
-	dailyCount, err := s.repos.Transaction.CountDaily(db, senderAccount.ID, startOfDay)
-	if err != nil {
-		return dto.TransactionResponse{}, err
-	}
-	if dailyCount >= maxDailyTransactions {
-		return dto.TransactionResponse{}, ErrDailyCountExceeded
-	}
 
 	var result *models.Transaction
 	err = db.Transaction(func(tx *gorm.DB) error {
+		existing, err := s.repos.Transaction.FindByIdempotencyKey(tx, req.IdempotencyKey)
+		if err == nil {
+			result = existing
+			return &IdempotentTransactionError{Response: dto.TransactionToResponse(*existing)}
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
+		dailyAmount, err := s.repos.Transaction.SumDailyAmount(tx, senderAccount.ID, startOfDay)
+		if err != nil {
+			return err
+		}
+		if dailyAmount+req.Amount > dailyTransactionLimit {
+			return ErrDailyLimitExceeded
+		}
+
+		dailyCount, err := s.repos.Transaction.CountDaily(tx, senderAccount.ID, startOfDay)
+		if err != nil {
+			return err
+		}
+		if dailyCount >= maxDailyTransactions {
+			return ErrDailyCountExceeded
+		}
+
 		ids := []uuid.UUID{senderAccount.ID, receiverAccount.ID}
 		sort.Slice(ids, func(i, j int) bool {
 			return ids[i].String() < ids[j].String()
@@ -231,6 +233,10 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 	})
 
 	if err != nil {
+		var idempotent *IdempotentTransactionError
+		if errors.As(err, &idempotent) {
+			return dto.TransactionResponse{}, idempotent
+		}
 		if errors.Is(err, ErrInsufficientFunds) {
 			return dto.TransactionResponse{}, ErrInsufficientFunds
 		}
@@ -248,14 +254,6 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 	}
 	if req.Amount > maxTransactionAmount {
 		return dto.TransactionResponse{}, ErrAmountTooHigh
-	}
-
-	existing, err := s.repos.Transaction.FindByIdempotencyKey(db, req.IdempotencyKey)
-	if err == nil {
-		return dto.TransactionResponse{}, &IdempotentTransactionError{Response: dto.TransactionToResponse(*existing)}
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return dto.TransactionResponse{}, err
 	}
 
 	account, err := s.repos.Account.FindByID(db, req.AccountID)
@@ -276,6 +274,15 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 
 	var result *models.Transaction
 	err = db.Transaction(func(tx *gorm.DB) error {
+		existing, err := s.repos.Transaction.FindByIdempotencyKey(tx, req.IdempotencyKey)
+		if err == nil {
+			result = existing
+			return &IdempotentTransactionError{Response: dto.TransactionToResponse(*existing)}
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+
 		acc, err := s.repos.Account.FindByIDForUpdate(tx, account.ID)
 		if err != nil {
 			return err
@@ -322,6 +329,10 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 	})
 
 	if err != nil {
+		var idempotent *IdempotentTransactionError
+		if errors.As(err, &idempotent) {
+			return dto.TransactionResponse{}, idempotent
+		}
 		return dto.TransactionResponse{}, err
 	}
 
