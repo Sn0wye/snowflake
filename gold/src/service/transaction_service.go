@@ -105,24 +105,9 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 		return dto.TransactionResponse{}, mapNotFound(err, ErrAccountNotFound)
 	}
 
-	if senderAccount.Status != models.AccountStatusActive {
-		return dto.TransactionResponse{}, ErrAccountNotActive
-	}
-	if senderAccount.ReconciliationStatus == models.AccountReconciliationStatusDiscrepancy {
-		return dto.TransactionResponse{}, ErrAccountReconciliation
-	}
-
 	receiverAccount, _, err := s.svc.Flake.ResolveReceiver(db, req.ReceiverFlakeKey)
 	if err != nil {
 		return dto.TransactionResponse{}, err
-	}
-
-	if receiverAccount.Status != models.AccountStatusActive {
-		return dto.TransactionResponse{}, ErrAccountNotActive
-	}
-
-	if senderAccount.ID == receiverAccount.ID {
-		return dto.TransactionResponse{}, ErrSelfTransfer
 	}
 
 	var result *models.Transaction
@@ -151,6 +136,19 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 
 		sender := locked[senderAccount.ID]
 		receiver := locked[receiverAccount.ID]
+
+		if sender.Status != models.AccountStatusActive {
+			return ErrAccountNotActive
+		}
+		if sender.ReconciliationStatus == models.AccountReconciliationStatusDiscrepancy {
+			return ErrAccountReconciliation
+		}
+		if receiver.Status != models.AccountStatusActive {
+			return ErrAccountNotActive
+		}
+		if sender.ID == receiver.ID {
+			return ErrSelfTransfer
+		}
 
 		if sender.Balance < req.Amount {
 			return ErrInsufficientFunds
@@ -271,9 +269,6 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 	if account.UserID != userIDParsed {
 		return dto.TransactionResponse{}, ErrForbidden
 	}
-	if account.Status != models.AccountStatusActive {
-		return dto.TransactionResponse{}, ErrAccountNotActive
-	}
 
 	var result *models.Transaction
 	err = db.Transaction(func(tx *gorm.DB) error {
@@ -288,6 +283,10 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 		acc, err := s.repos.Account.FindByIDForUpdate(tx, account.ID)
 		if err != nil {
 			return err
+		}
+
+		if acc.Status != models.AccountStatusActive {
+			return ErrAccountNotActive
 		}
 
 		now := time.Now()
