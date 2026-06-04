@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import pb.Auth;
 import pb.AuthServiceGrpc;
 
+import java.util.concurrent.TimeUnit;
+
 @Service
 public class GrpcAuthService {
 
@@ -28,8 +30,17 @@ public class GrpcAuthService {
 
     @PreDestroy
     public void shutdown() {
-        if (channel != null && !channel.isShutdown()) {
-            channel.shutdown();
+        if (channel == null || channel.isShutdown()) {
+            return;
+        }
+        channel.shutdown();
+        try {
+            if (!channel.awaitTermination(5, TimeUnit.SECONDS)) {
+                channel.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            channel.shutdownNow();
+            Thread.currentThread().interrupt();
         }
     }
 
