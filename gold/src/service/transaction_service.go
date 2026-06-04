@@ -238,9 +238,6 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 		if errors.As(err, &idempotent) {
 			return dto.TransactionResponse{}, idempotent
 		}
-		if errors.Is(err, ErrInsufficientFunds) {
-			return dto.TransactionResponse{}, ErrInsufficientFunds
-		}
 		return dto.TransactionResponse{}, err
 	}
 
