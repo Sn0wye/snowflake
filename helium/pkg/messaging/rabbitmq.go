@@ -80,6 +80,48 @@ func (m *MessagingService) Produce(queueName, message string) error {
 	return nil
 }
 
+// ProduceToExchange publishes to a fanout exchange (creates exchange if missing)
+func (m *MessagingService) ProduceToExchange(exchangeName, message string) error {
+	channel, err := m.conn.Channel()
+	if err != nil {
+		m.logger.Error("Failed to open a channel", zap.Error(err))
+		return fmt.Errorf("failed to open a channel: %w", err)
+	}
+	defer channel.Close()
+
+	err = channel.ExchangeDeclare(
+		exchangeName, // name
+		"fanout",     // type
+		true,         // durable
+		false,        // auto-deleted
+		false,        // internal
+		false,        // no-wait
+		nil,          // arguments
+	)
+	if err != nil {
+		m.logger.Error("Failed to declare exchange", zap.Error(err), zap.String("exchangeName", exchangeName))
+		return fmt.Errorf("failed to declare exchange: %w", err)
+	}
+
+	err = channel.Publish(
+		exchangeName, // exchange
+		"",           // routing key (ignored by fanout)
+		true,         // mandatory
+		false,        // immediate
+		amqp091.Publishing{
+			ContentType: "text/plain",
+			Body:        []byte(message),
+		},
+	)
+	if err != nil {
+		m.logger.Error("Failed to publish message", zap.Error(err), zap.String("exchangeName", exchangeName))
+		return fmt.Errorf("failed to publish message: %w", err)
+	}
+
+	log.Info("Published message to exchange", zap.String("exchangeName", exchangeName), zap.String("message", message))
+	return nil
+}
+
 // Consume listens for messages from a specific queue
 func (m *MessagingService) Consume(queueName string) (<-chan amqp091.Delivery, error) {
 	// Create a new channel for the operation
