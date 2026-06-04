@@ -13,13 +13,11 @@ import (
 
 type authService struct {
 	pb.UnimplementedAuthServiceServer
+	jwter *jwt.JWT
 }
 
 func (s *authService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRequest) (*pb.ValidateTokenResponse, error) {
-	conf := config.GetConfig()
-	jwt := jwt.NewJwt(conf)
-
-	_, err := jwt.ParseToken(req.Token)
+	_, err := s.jwter.ParseToken(req.Token)
 
 	if err != nil {
 		return &pb.ValidateTokenResponse{Valid: false}, err
@@ -29,10 +27,7 @@ func (s *authService) ValidateToken(ctx context.Context, req *pb.ValidateTokenRe
 }
 
 func (s *authService) ParseToken(ctx context.Context, req *pb.ParseTokenRequest) (*pb.ParseTokenResponse, error) {
-	conf := config.GetConfig()
-	jwt := jwt.NewJwt(conf)
-
-	claims, err := jwt.ParseToken(req.Token)
+	claims, err := s.jwter.ParseToken(req.Token)
 
 	if err != nil {
 		return nil, err
@@ -47,5 +42,6 @@ func (s *authService) ParseToken(ctx context.Context, req *pb.ParseTokenRequest)
 }
 
 func RegisterAuthService(s *grpc.Server) {
-	pb.RegisterAuthServiceServer(s, &authService{})
+	jwter := jwt.NewJwt(config.GetConfig())
+	pb.RegisterAuthServiceServer(s, &authService{jwter: jwter})
 }
