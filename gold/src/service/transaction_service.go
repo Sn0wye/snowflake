@@ -125,33 +125,14 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 		return dto.TransactionResponse{}, ErrSelfTransfer
 	}
 
-	startOfDay := time.Now().UTC().Truncate(24 * time.Hour)
-
 	var result *models.Transaction
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing, err := s.repos.Transaction.FindByIdempotencyKey(tx, req.IdempotencyKey)
 		if err == nil {
-			result = existing
 			return &IdempotentTransactionError{Response: dto.TransactionToResponse(*existing)}
 		}
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
-		}
-
-		dailyAmount, err := s.repos.Transaction.SumDailyAmount(tx, senderAccount.ID, startOfDay)
-		if err != nil {
-			return err
-		}
-		if dailyAmount+req.Amount > dailyTransactionLimit {
-			return ErrDailyLimitExceeded
-		}
-
-		dailyCount, err := s.repos.Transaction.CountDaily(tx, senderAccount.ID, startOfDay)
-		if err != nil {
-			return err
-		}
-		if dailyCount >= maxDailyTransactions {
-			return ErrDailyCountExceeded
 		}
 
 		ids := []uuid.UUID{senderAccount.ID, receiverAccount.ID}
@@ -173,6 +154,24 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 
 		if sender.Balance < req.Amount {
 			return ErrInsufficientFunds
+		}
+
+		startOfDay := time.Now().UTC().Truncate(24 * time.Hour)
+
+		dailyAmount, err := s.repos.Transaction.SumDailyAmount(tx, senderAccount.ID, startOfDay)
+		if err != nil {
+			return err
+		}
+		if dailyAmount+req.Amount > dailyTransactionLimit {
+			return ErrDailyLimitExceeded
+		}
+
+		dailyCount, err := s.repos.Transaction.CountDaily(tx, senderAccount.ID, startOfDay)
+		if err != nil {
+			return err
+		}
+		if dailyCount >= maxDailyTransactions {
+			return ErrDailyCountExceeded
 		}
 
 		now := time.Now()
@@ -276,7 +275,6 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 	err = db.Transaction(func(tx *gorm.DB) error {
 		existing, err := s.repos.Transaction.FindByIdempotencyKey(tx, req.IdempotencyKey)
 		if err == nil {
-			result = existing
 			return &IdempotentTransactionError{Response: dto.TransactionToResponse(*existing)}
 		}
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
