@@ -109,7 +109,7 @@ func (m *MessagingService) ProduceToExchange(exchangeName, message string) error
 		true,         // mandatory
 		false,        // immediate
 		amqp091.Publishing{
-			ContentType: "text/plain",
+			ContentType: "application/json",
 			Body:        []byte(message),
 		},
 	)
