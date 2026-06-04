@@ -29,10 +29,7 @@ public class GrpcAuthService {
     }
 
     @PreDestroy
-    public void shutdown() {
-        if (channel.isShutdown()) {
-            return;
-        }
+    private void shutdown() {
         channel.shutdown();
         try {
             if (!channel.awaitTermination(5, TimeUnit.SECONDS)) {
