@@ -24,6 +24,8 @@ RUN mvn -X package -DskipTests
 # Stage 2: Use a smaller image for the final stage
 FROM eclipse-temurin:22-jre-alpine
 
+RUN apk add --no-cache curl
+
 # Set the working directory in the container
 WORKDIR /app
 
