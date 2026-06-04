@@ -1,8 +1,9 @@
 FROM alpine:latest
-RUN apk add --no-cache curl
 WORKDIR /app
 COPY main .
 COPY config ./config
 EXPOSE 8080
 EXPOSE 50050
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget -qO- http://localhost:8080/auth/health || exit 1
 CMD ["./main"]
