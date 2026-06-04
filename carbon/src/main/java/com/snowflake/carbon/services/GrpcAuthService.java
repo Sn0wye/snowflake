@@ -3,6 +3,7 @@ package com.snowflake.carbon.services;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.Status;
+import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import pb.Auth;
@@ -11,17 +12,25 @@ import pb.AuthServiceGrpc;
 @Service
 public class GrpcAuthService {
 
+    private final ManagedChannel channel;
     private final AuthServiceGrpc.AuthServiceBlockingStub authServiceStub;
 
     public GrpcAuthService(
             @Value("${spring.grpc.host}") String host,
             @Value("${spring.grpc.port}") int port
     ) {
-        ManagedChannel channel = ManagedChannelBuilder.forAddress(host, port)
+        this.channel = ManagedChannelBuilder.forAddress(host, port)
                 .usePlaintext()
                 .build();
 
-        authServiceStub = AuthServiceGrpc.newBlockingStub(channel);
+        this.authServiceStub = AuthServiceGrpc.newBlockingStub(channel);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        if (channel != null && !channel.isShutdown()) {
+            channel.shutdown();
+        }
     }
 
     public boolean validateToken(String token) {
