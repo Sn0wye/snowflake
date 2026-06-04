@@ -5,8 +5,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.hibernate.annotations.GenericGenerator;
-import org.hibernate.id.uuid.UuidGenerator;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -19,8 +18,8 @@ import java.util.UUID;
 @Table(name = "scores")
 public class Score {
     @Id
-    @GeneratedValue(generator = "uuid2")
-    @GenericGenerator(name = "UUID", type = UuidGenerator.class)
+    @GeneratedValue
+    @UuidGenerator
     private UUID id;
     private String userId;
     private BigDecimal income;
