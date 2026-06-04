@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/Sn0wye/snowflake/gold/src/dto"
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -40,4 +41,12 @@ func mapNotFound(err error, domainErr error) error {
 		return domainErr
 	}
 	return err
+}
+
+// isUniqueViolation returns true when err is a PostgreSQL unique constraint
+// violation (SQLSTATE 23505). Used to convert a duplicate idempotency key
+// insert into an IdempotentTransactionError instead of a 500.
+func isUniqueViolation(err error) bool {
+	var pgErr *pgconn.PgError
+	return errors.As(err, &pgErr) && pgErr.Code == "23505"
 }
