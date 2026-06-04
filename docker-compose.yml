@@ -123,7 +123,6 @@ services:
       - JWT_SECRET=${GOLD_JWT_SECRET:-}
       - JWT_ISSUER=${GOLD_JWT_ISSUER:-}
       - HTTP_PORT=${GOLD_HTTP_PORT:-8083}
-      - GRPC_PORT=${GOLD_GRPC_PORT:-50053}
       - LOG_LOG_LEVEL=${GOLD_LOG_LEVEL:-info}
     depends_on:
       rabbitmq:

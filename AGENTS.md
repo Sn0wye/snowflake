@@ -7,7 +7,7 @@ Microservices monorepo: **4 services** (Go, Java, C#) + **Docker Compose** + **P
 | Service | Path | Lang | Framework | Ports | Key Files |
 |---------|------|------|-----------|-------|-----------|
 | **helium** | `./helium` | Go | Fiber | 8080 HTTP, 50050 gRPC | `pkg/config/config.go`, `src/cmd/server.go` |
-| **gold** | `./gold` | Go | Fiber | 8083 HTTP, 50053 gRPC | `pkg/config/config.go`, `src/cmd/server.go` |
+| **gold** | `./gold` | Go | Fiber | 8083 HTTP | `pkg/config/config.go`, `src/cmd/server.go` |
 | **carbon** | `./carbon` | Java | Spring Boot | 8081 HTTP | `src/main/resources/application.properties` |
 | **oxygen** | `./oxygen` | C# | .NET 8 | 8082 HTTP | `Oxygen.API/appsettings.json` |
 
