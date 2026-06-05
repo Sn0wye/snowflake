@@ -203,7 +203,7 @@ func (s *authService) emitUserCreated(user models.User) {
 		return
 	}
 
-	if err := s.rmq.ProduceToExchange("user.created", string(jsonData)); err != nil {
+	if err := s.rmq.ProduceToExchange(messaging.ExchangeUserCreated, string(jsonData)); err != nil {
 		s.log.Error("failed to publish user.created event", zap.Error(err))
 	}
 }
