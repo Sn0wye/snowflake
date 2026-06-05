@@ -147,38 +147,58 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 	exchangeName := "user.created"
 	queueName := "user.created.account"
 
-	messages, err := rmq.ConsumeFromExchange(exchangeName, queueName)
-	if err != nil {
-		logger.Fatal("Failed to start consumer", zap.Error(err), zap.String("queueName", queueName))
-	}
+	const (
+		initialBackoff = time.Second
+		maxBackoff     = 30 * time.Second
+	)
+	backoff := initialBackoff
 
-	logger.Info("Consumer started", zap.String("queueName", queueName))
+	for {
+		messages, err := rmq.ConsumeFromExchange(exchangeName, queueName)
+		if err != nil {
+			logger.Error("Failed to start consumer, retrying",
+				zap.Error(err),
+				zap.String("queueName", queueName),
+				zap.Duration("backoff", backoff),
+			)
+			time.Sleep(backoff)
+			backoff = nextBackoff(backoff, maxBackoff)
+			continue
+		}
 
-	// Process messages in a loop
-	for msg := range messages {
-		logger.Info("Received message",
+		logger.Info("Consumer started", zap.String("queueName", queueName))
+		backoff = initialBackoff
+
+		for msg := range messages {
+			logger.Info("Received message",
+				zap.String("queueName", queueName),
+				zap.String("body", string(msg.Body)),
+				zap.String("contentType", msg.ContentType),
+			)
+
+			var event UserCreatedEvent
+			if err := json.Unmarshal(msg.Body, &event); err != nil {
+				logger.Error("Failed to unmarshal message", zap.Error(err), zap.String("body", string(msg.Body)))
+				msg.Nack(false, false)
+				continue
+			}
+
+			if err := processUserCreated(event, logger); err != nil {
+				logger.Error("Failed to process user.created event", zap.Error(err), zap.String("userID", event.ID))
+				msg.Nack(false, true)
+				continue
+			}
+
+			msg.Ack(false)
+		}
+
+		logger.Warn("Consumer connection lost, reconnecting",
 			zap.String("queueName", queueName),
-			zap.String("body", string(msg.Body)),
-			zap.String("contentType", msg.ContentType),
+			zap.Duration("backoff", backoff),
 		)
-
-		var event UserCreatedEvent
-		if err := json.Unmarshal(msg.Body, &event); err != nil {
-			logger.Error("Failed to unmarshal message", zap.Error(err), zap.String("body", string(msg.Body)))
-			msg.Nack(false, false) // discard malformed messages, don't requeue
-			continue
-		}
-
-		if err := processUserCreated(event, logger); err != nil {
-			logger.Error("Failed to process user.created event", zap.Error(err), zap.String("userID", event.ID))
-			msg.Nack(false, true) // requeue on transient failures
-			continue
-		}
-
-		msg.Ack(false)
+		time.Sleep(backoff)
+		backoff = nextBackoff(backoff, maxBackoff)
 	}
-
-	logger.Warn("Consumer stopped", zap.String("queueName", queueName))
 }
 
 type UserCreatedEvent struct {
@@ -229,4 +249,12 @@ func processUserCreated(event UserCreatedEvent, logger *logger.Logger) error {
 	)
 
 	return nil
+}
+
+func nextBackoff(current, max time.Duration) time.Duration {
+	next := current * 2
+	if next > max {
+		return max
+	}
+	return next
 }
