@@ -128,7 +128,7 @@ func (m *MessagingService) ProduceToExchange(exchangeName, message string) error
 		m.notifyReturn(channel, exchangeName)
 	}()
 
-	log.Info("Published message to exchange", zap.String("exchangeName", exchangeName), zap.String("message", message))
+	m.logger.Info("Published message to exchange", zap.String("exchangeName", exchangeName), zap.String("message", message))
 	return nil
 }
 
