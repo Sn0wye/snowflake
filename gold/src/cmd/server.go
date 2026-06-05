@@ -150,25 +150,39 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 	const (
 		initialBackoff = time.Second
 		maxBackoff     = 30 * time.Second
+		maxRetries     = 5
 	)
 	backoff := initialBackoff
 
-	for {
-		messages, err := rmq.ConsumeFromExchange(exchangeName, queueName)
-		if err != nil {
+	messages, err := rmq.ConsumeFromExchange(exchangeName, queueName)
+	if err != nil {
+		for attempt := 1; attempt <= maxRetries; attempt++ {
 			logger.Error("Failed to start consumer, retrying",
 				zap.Error(err),
 				zap.String("queueName", queueName),
 				zap.Duration("backoff", backoff),
+				zap.Int("attempt", attempt),
 			)
 			time.Sleep(backoff)
 			backoff = nextBackoff(backoff, maxBackoff)
-			continue
+
+			messages, err = rmq.ConsumeFromExchange(exchangeName, queueName)
+			if err == nil {
+				break
+			}
 		}
+		if err != nil {
+			logger.Fatal("Failed to start consumer after retries",
+				zap.Error(err),
+				zap.String("queueName", queueName),
+				zap.Int("maxRetries", maxRetries),
+			)
+		}
+	}
 
-		logger.Info("Consumer started", zap.String("queueName", queueName))
-		backoff = initialBackoff
+	logger.Info("Consumer started", zap.String("queueName", queueName))
 
+	for attempt := 0; attempt < maxRetries; attempt++ {
 		for msg := range messages {
 			logger.Info("Received message",
 				zap.String("queueName", queueName),
@@ -192,12 +206,32 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 			msg.Ack(false)
 		}
 
+		// messages channel closed — connection lost
+		if attempt == maxRetries-1 {
+			logger.Error("Consumer connection lost, max retries exhausted",
+				zap.String("queueName", queueName),
+			)
+			return
+		}
+
 		logger.Warn("Consumer connection lost, reconnecting",
 			zap.String("queueName", queueName),
 			zap.Duration("backoff", backoff),
+			zap.Int("attempt", attempt+1),
 		)
 		time.Sleep(backoff)
 		backoff = nextBackoff(backoff, maxBackoff)
+
+		messages, err = rmq.ConsumeFromExchange(exchangeName, queueName)
+		if err != nil {
+			logger.Error("Consumer connection lost, retries exhausted",
+				zap.Error(err),
+				zap.String("queueName", queueName),
+			)
+			return
+		}
+
+		logger.Info("Consumer reconnected", zap.String("queueName", queueName))
 	}
 }
 
