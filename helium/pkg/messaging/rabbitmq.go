@@ -17,6 +17,8 @@ type MessagingService struct {
 	logger *logger.Logger
 }
 
+const ExchangeUserCreated = "user.created"
+
 // NewRabbitMQ initializes the connection and returns the MessagingService
 func NewRabbitMQ(url string, logger *logger.Logger) (*MessagingService, error) {
 	// Establish connection to RabbitMQ
