@@ -7,6 +7,8 @@ import (
 )
 
 const (
+	ExchangeUserCreated       = "user.created"
+	QueueUserCreatedAccount   = "user.created.account"
 	QueueTransactionCreated   = "transaction.created"
 	QueueTransactionCompleted = "transaction.completed"
 	QueueTransactionFailed    = "transaction.failed"

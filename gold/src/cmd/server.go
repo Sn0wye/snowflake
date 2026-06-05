@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Sn0wye/snowflake/gold/pkg/config"
+	"github.com/Sn0wye/snowflake/gold/pkg/events"
 	jwtpkg "github.com/Sn0wye/snowflake/gold/pkg/jwt"
 	"github.com/Sn0wye/snowflake/gold/pkg/logger"
 	"github.com/Sn0wye/snowflake/gold/pkg/messaging"
@@ -144,8 +145,8 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 }
 
 func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logger.Logger) {
-	exchangeName := "user.created"
-	queueName := "user.created.account"
+	exchangeName := events.ExchangeUserCreated
+	queueName := events.QueueUserCreatedAccount
 
 	const (
 		initialBackoff = time.Second
@@ -154,7 +155,7 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 	)
 	backoff := initialBackoff
 
-	messages, err := rmq.ConsumeFromExchange(exchangeName, queueName)
+	messages, amqpCh, err := rmq.ConsumeFromExchange(exchangeName, queueName)
 	if err != nil {
 		for attempt := 1; attempt <= maxRetries; attempt++ {
 			logger.Error("Failed to start consumer, retrying",
@@ -166,7 +167,7 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 			time.Sleep(backoff)
 			backoff = nextBackoff(backoff, maxBackoff)
 
-			messages, err = rmq.ConsumeFromExchange(exchangeName, queueName)
+			messages, amqpCh, err = rmq.ConsumeFromExchange(exchangeName, queueName)
 			if err == nil {
 				break
 			}
@@ -214,6 +215,8 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 			return
 		}
 
+		amqpCh.Close()
+
 		logger.Warn("Consumer connection lost, reconnecting",
 			zap.String("queueName", queueName),
 			zap.Duration("backoff", backoff),
@@ -222,7 +225,7 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 		time.Sleep(backoff)
 		backoff = nextBackoff(backoff, maxBackoff)
 
-		messages, err = rmq.ConsumeFromExchange(exchangeName, queueName)
+		messages, amqpCh, err = rmq.ConsumeFromExchange(exchangeName, queueName)
 		if err != nil {
 			logger.Error("Consumer connection lost, retries exhausted",
 				zap.Error(err),
