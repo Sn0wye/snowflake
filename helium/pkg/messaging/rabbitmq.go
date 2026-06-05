@@ -87,7 +87,6 @@ func (m *MessagingService) ProduceToExchange(exchangeName, message string) error
 		m.logger.Error("Failed to open a channel", zap.Error(err))
 		return fmt.Errorf("failed to open a channel: %w", err)
 	}
-	defer channel.Close()
 
 	err = channel.ExchangeDeclare(
 		exchangeName, // name
@@ -99,6 +98,7 @@ func (m *MessagingService) ProduceToExchange(exchangeName, message string) error
 		nil,          // arguments
 	)
 	if err != nil {
+		channel.Close()
 		m.logger.Error("Failed to declare exchange", zap.Error(err), zap.String("exchangeName", exchangeName))
 		return fmt.Errorf("failed to declare exchange: %w", err)
 	}
@@ -114,13 +114,19 @@ func (m *MessagingService) ProduceToExchange(exchangeName, message string) error
 		},
 	)
 	if err != nil {
+		channel.Close()
 		m.logger.Error("Failed to publish message", zap.Error(err), zap.String("exchangeName", exchangeName))
 		return fmt.Errorf("failed to publish message: %w", err)
 	}
 
 	// NotifyReturn receives unroutable mandatory messages asynchronously;
 	// Publish itself does not error when no queues are bound.
-	go m.notifyReturn(channel, exchangeName)
+	// Goroutine owns the channel so it stays open long enough for the broker
+	// to send basic.return notifications.
+	go func() {
+		defer channel.Close()
+		m.notifyReturn(channel, exchangeName)
+	}()
 
 	log.Info("Published message to exchange", zap.String("exchangeName", exchangeName), zap.String("message", message))
 	return nil
