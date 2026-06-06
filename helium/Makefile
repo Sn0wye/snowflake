@@ -23,8 +23,22 @@ openapi-gen:
 	@echo "Response has been written to $(OUTPUT_FILE)"
 
 docs-fmt:
-	swag fmt -g src/cmd/server.go -d ./src
+	swag fmt -g src/cmd/server/main.go -d ./src
 
 docs: docs-fmt
-	swag init -g src/cmd/server.go --ot json -o ./
+	swag init -g src/cmd/server/main.go --ot json -o ./
 	make openapi-gen
+
+# -- Migrations --
+MIGRATIONS_DIR := migrations
+DATABASE_URL ?= postgres://snowflake:snowflake@127.0.0.1:5432/helium?sslmode=disable
+
+migrate-up:
+	@DATABASE_URL=$(DATABASE_URL) go run src/cmd/migrate/main.go up
+
+migrate-down:
+	@DATABASE_URL=$(DATABASE_URL) go run src/cmd/migrate/main.go down
+
+migrate-create:
+	@[ -n "$(NAME)" ] || (echo "Usage: make migrate-create NAME=add_foo_column" && exit 1)
+	@migrate create -ext sql -dir $(MIGRATIONS_DIR) -seq $(NAME)

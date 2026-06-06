@@ -9,7 +9,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -ldflags="-s -w" -o main src/cmd/server.go
+RUN go build -ldflags="-s -w" -o main src/cmd/server/main.go
 
 # Runner
 FROM alpine:latest
@@ -17,6 +17,7 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/main .
 COPY --from=builder /app/config ./config
+COPY --from=builder /app/migrations ./migrations
 
 EXPOSE 8080
 EXPOSE 50050
