@@ -15,9 +15,9 @@ const (
 )
 
 type TransactionHistory struct {
-	ID            uuid.UUID                   `gorm:"type:char(36); primaryKey" json:"id"`
-	TransactionID uuid.UUID                   `gorm:"type:char(36); not null; index" json:"transaction_id"`
-	AccountID     uuid.UUID                   `gorm:"type:char(36); not null; index:idx_account_created" json:"account_id"`
+	ID            uuid.UUID                   `gorm:"type:uuid; primaryKey" json:"id"`
+	TransactionID uuid.UUID                   `gorm:"type:uuid; not null; index" json:"transaction_id"`
+	AccountID     uuid.UUID                   `gorm:"type:uuid; not null; index:idx_account_created" json:"account_id"`
 	EntryType     TransactionHistoryEntryType `gorm:"type:varchar(10); not null" json:"entry_type"`
 	Amount        int64                       `gorm:"type:bigint; not null" json:"amount"`         // In cents, always positive
 	BalanceBefore int64                       `gorm:"type:bigint; not null" json:"balance_before"` // In cents

@@ -7,7 +7,7 @@ Microservices monorepo: **4 services** (Go, Java, C#) + **Docker Compose** + **P
 | Service | Path | Lang | Framework | Ports | Key Files |
 |---------|------|------|-----------|-------|-----------|
 | **helium** | `./helium` | Go | Fiber | 8080 HTTP, 50050 gRPC | `pkg/config/config.go`, `src/cmd/server/main.go` |
-| **gold** | `./gold` | Go | Fiber | 8083 HTTP | `pkg/config/config.go`, `src/cmd/server.go` |
+| **gold** | `./gold` | Go | Fiber | 8083 HTTP | `pkg/config/config.go`, `src/cmd/server/main.go` |
 | **carbon** | `./carbon` | Java | Spring Boot | 8081 HTTP | `src/main/resources/application.properties` |
 | **oxygen** | `./oxygen` | C# | .NET 8 | 8082 HTTP | `Oxygen.API/appsettings.json` |
 
@@ -28,6 +28,9 @@ cd helium && make generate  # or `cd gold && make generate`
 
 # Migrate .NET database
 make migrate-oxygen
+
+# Run Go database migrations
+cd helium && make migrate-up  # or `cd gold && make migrate-up`
 ```
 
 ## Configuration & Env Vars
@@ -69,7 +72,7 @@ Each service deploys independently via GitHub Actions → ghcr.io → Coolify:
 - **Hot reload**: Uses Air (`.air.toml`). Binary output: `./tmp/main`.
 - **Proto codegen**: Manual step via `make generate` (not automatic on save).
 - **Message format**: Both services produce OpenAPI docs + gRPC. Keep `swagger.json` in sync for OpenAPI merging.
-- **Migrations** (helium): Use golang-migrate with embedded SQL. `make migrate-up/down`, `make migrate-create NAME=...`. See `helium/AGENTS.md`. Gold still uses AutoMigrate (SNF-43 pending).
+- **Migrations**: Both use golang-migrate with embedded SQL. `make migrate-up/down`, `make migrate-create NAME=...`. See `<service>/AGENTS.md`.
 
 ### Java Service (carbon)
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -20,7 +19,6 @@ import (
 	"github.com/Sn0wye/snowflake/gold/src/service"
 	"github.com/Sn0wye/snowflake/gold/pkg/validator"
 	"github.com/Sn0wye/snowflake/gold/src/db"
-	"github.com/Sn0wye/snowflake/gold/src/migration"
 	"github.com/Sn0wye/snowflake/gold/src/models"
 	"github.com/Sn0wye/snowflake/gold/src/reconciliation"
 	"github.com/Sn0wye/snowflake/gold/src/routes"
@@ -48,12 +46,8 @@ import (
 
 // @Schemes	https
 func main() {
-	flag.Parse()
-
 	conf := config.GetConfig()
 	logger := logger.NewLog(conf)
-
-	migrateDB(logger)
 
 	// Start RabbitMQ and defer its closure
 	rmq := startRabbitMQ(conf, logger)
@@ -75,13 +69,6 @@ func main() {
 
 	log.Println("Shutting down the servers...")
 	log.Println("All servers stopped gracefully")
-}
-
-func migrateDB(logger *logger.Logger) {
-	db := db.GetDB()
-
-	migrate := migration.NewMigrate(db, logger)
-	migrate.Run()
 }
 
 func startRabbitMQ(conf *viper.Viper, log *logger.Logger) *messaging.MessagingService {

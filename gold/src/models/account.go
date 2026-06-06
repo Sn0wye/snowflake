@@ -23,8 +23,8 @@ const (
 )
 
 type Account struct {
-	ID                    uuid.UUID                   `gorm:"type:char(36); primaryKey" json:"id"`
-	UserID                uuid.UUID                   `gorm:"type:char(36); not null; unique" json:"user_id"`
+	ID                    uuid.UUID                   `gorm:"type:uuid; primaryKey" json:"id"`
+	UserID                uuid.UUID                   `gorm:"type:uuid; not null; unique" json:"user_id"`
 	Balance               int64                       `gorm:"type:bigint; default:0; not null" json:"balance"` // In cents
 	LastReconciledAt      *time.Time                  `gorm:"type:timestamp" json:"last_reconciled_at,omitempty"`
 	Status                AccountStatus               `gorm:"type:varchar(20); default:'active'; column:status; not null" json:"status"`
