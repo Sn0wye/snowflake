@@ -42,6 +42,8 @@ Tests use:
 | `BUILD FAILURE` with connection refused | Run `./mvnw clean test` (stale `target/` may have old class files) |
 | PostgreSQL connection error in tests | Ensure `src/test/resources/application.properties` is present (overrides main DB config) |
 | `Could not resolve placeholder 'spring.rabbitmq.host'` | Test props must include dummy rabbitmq values (RabbitConfig reads them via `@Value`) |
+| RabbitMQ producer test fails with `Connection refused` | `ConnectionFactory` still points at localhost:5672. Listeners won't connect (auto-startup=false), but any test that triggers a publish (e.g. testing a producer bean directly) will attempt a real connection. Mock `RabbitTemplate` or exclude `RabbitConfig` in such tests. |
+| gRPC channel fails in tests that load `GrpcAuthService` | `spring.grpc.host`/`spring.grpc.port` are set but no gRPC server runs in tests. `GrpcAuthService` eagerly creates a `ManagedChannel` in its constructor — any test that autowires it will get a bean with a dead channel. Current tests don't touch it, but if you write a test that depends on auth beans, mock or exclude `GrpcAuthService`. |
 
 ## Proto Codegen
 
