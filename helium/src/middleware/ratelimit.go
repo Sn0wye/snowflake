@@ -2,56 +2,56 @@ package middleware
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/spf13/viper"
+	"golang.org/x/time/rate"
 )
 
+type limitEntry struct {
+	limiter  *rate.Limiter
+	lastSeen atomic.Int64
+}
+
 type ipRateLimiter struct {
-	mu      sync.Mutex
-	buckets map[string]*slidingWindow
-	rate    int
+	entries sync.Map
+	rateVal int
 }
 
-type slidingWindow struct {
-	timestamps []time.Time
-}
-
-func newIPRateLimiter(rate int) *ipRateLimiter {
-	return &ipRateLimiter{
-		buckets: make(map[string]*slidingWindow),
-		rate:    rate,
-	}
+func newIPRateLimiter(r int) *ipRateLimiter {
+	l := &ipRateLimiter{rateVal: r}
+	go l.reap(1 * time.Minute)
+	return l
 }
 
 func (l *ipRateLimiter) allow(key string) bool {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	now := time.Now().UnixNano()
 
-	now := time.Now()
-	window := now.Add(-time.Second)
+	v, _ := l.entries.LoadOrStore(key, &limitEntry{
+		limiter: rate.NewLimiter(rate.Limit(l.rateVal), l.rateVal),
+	})
+	entry := v.(*limitEntry)
+	entry.lastSeen.Store(now)
 
-	bucket, exists := l.buckets[key]
-	if !exists {
-		bucket = &slidingWindow{}
-		l.buckets[key] = bucket
+	return entry.limiter.Allow()
+}
+
+func (l *ipRateLimiter) reap(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		cutoff := time.Now().Add(-interval).UnixNano()
+		l.entries.Range(func(key, value any) bool {
+			entry := value.(*limitEntry)
+			if entry.lastSeen.Load() < cutoff {
+				l.entries.Delete(key)
+			}
+			return true
+		})
 	}
-
-	valid := bucket.timestamps[:0]
-	for _, ts := range bucket.timestamps {
-		if ts.After(window) {
-			valid = append(valid, ts)
-		}
-	}
-	bucket.timestamps = valid
-
-	if len(valid) >= l.rate {
-		return false
-	}
-
-	bucket.timestamps = append(bucket.timestamps, now)
-	return true
 }
 
 func IPRateLimitMiddleware(conf *viper.Viper) fiber.Handler {
@@ -59,12 +59,12 @@ func IPRateLimitMiddleware(conf *viper.Viper) fiber.Handler {
 		return func(c *fiber.Ctx) error { return c.Next() }
 	}
 
-	rate := conf.GetInt("rate_limit.auth")
-	if rate <= 0 {
-		rate = 5
+	r := conf.GetInt("rate_limit.auth")
+	if r <= 0 {
+		r = 5
 	}
 
-	limiter := newIPRateLimiter(rate)
+	limiter := newIPRateLimiter(r)
 
 	return func(c *fiber.Ctx) error {
 		ip := c.IP()
