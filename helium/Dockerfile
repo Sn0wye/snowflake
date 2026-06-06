@@ -19,7 +19,6 @@ WORKDIR /app
 COPY --from=builder /app/main .
 COPY --from=builder /app/migrate .
 COPY --from=builder /app/config ./config
-COPY --from=builder /app/migrations ./migrations
 
 EXPOSE 8080
 EXPOSE 50050

@@ -2,24 +2,24 @@ package migration
 
 import (
 	"database/sql"
+	"embed"
 	"fmt"
 	"log"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
+
 type Runner struct {
-	sqlDB         *sql.DB
-	migrationsDir string
+	sqlDB *sql.DB
 }
 
-func NewRunner(sqlDB *sql.DB, migrationsDir string) *Runner {
-	return &Runner{
-		sqlDB:         sqlDB,
-		migrationsDir: migrationsDir,
-	}
+func NewRunner(sqlDB *sql.DB) *Runner {
+	return &Runner{sqlDB: sqlDB}
 }
 
 func (r *Runner) Up() error {
@@ -53,16 +53,17 @@ func (r *Runner) Down() error {
 }
 
 func (r *Runner) newMigrate() (*migrate.Migrate, error) {
+	sourceDriver, err := iofs.New(migrationsFS, "migrations")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create iofs source: %w", err)
+	}
+
 	driver, err := postgres.WithInstance(r.sqlDB, &postgres.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create postgres driver: %w", err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance(
-		fmt.Sprintf("file://%s", r.migrationsDir),
-		"postgres",
-		driver,
-	)
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, "postgres", driver)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create migrate instance: %w", err)
 	}

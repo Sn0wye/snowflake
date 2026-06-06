@@ -22,7 +22,7 @@ func main() {
 		log.Fatalf("Failed to get database instance: %v", err)
 	}
 
-	runner := migration.NewRunner(sqlDB, "migrations")
+	runner := migration.NewRunner(sqlDB)
 
 	switch os.Args[1] {
 	case "up":
