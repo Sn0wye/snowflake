@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"net"
@@ -40,8 +39,6 @@ import (
 
 // @Schemes	https
 func main() {
-	flag.Parse()
-
 	conf := config.GetConfig()
 	logger := logger.NewLog(conf)
 
