@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Component
 public class RateLimitInterceptor implements HandlerInterceptor {
@@ -56,7 +56,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     private void reap() {
         long cutoff = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(1);
-        buckets.entrySet().removeIf(entry -> entry.getValue().lastSeen.longValue() < cutoff);
+        buckets.entrySet().removeIf(entry -> entry.getValue().lastSeen.get() < cutoff);
     }
 
     @PreDestroy
@@ -65,7 +65,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     private static class FixedWindow {
-        final LongAdder lastSeen = new LongAdder();
+        final AtomicLong lastSeen = new AtomicLong();
         private long windowStart = System.nanoTime();
         private int count;
 
@@ -74,8 +74,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         }
 
         void touch() {
-            lastSeen.reset();
-            lastSeen.add(System.currentTimeMillis());
+            lastSeen.set(System.currentTimeMillis());
         }
 
         synchronized boolean allow(int rate) {
