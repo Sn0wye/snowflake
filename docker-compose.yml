@@ -80,6 +80,12 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/auth/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - microservices-network
 
@@ -104,7 +110,7 @@ services:
       postgres:
         condition: service_healthy
       helium:
-        condition: service_started
+        condition: service_healthy
     networks:
       - microservices-network
 
@@ -130,7 +136,7 @@ services:
       postgres:
         condition: service_healthy
       helium:
-        condition: service_started
+        condition: service_healthy
     networks:
       - microservices-network
 
@@ -156,7 +162,7 @@ services:
       postgres:
         condition: service_healthy
       helium:
-        condition: service_started
+        condition: service_healthy
       carbon:
         condition: service_started
     networks:
