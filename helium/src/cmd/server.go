@@ -97,7 +97,8 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 	validator.InitValidator(logger)
 
 	app := fiber.New(fiber.Config{
-		ProxyHeader: "X-Forwarded-For",
+		ProxyHeader:    "X-Forwarded-For",
+		TrustedProxies: []string{"0.0.0.0/0"},
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"success": false,
