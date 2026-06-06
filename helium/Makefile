@@ -30,7 +30,7 @@ docs: docs-fmt
 	make openapi-gen
 
 # -- Migrations --
-MIGRATIONS_DIR := migrations
+MIGRATIONS_DIR := src/migration/migrations
 DATABASE_URL ?= postgres://snowflake:snowflake@127.0.0.1:5432/helium?sslmode=disable
 
 migrate-up:
