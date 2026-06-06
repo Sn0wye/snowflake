@@ -41,9 +41,13 @@ jobs:
         working-directory: ./helium
         run: make generate
 
-      - name: Cross-compile binary
+      - name: Cross-compile server binary
         working-directory: ./helium
-        run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o main src/cmd/server.go
+        run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o main src/cmd/server/main.go
+
+      - name: Cross-compile migrate binary
+        working-directory: ./helium
+        run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o migrate src/cmd/migrate/main.go
 
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
