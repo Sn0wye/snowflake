@@ -26,8 +26,8 @@ const (
 )
 
 type Flake struct {
-	ID        uuid.UUID   `gorm:"type:char(36); primaryKey" json:"id"`
-	AccountID uuid.UUID   `gorm:"type:char(36); not null; index" json:"account_id"`
+	ID        uuid.UUID   `gorm:"type:uuid; primaryKey" json:"id"`
+	AccountID uuid.UUID   `gorm:"type:uuid; not null; index" json:"account_id"`
 	KeyType   FlakeType   `gorm:"type:varchar(20); not null" json:"key_type"`
 	KeyValue  string      `gorm:"type:varchar(255); unique; not null" json:"key_value"`
 	Status    FlakeStatus `gorm:"type:varchar(20); not null; default:'active'" json:"status"`

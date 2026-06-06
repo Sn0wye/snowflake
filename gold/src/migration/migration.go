@@ -1,35 +1,72 @@
 package migration
 
 import (
-	"github.com/Sn0wye/snowflake/gold/pkg/logger"
-	"github.com/Sn0wye/snowflake/gold/src/models"
+	"database/sql"
+	"embed"
+	"fmt"
+	"log"
 
-	"gorm.io/gorm"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 )
 
-type Migrate struct {
-	db  *gorm.DB
-	log *logger.Logger
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
+
+type Runner struct {
+	sqlDB *sql.DB
 }
 
-func NewMigrate(db *gorm.DB, log *logger.Logger) *Migrate {
-	return &Migrate{
-		db:  db,
-		log: log,
-	}
+func NewRunner(sqlDB *sql.DB) *Runner {
+	return &Runner{sqlDB: sqlDB}
 }
-func (m *Migrate) Run() {
-	err := m.db.AutoMigrate(models.RetrieveAll()...)
+
+func (r *Runner) Up() error {
+	m, err := r.newMigrate()
 	if err != nil {
-		return
+		return fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+	defer m.Close()
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("migration up failed: %w", err)
 	}
 
-	m.log.Info("Migration ended")
+	log.Println("Migrations applied successfully")
+	return nil
 }
 
-func (m *Migrate) DropAll() {
-	err := m.db.Migrator().DropTable(models.RetrieveAll()...)
+func (r *Runner) Down() error {
+	m, err := r.newMigrate()
 	if err != nil {
-		return
+		return fmt.Errorf("failed to create migrate instance: %w", err)
 	}
+	defer m.Close()
+
+	if err := m.Steps(-1); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("migration down failed: %w", err)
+	}
+
+	log.Println("Migration rolled back successfully")
+	return nil
+}
+
+func (r *Runner) newMigrate() (*migrate.Migrate, error) {
+	sourceDriver, err := iofs.New(migrationsFS, "migrations")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create iofs source: %w", err)
+	}
+
+	driver, err := postgres.WithInstance(r.sqlDB, &postgres.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create postgres driver: %w", err)
+	}
+
+	m, err := migrate.NewWithInstance("iofs", sourceDriver, "postgres", driver)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+
+	return m, nil
 }
