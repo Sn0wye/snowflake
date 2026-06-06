@@ -1,7 +1,9 @@
 FROM alpine:latest
 WORKDIR /app
 COPY main .
+COPY migrate .
 COPY config ./config
+COPY migrations ./migrations
 EXPOSE 8080
 EXPOSE 50050
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
