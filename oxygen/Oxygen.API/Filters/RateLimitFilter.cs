@@ -6,9 +6,10 @@ namespace Oxygen.API.Filters;
 
 public class RateLimitFilter : IActionFilter
 {
-    private static readonly ConcurrentDictionary<string, SlidingWindow> Buckets = new();
+    private static readonly ConcurrentDictionary<string, FixedWindow> Buckets = new();
     private static readonly Timer ReapTimer;
 
+    private readonly bool _enabled;
     private readonly int _rate;
 
     static RateLimitFilter()
@@ -18,24 +19,21 @@ public class RateLimitFilter : IActionFilter
 
     public RateLimitFilter(IConfiguration configuration)
     {
+        _enabled = configuration.GetValue<bool>("RateLimiting:Enabled", true);
         _rate = configuration.GetValue<int>("RateLimiting:Loan:PermitLimit", 10);
         if (_rate <= 0) _rate = 10;
     }
 
     public void OnActionExecuting(ActionExecutingContext context)
     {
-        var enabled = context.HttpContext.RequestServices
-            .GetRequiredService<IConfiguration>()
-            .GetValue<bool>("RateLimiting:Enabled", true);
-
-        if (!enabled) return;
+        if (!_enabled) return;
 
         var userId = context.HttpContext.User.FindFirst(
             System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 
         if (userId == null) return;
 
-        var window = Buckets.GetOrAdd(userId, _ => new SlidingWindow());
+        var window = Buckets.GetOrAdd(userId, _ => new FixedWindow());
         window.Touch();
         if (!window.Allow(_rate))
         {
@@ -66,18 +64,13 @@ public class RateLimitFilter : IActionFilter
         }
     }
 
-    public void Dispose()
-    {
-        ReapTimer?.Dispose();
-    }
-
-    private class SlidingWindow
+    private class FixedWindow
     {
         private long _windowStart = DateTimeOffset.UtcNow.Ticks;
         private int _count;
         public long LastSeen { get; private set; }
 
-        public SlidingWindow()
+        public FixedWindow()
         {
             Touch();
         }

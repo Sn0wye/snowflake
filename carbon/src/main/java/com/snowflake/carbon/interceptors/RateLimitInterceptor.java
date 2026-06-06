@@ -17,7 +17,7 @@ import java.util.concurrent.atomic.LongAdder;
 @Component
 public class RateLimitInterceptor implements HandlerInterceptor {
 
-    private final ConcurrentHashMap<String, SlidingWindow> buckets = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, FixedWindow> buckets = new ConcurrentHashMap<>();
     private final ScheduledExecutorService reapScheduler = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread t = new Thread(r, "ratelimit-reaper");
         t.setDaemon(true);
@@ -45,7 +45,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        SlidingWindow window = buckets.computeIfAbsent(userId, k -> new SlidingWindow());
+        FixedWindow window = buckets.computeIfAbsent(userId, k -> new FixedWindow());
         window.touch();
         if (!window.allow(rate)) {
             throw new TooManyRequestsException("Too many requests. Try again in 1 second.");
@@ -64,12 +64,12 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         reapScheduler.shutdownNow();
     }
 
-    private static class SlidingWindow {
+    private static class FixedWindow {
         final LongAdder lastSeen = new LongAdder();
         private long windowStart = System.nanoTime();
         private int count;
 
-        SlidingWindow() {
+        FixedWindow() {
             touch();
         }
 
