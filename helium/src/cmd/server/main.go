@@ -16,8 +16,6 @@ import (
 	"github.com/getsnowflake/snowflake/helium/src/db"
 	grpcs "github.com/getsnowflake/snowflake/helium/src/grpc"
 	"github.com/getsnowflake/snowflake/helium/src/middleware"
-	"github.com/getsnowflake/snowflake/helium/src/migration"
-	"github.com/getsnowflake/snowflake/helium/src/models"
 	"github.com/getsnowflake/snowflake/helium/src/routes"
 
 	"github.com/gofiber/fiber/v2"
@@ -47,8 +45,6 @@ func main() {
 	conf := config.GetConfig()
 	logger := logger.NewLog(conf)
 
-	migrateDB(logger)
-
 	// Start RabbitMQ and defer its closure
 	rmq := startRabbitMQ(conf, logger)
 	defer rmq.Close()
@@ -65,21 +61,6 @@ func main() {
 
 	log.Println("Shutting down the servers...")
 	log.Println("All servers stopped gracefully")
-}
-
-func migrateDB(logger *logger.Logger) {
-	db := db.GetDB()
-
-	db.AutoMigrate(
-		models.RetrieveAll()...,
-	)
-
-	migrate := migration.NewMigrate(
-		db,
-		logger,
-	)
-
-	migrate.Run()
 }
 
 func startRabbitMQ(conf *viper.Viper, log *logger.Logger) *messaging.MessagingService {

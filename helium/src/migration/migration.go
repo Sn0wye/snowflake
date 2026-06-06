@@ -1,35 +1,71 @@
 package migration
 
 import (
-	"github.com/getsnowflake/snowflake/helium/pkg/logger"
-	"github.com/getsnowflake/snowflake/helium/src/models"
+	"database/sql"
+	"fmt"
+	"log"
 
-	"gorm.io/gorm"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
-type Migrate struct {
-	db  *gorm.DB
-	log *logger.Logger
+type Runner struct {
+	sqlDB         *sql.DB
+	migrationsDir string
 }
 
-func NewMigrate(db *gorm.DB, log *logger.Logger) *Migrate {
-	return &Migrate{
-		db:  db,
-		log: log,
+func NewRunner(sqlDB *sql.DB, migrationsDir string) *Runner {
+	return &Runner{
+		sqlDB:         sqlDB,
+		migrationsDir: migrationsDir,
 	}
 }
-func (m *Migrate) Run() {
-	err := m.db.AutoMigrate(models.RetrieveAll()...)
+
+func (r *Runner) Up() error {
+	m, err := r.newMigrate()
 	if err != nil {
-		return
+		return fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+	defer m.Close()
+
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("migration up failed: %w", err)
 	}
 
-	m.log.Info("Migration ended")
+	log.Println("Migrations applied successfully")
+	return nil
 }
 
-func (m *Migrate) DropAll() {
-	err := m.db.Migrator().DropTable(models.RetrieveAll()...)
+func (r *Runner) Down() error {
+	m, err := r.newMigrate()
 	if err != nil {
-		return
+		return fmt.Errorf("failed to create migrate instance: %w", err)
 	}
+	defer m.Close()
+
+	if err := m.Down(); err != nil && err != migrate.ErrNoChange {
+		return fmt.Errorf("migration down failed: %w", err)
+	}
+
+	log.Println("Migration rolled back successfully")
+	return nil
+}
+
+func (r *Runner) newMigrate() (*migrate.Migrate, error) {
+	driver, err := postgres.WithInstance(r.sqlDB, &postgres.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create postgres driver: %w", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance(
+		fmt.Sprintf("file://%s", r.migrationsDir),
+		"postgres",
+		driver,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create migrate instance: %w", err)
+	}
+
+	return m, nil
 }
