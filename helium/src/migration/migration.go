@@ -44,7 +44,7 @@ func (r *Runner) Down() error {
 	}
 	defer m.Close()
 
-	if err := m.Down(); err != nil && err != migrate.ErrNoChange {
+	if err := m.Steps(-1); err != nil && err != migrate.ErrNoChange {
 		return fmt.Errorf("migration down failed: %w", err)
 	}
 
