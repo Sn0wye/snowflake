@@ -13,7 +13,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func BindAuthRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, rmq *messaging.MessagingService) {
+func BindAuthRoutes(app *fiber.App, jwtMiddleware fiber.Handler, rateLimitMiddleware fiber.Handler, log *logger.Logger, rmq *messaging.MessagingService) {
 	database := db.GetDB()
 	conf := config.GetConfig()
 	j := jwt.NewJwt(conf)
@@ -21,7 +21,7 @@ func BindAuthRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Log
 	repos := repository.NewFactory()
 	services := service.NewFactory(repos, j, rmq, log)
 
-	router := app.Group("/auth")
+	router := app.Group("/auth", rateLimitMiddleware)
 
 	authController := controllers.NewAuthController(database, j, services.Auth, log)
 

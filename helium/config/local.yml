@@ -18,6 +18,9 @@ google:
   client_secret: ''
   redirect_url: ''
 
+rate_limit:
+  enabled: true
+  auth: 5
 log:
   level: info
   encoding: console # json or console

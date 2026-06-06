@@ -66,6 +66,7 @@ builder.Services.AddSwaggerGen(options =>
     
     options.IncludeXmlComments(Assembly.GetExecutingAssembly());
 });
+builder.Services.AddScoped<RateLimitFilter>();
 builder.Services.AddControllers(options =>
     {
         options.Filters.Add<ValidationFilter>();
