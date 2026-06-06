@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Oxygen.API.Filters;
 using Oxygen.Domain.Enums;
 using Oxygen.DTO.Response;
 using Oxygen.Service;
@@ -9,6 +10,7 @@ namespace Oxygen.API.Controllers;
 
 [ApiController]
 [Route("loan")]
+[ServiceFilter(typeof(RateLimitFilter))]
 public class LoanController(ILoanService loanService) : ControllerBase
 {
     [SwaggerOperation(

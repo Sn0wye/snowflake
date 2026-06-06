@@ -1,6 +1,7 @@
 package com.snowflake.carbon.config;
 
 import com.snowflake.carbon.interceptors.BearerTokenInterceptor;
+import com.snowflake.carbon.interceptors.RateLimitInterceptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
@@ -12,9 +13,14 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Autowired
     private BearerTokenInterceptor bearerTokenInterceptor;
 
+    @Autowired
+    private RateLimitInterceptor rateLimitInterceptor;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(bearerTokenInterceptor)
+                .excludePathPatterns("/score/health");
+        registry.addInterceptor(rateLimitInterceptor)
                 .excludePathPatterns("/score/health");
     }
 }

@@ -14,6 +14,9 @@ db:
   connectionString: postgres://snowflake:snowflake@127.0.0.1:5432/gold?sslmode=disable
 messaging:
   connectionString: amqp://snowflake:snowflake@localhost:5672
+rate_limit:
+  enabled: true
+  transactional: 10
 log:
   level: info
   encoding: console # json or console

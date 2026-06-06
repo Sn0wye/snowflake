@@ -34,8 +34,8 @@ func BindBalanceRoutes(app *fiber.App, db *gorm.DB, j *jwt.JWT, jwtMiddleware fi
 	router.Get("/history", controller.GetBalanceHistory)
 }
 
-func BindTransactionRoutes(app *fiber.App, db *gorm.DB, j *jwt.JWT, jwtMiddleware fiber.Handler, services *service.ServiceFactory) {
-	router := app.Group("/account/transactions", jwtMiddleware)
+func BindTransactionRoutes(app *fiber.App, db *gorm.DB, j *jwt.JWT, jwtMiddleware fiber.Handler, rateLimitMiddleware fiber.Handler, services *service.ServiceFactory) {
+	router := app.Group("/account/transactions", jwtMiddleware, rateLimitMiddleware)
 
 	controller := controllers.NewTransactionsController(db, j, services.Transaction)
 
@@ -45,8 +45,8 @@ func BindTransactionRoutes(app *fiber.App, db *gorm.DB, j *jwt.JWT, jwtMiddlewar
 	router.Post("/deposit", controller.Deposit)
 }
 
-func BindAdminRoutes(app *fiber.App, jwtMiddleware fiber.Handler, log *logger.Logger, job *reconciliation.Job) {
-	router := app.Group("/account/admin", jwtMiddleware)
+func BindAdminRoutes(app *fiber.App, jwtMiddleware fiber.Handler, rateLimitMiddleware fiber.Handler, log *logger.Logger, job *reconciliation.Job) {
+	router := app.Group("/account/admin", jwtMiddleware, rateLimitMiddleware)
 
 	router.Post("/reconcile", func(c *fiber.Ctx) error {
 		go job.Run()
