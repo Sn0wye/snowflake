@@ -2,6 +2,7 @@ package com.snowflake.carbon.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
@@ -16,6 +17,7 @@ public class OpenApiExporter {
     private String outputPath;
 
     @Bean
+    @ConditionalOnProperty(name = "openapi.export.enabled", havingValue = "true", matchIfMissing = true)
     public ApplicationRunner saveOpenApiSpec() {
         return args -> {
             String apiDocsUrl = "http://localhost:8081/v3/api-docs"; // OpenAPI JSON endpoint
