@@ -41,4 +41,5 @@ migrate-down:
 
 migrate-create:
 	@[ -n "$(NAME)" ] || (echo "Usage: make migrate-create NAME=add_foo_column" && exit 1)
-	@migrate create -ext sql -dir $(MIGRATIONS_DIR) -seq $(NAME)
+	@go run -mod=mod github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1 \
+		create -ext sql -dir $(MIGRATIONS_DIR) -seq $(NAME)
