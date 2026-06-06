@@ -23,8 +23,8 @@ func (p OAuthProvider) IsValid() bool {
 }
 
 type OAuthAccount struct {
-	ID         uuid.UUID     `gorm:"type:char(36); primaryKey" json:"id"`
-	UserID     uuid.UUID     `gorm:"type:char(36); not null; index" json:"user_id"`
+	ID         uuid.UUID     `gorm:"type:uuid; primaryKey" json:"id"`
+	UserID     uuid.UUID     `gorm:"type:uuid; not null; index" json:"user_id"`
 	Provider   OAuthProvider `gorm:"type:varchar(50); not null; uniqueIndex:idx_provider_provider_id" json:"provider"`
 	ProviderID string        `gorm:"type:varchar(255); not null; uniqueIndex:idx_provider_provider_id" json:"provider_id"`
 	CreatedAt  time.Time     `gorm:"autoCreateTime" json:"-"`

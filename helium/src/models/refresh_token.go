@@ -8,8 +8,8 @@ import (
 )
 
 type RefreshToken struct {
-	ID        uuid.UUID `gorm:"type:char(36); primaryKey" json:"id"`
-	UserID    uuid.UUID `gorm:"type:char(36); index; not null" json:"user_id"`
+	ID        uuid.UUID `gorm:"type:uuid; primaryKey" json:"id"`
+	UserID    uuid.UUID `gorm:"type:uuid; index; not null" json:"user_id"`
 	TokenHash string    `gorm:"type:varchar(64); uniqueIndex; not null" json:"-"`
 	ExpiresAt time.Time `gorm:"not null" json:"expires_at"`
 	CreatedAt time.Time `gorm:"autoCreateTime" json:"-"`
