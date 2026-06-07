@@ -9,19 +9,19 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/config"
-	"github.com/Sn0wye/snowflake/gold/pkg/events"
-	jwtpkg "github.com/Sn0wye/snowflake/gold/pkg/jwt"
-	"github.com/Sn0wye/snowflake/gold/pkg/logger"
-	"github.com/Sn0wye/snowflake/gold/pkg/messaging"
-	"github.com/Sn0wye/snowflake/gold/pkg/middleware"
-	"github.com/Sn0wye/snowflake/gold/src/repository"
-	"github.com/Sn0wye/snowflake/gold/src/service"
-	"github.com/Sn0wye/snowflake/gold/pkg/validator"
-	"github.com/Sn0wye/snowflake/gold/src/db"
-	"github.com/Sn0wye/snowflake/gold/src/models"
-	"github.com/Sn0wye/snowflake/gold/src/reconciliation"
-	"github.com/Sn0wye/snowflake/gold/src/routes"
+	"github.com/getsnowflake/snowflake/gold/pkg/config"
+	"github.com/getsnowflake/snowflake/gold/pkg/events"
+	jwtpkg "github.com/getsnowflake/snowflake/gold/pkg/jwt"
+	"github.com/getsnowflake/snowflake/gold/pkg/logger"
+	"github.com/getsnowflake/snowflake/gold/pkg/messaging"
+	"github.com/getsnowflake/snowflake/gold/pkg/middleware"
+	"github.com/getsnowflake/snowflake/gold/pkg/validator"
+	"github.com/getsnowflake/snowflake/gold/src/db"
+	"github.com/getsnowflake/snowflake/gold/src/models"
+	"github.com/getsnowflake/snowflake/gold/src/reconciliation"
+	"github.com/getsnowflake/snowflake/gold/src/repository"
+	"github.com/getsnowflake/snowflake/gold/src/routes"
+	"github.com/getsnowflake/snowflake/gold/src/service"
 
 	"github.com/google/uuid"
 
@@ -36,7 +36,7 @@ import (
 //	@description	The Snowflake API is organized around REST. This API has predictable resource-oriented URLs, accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.
 
 //	@contact.name	GitHub
-//	@contact.url	https://github.com/Sn0wye/snowflake/issues
+//	@contact.url	https://github.com/getsnowflake/snowflake/issues
 
 //	@license.name	GNU General Public License v3.0
 //	@license.url	https://www.gnu.org/licenses/gpl-3.0

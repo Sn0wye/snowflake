@@ -3,7 +3,7 @@ package messaging
 import (
 	"fmt"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/logger"
+	"github.com/getsnowflake/snowflake/gold/pkg/logger"
 
 	"go.uber.org/zap"
 

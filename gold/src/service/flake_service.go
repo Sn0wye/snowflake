@@ -3,9 +3,9 @@ package service
 import (
 	"errors"
 
-	"github.com/Sn0wye/snowflake/gold/src/repository"
-	"github.com/Sn0wye/snowflake/gold/src/dto"
-	"github.com/Sn0wye/snowflake/gold/src/models"
+	"github.com/getsnowflake/snowflake/gold/src/dto"
+	"github.com/getsnowflake/snowflake/gold/src/models"
+	"github.com/getsnowflake/snowflake/gold/src/repository"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )

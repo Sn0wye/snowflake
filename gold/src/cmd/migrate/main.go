@@ -4,9 +4,9 @@ import (
 	"log"
 	"os"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/config"
-	"github.com/Sn0wye/snowflake/gold/src/db"
-	"github.com/Sn0wye/snowflake/gold/src/migration"
+	"github.com/getsnowflake/snowflake/gold/pkg/config"
+	"github.com/getsnowflake/snowflake/gold/src/db"
+	"github.com/getsnowflake/snowflake/gold/src/migration"
 )
 
 func main() {

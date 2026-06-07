@@ -3,7 +3,7 @@ package service
 import (
 	"errors"
 
-	"github.com/Sn0wye/snowflake/gold/src/dto"
+	"github.com/getsnowflake/snowflake/gold/src/dto"
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
@@ -25,7 +25,7 @@ var (
 	ErrAmountTooHigh         = errors.New("amount exceeds maximum transaction limit")
 	ErrForbidden             = errors.New("you can only deposit to your own account")
 	ErrTransactionNotFound   = errors.New("transaction not found")
-	ErrInvalidTokenSubject    = errors.New("invalid user ID in token")
+	ErrInvalidTokenSubject   = errors.New("invalid user ID in token")
 )
 
 type IdempotentTransactionError struct {

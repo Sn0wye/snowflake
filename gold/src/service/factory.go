@@ -1,9 +1,9 @@
 package service
 
 import (
-	"github.com/Sn0wye/snowflake/gold/pkg/logger"
-	"github.com/Sn0wye/snowflake/gold/pkg/messaging"
-	"github.com/Sn0wye/snowflake/gold/src/repository"
+	"github.com/getsnowflake/snowflake/gold/pkg/logger"
+	"github.com/getsnowflake/snowflake/gold/pkg/messaging"
+	"github.com/getsnowflake/snowflake/gold/src/repository"
 )
 
 type ServiceFactory struct {

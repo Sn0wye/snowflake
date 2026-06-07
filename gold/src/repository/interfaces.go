@@ -3,7 +3,7 @@ package repository
 import (
 	"time"
 
-	"github.com/Sn0wye/snowflake/gold/src/models"
+	"github.com/getsnowflake/snowflake/gold/src/models"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -52,10 +52,10 @@ type FlakeRepository interface {
 }
 
 type Factory struct {
-	Account             AccountRepository
-	Transaction         TransactionRepository
-	TransactionHistory  TransactionHistoryRepository
-	Flake               FlakeRepository
+	Account            AccountRepository
+	Transaction        TransactionRepository
+	TransactionHistory TransactionHistoryRepository
+	Flake              FlakeRepository
 }
 
 func NewFactory() *Factory {

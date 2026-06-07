@@ -1,8 +1,8 @@
 package service
 
 import (
-	"github.com/Sn0wye/snowflake/gold/src/repository"
-	"github.com/Sn0wye/snowflake/gold/src/dto"
+	"github.com/getsnowflake/snowflake/gold/src/dto"
+	"github.com/getsnowflake/snowflake/gold/src/repository"
 	"gorm.io/gorm"
 )
 

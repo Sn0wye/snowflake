@@ -1,4 +1,4 @@
-module github.com/Sn0wye/snowflake/gold
+module github.com/getsnowflake/snowflake/gold
 
 go 1.25.0
 

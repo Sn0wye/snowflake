@@ -4,7 +4,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/config"
+	"github.com/getsnowflake/snowflake/gold/pkg/config"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"

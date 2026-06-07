@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/jwt"
+	"github.com/getsnowflake/snowflake/gold/pkg/jwt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/spf13/viper"
 	"golang.org/x/time/rate"
