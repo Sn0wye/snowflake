@@ -5,12 +5,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/events"
-	"github.com/Sn0wye/snowflake/gold/pkg/logger"
-	"github.com/Sn0wye/snowflake/gold/pkg/messaging"
-	"github.com/Sn0wye/snowflake/gold/src/repository"
-	"github.com/Sn0wye/snowflake/gold/src/dto"
-	"github.com/Sn0wye/snowflake/gold/src/models"
+	"github.com/getsnowflake/snowflake/gold/pkg/events"
+	"github.com/getsnowflake/snowflake/gold/pkg/logger"
+	"github.com/getsnowflake/snowflake/gold/pkg/messaging"
+	"github.com/getsnowflake/snowflake/gold/src/dto"
+	"github.com/getsnowflake/snowflake/gold/src/models"
+	"github.com/getsnowflake/snowflake/gold/src/repository"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -32,7 +32,7 @@ type TransactionService interface {
 
 type transactionService struct {
 	repos *repository.Factory
-	svc *ServiceFactory
+	svc   *ServiceFactory
 	rmq   *messaging.MessagingService
 	log   *logger.Logger
 }

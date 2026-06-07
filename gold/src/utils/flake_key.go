@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/Sn0wye/snowflake/gold/src/models"
+	"github.com/getsnowflake/snowflake/gold/src/models"
 )
 
 var (

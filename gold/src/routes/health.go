@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/health"
-	"github.com/Sn0wye/snowflake/gold/pkg/messaging"
+	"github.com/getsnowflake/snowflake/gold/pkg/health"
+	"github.com/getsnowflake/snowflake/gold/pkg/messaging"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )

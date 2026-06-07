@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/validator"
+	"github.com/getsnowflake/snowflake/gold/pkg/validator"
 	"github.com/gofiber/fiber/v2"
 )
 

@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/Sn0wye/snowflake/gold/src/models"
+	"github.com/getsnowflake/snowflake/gold/src/models"
 	"github.com/google/uuid"
 )
 

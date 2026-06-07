@@ -3,9 +3,9 @@ package middleware
 import (
 	"fmt"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/exceptions"
-	"github.com/Sn0wye/snowflake/gold/pkg/jwt"
-	"github.com/Sn0wye/snowflake/gold/pkg/logger"
+	"github.com/getsnowflake/snowflake/gold/pkg/exceptions"
+	"github.com/getsnowflake/snowflake/gold/pkg/jwt"
+	"github.com/getsnowflake/snowflake/gold/pkg/logger"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/spf13/viper"

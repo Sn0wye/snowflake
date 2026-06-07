@@ -3,11 +3,11 @@ package routes
 import (
 	"net/http"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/jwt"
-	"github.com/Sn0wye/snowflake/gold/pkg/logger"
-	"github.com/Sn0wye/snowflake/gold/src/service"
-	"github.com/Sn0wye/snowflake/gold/src/controllers"
-	"github.com/Sn0wye/snowflake/gold/src/reconciliation"
+	"github.com/getsnowflake/snowflake/gold/pkg/jwt"
+	"github.com/getsnowflake/snowflake/gold/pkg/logger"
+	"github.com/getsnowflake/snowflake/gold/src/controllers"
+	"github.com/getsnowflake/snowflake/gold/src/reconciliation"
+	"github.com/getsnowflake/snowflake/gold/src/service"
 
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"

@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/exceptions"
-	"github.com/Sn0wye/snowflake/gold/pkg/jwt"
-	"github.com/Sn0wye/snowflake/gold/src/service"
+	"github.com/getsnowflake/snowflake/gold/pkg/exceptions"
+	"github.com/getsnowflake/snowflake/gold/pkg/jwt"
+	"github.com/getsnowflake/snowflake/gold/src/service"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )

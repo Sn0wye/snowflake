@@ -3,8 +3,8 @@ package reconciliation
 import (
 	"time"
 
-	"github.com/Sn0wye/snowflake/gold/pkg/logger"
-	"github.com/Sn0wye/snowflake/gold/src/models"
+	"github.com/getsnowflake/snowflake/gold/pkg/logger"
+	"github.com/getsnowflake/snowflake/gold/src/models"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
