@@ -26,6 +26,8 @@ CREATE TABLE flakes (
 CREATE UNIQUE INDEX idx_flakes_key_value ON flakes(key_value);
 CREATE INDEX idx_flakes_account_id ON flakes(account_id);
 
+ALTER TABLE flakes ADD CONSTRAINT fk_flakes_account FOREIGN KEY (account_id) REFERENCES accounts(id);
+
 CREATE TABLE transactions (
     id UUID PRIMARY KEY,
     type VARCHAR(20) NOT NULL,
@@ -62,3 +64,6 @@ CREATE TABLE transaction_histories (
 
 CREATE INDEX idx_transaction_histories_transaction_id ON transaction_histories(transaction_id);
 CREATE INDEX idx_account_created ON transaction_histories(account_id, created_at);
+
+ALTER TABLE transaction_histories ADD CONSTRAINT fk_th_transaction FOREIGN KEY (transaction_id) REFERENCES transactions(id);
+ALTER TABLE transaction_histories ADD CONSTRAINT fk_th_account FOREIGN KEY (account_id) REFERENCES accounts(id);
