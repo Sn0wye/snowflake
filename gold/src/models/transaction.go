@@ -38,7 +38,7 @@ type Transaction struct {
 	IdempotencyKey    uuid.UUID         `gorm:"type:uuid; unique; not null" json:"idempotency_key"`
 	Metadata          json.RawMessage   `gorm:"type:jsonb" json:"metadata,omitempty"`
 	CreatedAt         time.Time         `gorm:"autoCreateTime; index" json:"-"`
-	CompletedAt       *time.Time        `gorm:"type:timestamp" json:"completed_at,omitempty"`
+	CompletedAt       *time.Time        `gorm:"type:timestamptz" json:"completed_at,omitempty"`
 	UpdatedAt         time.Time         `gorm:"autoUpdateTime" json:"-"`
 }
 
