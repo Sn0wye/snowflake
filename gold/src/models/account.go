@@ -26,10 +26,10 @@ type Account struct {
 	ID                    uuid.UUID                   `gorm:"type:uuid; primaryKey" json:"id"`
 	UserID                uuid.UUID                   `gorm:"type:uuid; not null; unique" json:"user_id"`
 	Balance               int64                       `gorm:"type:bigint; default:0; not null" json:"balance"` // In cents
-	LastReconciledAt      *time.Time                  `gorm:"type:timestamp" json:"last_reconciled_at,omitempty"`
+	LastReconciledAt      *time.Time                  `gorm:"type:timestamptz" json:"last_reconciled_at,omitempty"`
 	Status                AccountStatus               `gorm:"type:varchar(20); default:'active'; column:status; not null" json:"status"`
 	ReconciliationStatus  AccountReconciliationStatus `gorm:"type:varchar(20); default:'ok'; not null" json:"reconciliation_status"`
-	DiscrepancyDetectedAt *time.Time                  `gorm:"type:timestamp" json:"discrepancy_detected_at,omitempty"`
+	DiscrepancyDetectedAt *time.Time                  `gorm:"type:timestamptz" json:"discrepancy_detected_at,omitempty"`
 	DiscrepancyAmount     *int64                      `gorm:"type:bigint" json:"discrepancy_amount,omitempty"` // calculated - cached, in cents
 	CreatedAt             time.Time                   `gorm:"autoCreateTime" json:"-"`
 	UpdatedAt             time.Time                   `gorm:"autoUpdateTime" json:"-"`
