@@ -28,7 +28,7 @@ builder.Services.AddSwaggerGen(options =>
         Contact = new OpenApiContact
         {
             Name = "GitHub",
-            Url = new Uri("https://github.com/Sn0wye/snowflake/issues")
+            Url = new Uri("https://github.com/getsnowflake/snowflake/issues")
         },
         License = new OpenApiLicense
         {

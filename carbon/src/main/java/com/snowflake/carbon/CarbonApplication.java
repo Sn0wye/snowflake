@@ -18,7 +18,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
                 description = "The Snowflake API is organized around REST. This API has predictable resource-oriented URLs, accepts JSON-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.",
                 contact = @Contact(
                         name = "GitHub",
-                        url = "https://github.com/Sn0wye/snowflake/issues"
+                        url = "https://github.com/getsnowflake/snowflake/issues"
                 ),
                 license = @License(
                         name = "GNU General Public License v3.0",

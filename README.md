@@ -52,9 +52,9 @@ To run the project, first you need to have Docker and Docker Compose installed o
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/Sn0wye/snowflake
+git clone https://github.com/getsnowflake/snowflake
 # OR
-gh repo clone Sn0wye/snowflake
+gh repo clone getsnowflake/snowflake
 ```
 
 2. Navigate to the project directory:
