@@ -22,6 +22,9 @@ public class RabbitConfig {
     @Value("${spring.rabbitmq.port}")
     private int port;
 
+    @Value("${spring.rabbitmq.addresses:#{null}}")
+    private String addresses;
+
     @Value("${spring.rabbitmq.username}")
     private String username;
 
@@ -30,7 +33,13 @@ public class RabbitConfig {
 
     @Bean
     public ConnectionFactory connectionFactory() {
-        CachingConnectionFactory connectionFactory = new CachingConnectionFactory(host, port);
+        CachingConnectionFactory connectionFactory;
+        if (addresses != null && !addresses.isBlank()) {
+            connectionFactory = new CachingConnectionFactory();
+            connectionFactory.setAddresses(addresses);
+        } else {
+            connectionFactory = new CachingConnectionFactory(host, port);
+        }
         connectionFactory.setUsername(username);
         connectionFactory.setPassword(password);
         return connectionFactory;
