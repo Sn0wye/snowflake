@@ -1,19 +1,24 @@
 package config
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 var (
 	configOnce   sync.Once
 	cachedConfig *viper.Viper
+	log          *zap.Logger
 )
+
+func init() {
+	log, _ = zap.NewProduction()
+}
 
 func GetConfig() *viper.Viper {
 	configOnce.Do(func() {
@@ -21,7 +26,7 @@ func GetConfig() *viper.Viper {
 		if configPath == "" {
 			configPath = filepath.Join(getAppRootPath(), "config", "local.yml") // Default path relative to root
 		}
-		log.Printf("Using config path: %s", configPath)
+		log.Info("Using config path", zap.String("path", configPath))
 		cachedConfig = getConfig(configPath)
 	})
 	return cachedConfig
