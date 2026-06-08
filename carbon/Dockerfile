@@ -35,7 +35,8 @@ COPY --from=build /app/target/carbon-0.0.1-SNAPSHOT.jar ./app.jar
 # Expose the port your application runs on
 EXPOSE 8081
 
-
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:8081/score/health || exit 1
 
 # Specify the command to run on container start
 CMD ["java", "-jar", "app.jar"]
