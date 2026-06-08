@@ -21,6 +21,7 @@ public class Score {
     @GeneratedValue
     @UuidGenerator
     private UUID id;
+    @Column(nullable = false)
     private String userId;
     private BigDecimal income;
     private BigDecimal debt;
