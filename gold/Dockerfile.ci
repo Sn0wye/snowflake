@@ -1,9 +1,10 @@
 FROM alpine:latest
+RUN apk add --no-cache curl
 WORKDIR /app
 COPY main .
 COPY migrate .
 COPY config ./config
 EXPOSE 8083
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget -qO- http://localhost:8083/account/health || exit 1
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8083/account/health || exit 1
 CMD ["./main"]
