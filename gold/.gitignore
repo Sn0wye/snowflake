@@ -4,3 +4,4 @@ db.sqlite
 config/prod.yml
 pb
 main
+*.test

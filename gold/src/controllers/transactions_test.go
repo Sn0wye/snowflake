@@ -107,8 +107,15 @@ func TestCreateTransaction_Success_HTTP(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-ID", sender.UserID.String())
 
-	resp, _ := app.Test(req)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var txResp dto.TransactionResponse
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&txResp))
+	assert.Equal(t, models.TransactionStatusCompleted, txResp.Status)
+	assert.Equal(t, int64(5000), txResp.Amount)
+	assert.NotEqual(t, uuid.Nil, txResp.ID)
 }
 
 func TestCreateTransaction_InsufficientFunds_HTTP(t *testing.T) {
@@ -131,7 +138,8 @@ func TestCreateTransaction_InsufficientFunds_HTTP(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-ID", sender.UserID.String())
 
-	resp, _ := app.Test(req)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
@@ -142,8 +150,13 @@ func TestGetTransactions_HTTP(t *testing.T) {
 	req := httptest.NewRequest("GET", "/transactions?page=1&limit=10", nil)
 	req.Header.Set("X-User-ID", account.UserID.String())
 
-	resp, _ := app.Test(req)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var page dto.PaginatedTransactionsResponse
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&page))
+	assert.Equal(t, int64(0), page.Total)
 }
 
 func TestDeposit_Success_HTTP(t *testing.T) {
@@ -158,8 +171,15 @@ func TestDeposit_Success_HTTP(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-ID", account.UserID.String())
 
-	resp, _ := app.Test(req)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	var txResp dto.TransactionResponse
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&txResp))
+	assert.Equal(t, models.TransactionTypeDeposit, txResp.Type)
+	assert.Equal(t, int64(10000), txResp.Amount)
+	assert.NotEqual(t, uuid.Nil, txResp.ID)
 }
 
 func TestDeposit_Forbidden_HTTP(t *testing.T) {
@@ -175,7 +195,8 @@ func TestDeposit_Forbidden_HTTP(t *testing.T) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-User-ID", other.UserID.String())
 
-	resp, _ := app.Test(req)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 }
 
@@ -186,8 +207,14 @@ func TestGetBalance_HTTP(t *testing.T) {
 	req := httptest.NewRequest("GET", "/balance", nil)
 	req.Header.Set("X-User-ID", account.UserID.String())
 
-	resp, _ := app.Test(req)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var bal dto.BalanceResponse
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&bal))
+	assert.Equal(t, account.ID, bal.AccountID)
+	assert.Equal(t, int64(5000), bal.Balance)
 }
 
 func TestGetBalanceHistory_HTTP(t *testing.T) {
@@ -197,6 +224,11 @@ func TestGetBalanceHistory_HTTP(t *testing.T) {
 	req := httptest.NewRequest("GET", "/balance/history?page=1&limit=10", nil)
 	req.Header.Set("X-User-ID", account.UserID.String())
 
-	resp, _ := app.Test(req)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var hist dto.BalanceHistoryResponse
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&hist))
+	assert.Equal(t, int64(0), hist.Total)
 }

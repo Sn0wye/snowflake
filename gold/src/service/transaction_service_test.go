@@ -16,11 +16,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupMockService(t *testing.T) (*mocks.MockAccountRepo, *mocks.MockTransactionRepo, *mocks.MockTransactionHistoryRepo, *mocks.MockFlakeRepo, *gorm.DB, *repository.Factory, service.TransactionService) {
+func setupMockService(t *testing.T) (*mocks.MockAccountRepo, *mocks.MockTransactionRepo, *mocks.MockTransactionHistoryRepo, *mocks.MockFlakeRepo, *gorm.DB, service.TransactionService) {
 	return setupMockServiceWithRmq(t, nil)
 }
 
-func setupMockServiceWithRmq(t *testing.T, rmq *mocks.MockRmq) (*mocks.MockAccountRepo, *mocks.MockTransactionRepo, *mocks.MockTransactionHistoryRepo, *mocks.MockFlakeRepo, *gorm.DB, *repository.Factory, service.TransactionService) {
+func setupMockServiceWithRmq(t *testing.T, rmq *mocks.MockRmq) (*mocks.MockAccountRepo, *mocks.MockTransactionRepo, *mocks.MockTransactionHistoryRepo, *mocks.MockFlakeRepo, *gorm.DB, service.TransactionService) {
 	t.Helper()
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
@@ -42,7 +42,7 @@ func setupMockServiceWithRmq(t *testing.T, rmq *mocks.MockRmq) (*mocks.MockAccou
 		publisher = rmq
 	}
 	svc := service.NewTransactionService(repos, svcFactory, publisher, mocks.TestLogger())
-	return accRepo, txRepo, histRepo, flakeRepo, db, repos, svc
+	return accRepo, txRepo, histRepo, flakeRepo, db, svc
 }
 
 func makeAccount() *models.Account {
@@ -66,7 +66,7 @@ func makeFlake(accountID uuid.UUID, keyValue string) *models.Flake {
 }
 
 func TestCreateTransfer_Success(t *testing.T) {
-	accRepo, txRepo, histRepo, flakeRepo, db, _, svc := setupMockService(t)
+	accRepo, txRepo, histRepo, flakeRepo, db, svc := setupMockService(t)
 
 	sender := makeAccount()
 	receiver := makeAccount()
@@ -122,7 +122,7 @@ func TestCreateTransfer_Success(t *testing.T) {
 }
 
 func TestCreateTransfer_InsufficientFunds(t *testing.T) {
-	accRepo, _, _, flakeRepo, db, _, svc := setupMockService(t)
+	accRepo, _, _, flakeRepo, db, svc := setupMockService(t)
 	sender := makeAccount()
 	sender.Balance = 100
 	receiver := makeAccount()
@@ -139,7 +139,7 @@ func TestCreateTransfer_InsufficientFunds(t *testing.T) {
 }
 
 func TestCreateTransfer_Idempotent(t *testing.T) {
-	accRepo, txRepo, _, flakeRepo, db, _, svc := setupMockService(t)
+	accRepo, txRepo, _, flakeRepo, 	db, svc := setupMockService(t)
 	sender := makeAccount()
 	receiver := makeAccount()
 	flakeRepo.Seed(makeFlake(receiver.ID, "receiver@test.com"))
@@ -164,7 +164,7 @@ func TestCreateTransfer_Idempotent(t *testing.T) {
 }
 
 func TestCreateTransfer_SelfTransfer(t *testing.T) {
-	accRepo, _, _, flakeRepo, db, _, svc := setupMockService(t)
+	accRepo, _, _, flakeRepo, db, svc := setupMockService(t)
 	sender := makeAccount()
 	flakeRepo.Seed(makeFlake(sender.ID, "self@test.com"))
 	accRepo.Seed(sender)
@@ -179,7 +179,7 @@ func TestCreateTransfer_SelfTransfer(t *testing.T) {
 }
 
 func TestCreateTransfer_AmountTooLow(t *testing.T) {
-	accRepo, _, _, flakeRepo, db, _, svc := setupMockService(t)
+	accRepo, _, _, flakeRepo, db, svc := setupMockService(t)
 	sender := makeAccount()
 	receiver := makeAccount()
 	flakeRepo.Seed(makeFlake(receiver.ID, "receiver@test.com"))
@@ -195,7 +195,7 @@ func TestCreateTransfer_AmountTooLow(t *testing.T) {
 }
 
 func TestCreateTransfer_AmountTooHigh(t *testing.T) {
-	accRepo, _, _, flakeRepo, db, _, svc := setupMockService(t)
+	accRepo, _, _, flakeRepo, db, svc := setupMockService(t)
 	sender := makeAccount()
 	receiver := makeAccount()
 	flakeRepo.Seed(makeFlake(receiver.ID, "receiver@test.com"))
@@ -211,7 +211,7 @@ func TestCreateTransfer_AmountTooHigh(t *testing.T) {
 }
 
 func TestCreateTransfer_AccountNotActive(t *testing.T) {
-	accRepo, _, _, flakeRepo, db, _, svc := setupMockService(t)
+	accRepo, _, _, flakeRepo, db, svc := setupMockService(t)
 	sender := makeAccount()
 	sender.Status = models.AccountStatusSuspended
 	receiver := makeAccount()
@@ -228,7 +228,7 @@ func TestCreateTransfer_AccountNotActive(t *testing.T) {
 }
 
 func TestCreateTransfer_ReconciliationDiscrepancy(t *testing.T) {
-	accRepo, _, _, flakeRepo, db, _, svc := setupMockService(t)
+	accRepo, _, _, flakeRepo, db, svc := setupMockService(t)
 	sender := makeAccount()
 	sender.ReconciliationStatus = models.AccountReconciliationStatusDiscrepancy
 	receiver := makeAccount()
@@ -245,7 +245,7 @@ func TestCreateTransfer_ReconciliationDiscrepancy(t *testing.T) {
 }
 
 func TestCreateTransfer_DailyLimitExceeded(t *testing.T) {
-	accRepo, txRepo, _, flakeRepo, db, _, svc := setupMockService(t)
+	accRepo, txRepo, _, flakeRepo, 	db, svc := setupMockService(t)
 	sender := makeAccount()
 	sender.Balance = 10000000
 	receiver := makeAccount()
@@ -273,7 +273,7 @@ func TestCreateTransfer_DailyLimitExceeded(t *testing.T) {
 }
 
 func TestCreateTransfer_DailyCountExceeded(t *testing.T) {
-	accRepo, txRepo, _, flakeRepo, db, _, svc := setupMockService(t)
+	accRepo, txRepo, _, flakeRepo, 	db, svc := setupMockService(t)
 	sender := makeAccount()
 	sender.Balance = 10000000
 	receiver := makeAccount()
@@ -302,7 +302,7 @@ func TestCreateTransfer_DailyCountExceeded(t *testing.T) {
 }
 
 func TestDeposit_Success(t *testing.T) {
-	accRepo, txRepo, histRepo, _, db, _, svc := setupMockService(t)
+	accRepo, txRepo, histRepo, _, 	db, svc := setupMockService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 
@@ -331,7 +331,7 @@ func TestDeposit_Success(t *testing.T) {
 }
 
 func TestDeposit_Forbidden(t *testing.T) {
-	accRepo, _, _, _, db, _, svc := setupMockService(t)
+	accRepo, _, _, _, 	db, svc := setupMockService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 
@@ -345,7 +345,7 @@ func TestDeposit_Forbidden(t *testing.T) {
 }
 
 func TestDeposit_Idempotent(t *testing.T) {
-	accRepo, txRepo, _, _, db, _, svc := setupMockService(t)
+	accRepo, txRepo, _, _, 	db, svc := setupMockService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 
@@ -367,7 +367,7 @@ func TestDeposit_Idempotent(t *testing.T) {
 }
 
 func TestGetTransactions_ByAccount(t *testing.T) {
-	accRepo, txRepo, _, _, db, _, svc := setupMockService(t)
+	accRepo, txRepo, _, _, 	db, svc := setupMockService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 
@@ -397,13 +397,13 @@ func TestGetTransactions_ByAccount(t *testing.T) {
 }
 
 func TestGetTransactions_NotFound(t *testing.T) {
-	_, _, _, _, db, _, svc := setupMockService(t)
+	_, _, _, _, 	db, svc := setupMockService(t)
 	_, err := svc.GetTransactions(db, uuid.New().String(), repository.TransactionFilter{Page: 1, Limit: 20})
 	assert.ErrorIs(t, err, service.ErrAccountNotFound)
 }
 
 func TestGetTransactionByID_OwnTransaction(t *testing.T) {
-	accRepo, txRepo, _, _, db, _, svc := setupMockService(t)
+	accRepo, txRepo, _, _, 	db, svc := setupMockService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 
@@ -424,7 +424,7 @@ func TestGetTransactionByID_OwnTransaction(t *testing.T) {
 }
 
 func TestGetTransactionByID_NotParticipant(t *testing.T) {
-	accRepo, txRepo, _, _, db, _, svc := setupMockService(t)
+	accRepo, txRepo, _, _, 	db, svc := setupMockService(t)
 	account := makeAccount()
 	other := makeAccount()
 	accRepo.Seed(account, other)
@@ -445,7 +445,7 @@ func TestGetTransactionByID_NotParticipant(t *testing.T) {
 }
 
 func TestGetTransactionByID_NotFound(t *testing.T) {
-	accRepo, _, _, _, db, _, svc := setupMockService(t)
+	accRepo, _, _, _, 	db, svc := setupMockService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 
@@ -455,7 +455,7 @@ func TestGetTransactionByID_NotFound(t *testing.T) {
 
 func TestCreateTransfer_PublishesEvent(t *testing.T) {
 	rmq := mocks.NewMockRmq()
-	accRepo, _, _, flakeRepo, db, _, svc := setupMockServiceWithRmq(t, rmq)
+	accRepo, _, _, flakeRepo, db, svc := setupMockServiceWithRmq(t, rmq)
 
 	sender := makeAccount()
 	receiver := makeAccount()
@@ -478,7 +478,7 @@ func TestCreateTransfer_PublishesEvent(t *testing.T) {
 
 func TestDeposit_PublishesEvent(t *testing.T) {
 	rmq := mocks.NewMockRmq()
-	accRepo, _, _, _, db, _, svc := setupMockServiceWithRmq(t, rmq)
+	accRepo, _, _, _, db, svc := setupMockServiceWithRmq(t, rmq)
 
 	account := makeAccount()
 	accRepo.Seed(account)
