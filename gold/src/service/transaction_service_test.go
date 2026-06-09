@@ -17,6 +17,10 @@ import (
 )
 
 func setupMockService() (*mocks.MockAccountRepo, *mocks.MockTransactionRepo, *mocks.MockTransactionHistoryRepo, *mocks.MockFlakeRepo, *gorm.DB, *repository.Factory, service.TransactionService) {
+	return setupMockServiceWithRmq(nil)
+}
+
+func setupMockServiceWithRmq(rmq *mocks.MockRmq) (*mocks.MockAccountRepo, *mocks.MockTransactionRepo, *mocks.MockTransactionHistoryRepo, *mocks.MockFlakeRepo, *gorm.DB, *repository.Factory, service.TransactionService) {
 	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	accRepo := mocks.NewMockAccountRepo()
 	txRepo := mocks.NewMockTransactionRepo()
@@ -31,7 +35,11 @@ func setupMockService() (*mocks.MockAccountRepo, *mocks.MockTransactionRepo, *mo
 	flakeSvc := service.NewFlakeService(repos)
 	svcFactory := &service.ServiceFactory{}
 	svcFactory.Flake = flakeSvc
-	svc := service.NewTransactionService(repos, svcFactory, nil, mocks.TestLogger())
+	var publisher service.EventPublisher
+	if rmq != nil {
+		publisher = rmq
+	}
+	svc := service.NewTransactionService(repos, svcFactory, publisher, mocks.TestLogger())
 	return accRepo, txRepo, histRepo, flakeRepo, db, repos, svc
 }
 
@@ -441,6 +449,50 @@ func TestGetTransactionByID_NotFound(t *testing.T) {
 
 	_, err := svc.GetTransactionByID(db, account.UserID.String(), uuid.New())
 	assert.ErrorIs(t, err, service.ErrTransactionNotFound)
+}
+
+func TestCreateTransfer_PublishesEvent(t *testing.T) {
+	rmq := mocks.NewMockRmq()
+	accRepo, _, _, flakeRepo, db, _, svc := setupMockServiceWithRmq(rmq)
+
+	sender := makeAccount()
+	receiver := makeAccount()
+	flakeRepo.Seed(makeFlake(receiver.ID, "receiver@test.com"))
+	accRepo.Seed(sender, receiver)
+
+	req := dto.CreateTransferRequest{
+		ReceiverFlakeKey: "receiver@test.com",
+		Amount:           5000,
+		IdempotencyKey:   uuid.New(),
+	}
+
+	_, err := svc.CreateTransaction(db, sender.UserID.String(), req)
+	require.NoError(t, err)
+
+	assert.Eventually(t, func() bool {
+		return len(rmq.Messages()) == 1
+	}, time.Second, 10*time.Millisecond)
+}
+
+func TestDeposit_PublishesEvent(t *testing.T) {
+	rmq := mocks.NewMockRmq()
+	accRepo, _, _, _, db, _, svc := setupMockServiceWithRmq(rmq)
+
+	account := makeAccount()
+	accRepo.Seed(account)
+
+	req := dto.DepositRequest{
+		AccountID:      account.ID,
+		Amount:         5000,
+		IdempotencyKey: uuid.New(),
+	}
+
+	_, err := svc.Deposit(db, account.UserID.String(), req)
+	require.NoError(t, err)
+
+	assert.Eventually(t, func() bool {
+		return len(rmq.Messages()) == 1
+	}, time.Second, 10*time.Millisecond)
 }
 
 func ptrUUID(id uuid.UUID) *uuid.UUID { return &id }
