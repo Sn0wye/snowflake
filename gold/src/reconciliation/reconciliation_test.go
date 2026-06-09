@@ -4,13 +4,12 @@ import (
 	"database/sql"
 	"testing"
 
-	"github.com/getsnowflake/snowflake/gold/pkg/logger"
 	"github.com/getsnowflake/snowflake/gold/src/models"
 	"github.com/getsnowflake/snowflake/gold/src/reconciliation"
+	"github.com/getsnowflake/snowflake/gold/test/mocks"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -21,10 +20,6 @@ func setupReconDB(t *testing.T) *gorm.DB {
 	require.NoError(t, err)
 	require.NoError(t, db.AutoMigrate(&models.Account{}, &models.TransactionHistory{}))
 	return db
-}
-
-func testLogger() *logger.Logger {
-	return &logger.Logger{Logger: zap.NewNop()}
 }
 
 type reconRow struct {
@@ -58,7 +53,7 @@ func TestReconcile_ZeroActivity_SetsLastReconciledAt(t *testing.T) {
 	}
 	require.NoError(t, db.Create(acc).Error)
 
-	job := reconciliation.NewJob(db, testLogger())
+	job := reconciliation.NewJob(db, mocks.TestLogger())
 	job.Run()
 
 	row := queryReconRow(t, db, acc.ID)
@@ -86,7 +81,7 @@ func TestReconcile_BalanceMatches_UpdatesReconciledAt(t *testing.T) {
 		BalanceAfter:  1000,
 	}).Error)
 
-	job := reconciliation.NewJob(db, testLogger())
+	job := reconciliation.NewJob(db, mocks.TestLogger())
 	job.Run()
 
 	row := queryReconRow(t, db, acc.ID)
@@ -114,7 +109,7 @@ func TestReconcile_DiscrepancyDetected_FlagsAccount(t *testing.T) {
 		BalanceAfter:  1000,
 	}).Error)
 
-	job := reconciliation.NewJob(db, testLogger())
+	job := reconciliation.NewJob(db, mocks.TestLogger())
 	job.Run()
 
 	row := queryReconRow(t, db, acc.ID)
@@ -145,7 +140,7 @@ func TestReconcile_PreviouslyFlagged_ResolvesToOK(t *testing.T) {
 		BalanceAfter:  1000,
 	}).Error)
 
-	job := reconciliation.NewJob(db, testLogger())
+	job := reconciliation.NewJob(db, mocks.TestLogger())
 	job.Run()
 
 	row := queryReconRow(t, db, acc.ID)
