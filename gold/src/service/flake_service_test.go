@@ -172,6 +172,51 @@ func TestCreateFlake_RandomUnlimited_CanCreateMultiple(t *testing.T) {
 	assert.Len(t, flakeRepo.All(), 10)
 }
 
+func TestCreateFlake_HandleDoesNotCountTowardLimit(t *testing.T) {
+	accRepo, flakeRepo, db, svc := setupFlakeService(t)
+	account := makeAccount()
+	accRepo.Seed(account)
+
+	types := []models.FlakeType{models.FlakeTypeEmail, models.FlakeTypePhone, models.FlakeTypeCPF, models.FlakeTypeCNPJ}
+	for _, kt := range types {
+		flakeRepo.Seed(&models.Flake{
+			ID:        uuid.New(),
+			AccountID: account.ID,
+			KeyType:   kt,
+			KeyValue:  uuid.New().String(),
+			Status:    models.FlakeStatusActive,
+		})
+	}
+
+	req := dto.CreateFlakeRequest{
+		KeyType:  models.FlakeTypeHandle,
+		KeyValue: "myhandle",
+	}
+	resp, err := svc.CreateFlake(db, account.UserID.String(), req)
+	require.NoError(t, err)
+	assert.Equal(t, models.FlakeTypeHandle, resp.KeyType)
+}
+
+func TestCreateFlake_HandleDuplicateIsRejected(t *testing.T) {
+	accRepo, flakeRepo, db, svc := setupFlakeService(t)
+	account := makeAccount()
+	accRepo.Seed(account)
+	flakeRepo.Seed(&models.Flake{
+		ID:        uuid.New(),
+		AccountID: account.ID,
+		KeyType:   models.FlakeTypeHandle,
+		KeyValue:  "myhandle",
+		Status:    models.FlakeStatusActive,
+	})
+
+	req := dto.CreateFlakeRequest{
+		KeyType:  models.FlakeTypeHandle,
+		KeyValue: "otherhandle",
+	}
+	_, err := svc.CreateFlake(db, account.UserID.String(), req)
+	assert.ErrorIs(t, err, service.ErrDuplicateFlakeType)
+}
+
 func TestPublicLookup_Success(t *testing.T) {
 	accRepo, flakeRepo, db, svc := setupFlakeService(t)
 	account := makeAccount()

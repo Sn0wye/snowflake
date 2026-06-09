@@ -440,12 +440,13 @@ func (m *MockFlakeRepo) FindByTypeAndAccount(_ *gorm.DB, keyType models.FlakeTyp
 func (m *MockFlakeRepo) CountNonUnlimited(_ *gorm.DB, accountID uuid.UUID) (int64, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	unlimited := map[models.FlakeType]bool{
+	notCounted := map[models.FlakeType]bool{
 		models.FlakeTypeRandom: true,
+		models.FlakeTypeHandle: true,
 	}
 	var count int64
 	for _, f := range m.flakes {
-		if f.AccountID == accountID && !unlimited[f.KeyType] && f.Status == models.FlakeStatusActive {
+		if f.AccountID == accountID && !notCounted[f.KeyType] && f.Status == models.FlakeStatusActive {
 			count++
 		}
 	}
