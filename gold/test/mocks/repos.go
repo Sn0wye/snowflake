@@ -442,7 +442,6 @@ func (m *MockFlakeRepo) CountNonUnlimited(_ *gorm.DB, accountID uuid.UUID) (int6
 	defer m.mu.RUnlock()
 	unlimited := map[models.FlakeType]bool{
 		models.FlakeTypeRandom: true,
-		models.FlakeTypeHandle: true,
 	}
 	var count int64
 	for _, f := range m.flakes {
@@ -460,6 +459,9 @@ func (m *MockFlakeRepo) Create(_ *gorm.DB, flake *models.Flake) error {
 		if f.KeyValue == flake.KeyValue && f.Status == models.FlakeStatusActive {
 			return newUniqueViolation()
 		}
+	}
+	if flake.ID == uuid.Nil {
+		flake.ID = uuid.New()
 	}
 	m.flakes[flake.ID.String()] = flake
 	return nil

@@ -154,6 +154,22 @@ func TestDeleteFlake_NotFound(t *testing.T) {
 	assert.ErrorIs(t, err, service.ErrFlakeNotFound)
 }
 
+func TestCreateFlake_RandomUnlimited_CanCreateMultiple(t *testing.T) {
+	accRepo, flakeRepo, db, svc := setupFlakeService()
+	account := makeAccount()
+	accRepo.Seed(account)
+
+	for i := 0; i < 10; i++ {
+		req := dto.CreateFlakeRequest{
+			KeyType:  models.FlakeTypeRandom,
+			KeyValue: uuid.New().String(),
+		}
+		_, err := svc.CreateFlake(db, account.UserID.String(), req)
+		require.NoError(t, err, "random flake %d should succeed", i)
+	}
+	assert.Len(t, flakeRepo.All(), 10)
+}
+
 func TestPublicLookup_Success(t *testing.T) {
 	accRepo, flakeRepo, db, svc := setupFlakeService()
 	account := makeAccount()
