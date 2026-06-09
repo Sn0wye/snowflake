@@ -57,3 +57,13 @@ func (r *accountRepo) All(db *gorm.DB) ([]models.Account, error) {
 func (r *accountRepo) UpdateReconciliationFields(db *gorm.DB, account *models.Account, fields map[string]interface{}) error {
 	return db.Model(account).Updates(fields).Error
 }
+
+func (r *accountRepo) DebitBalance(db *gorm.DB, accountID uuid.UUID, amount int64) error {
+	return db.Model(&models.Account{}).Where("id = ?", accountID).
+		Update("balance", gorm.Expr("balance - ?", amount)).Error
+}
+
+func (r *accountRepo) CreditBalance(db *gorm.DB, accountID uuid.UUID, amount int64) error {
+	return db.Model(&models.Account{}).Where("id = ?", accountID).
+		Update("balance", gorm.Expr("balance + ?", amount)).Error
+}

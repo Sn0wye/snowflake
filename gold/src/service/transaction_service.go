@@ -219,10 +219,10 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 			return err
 		}
 
-		if err := tx.Model(sender).Update("balance", gorm.Expr("balance - ?", req.Amount)).Error; err != nil {
+		if err := s.repos.Account.DebitBalance(tx, sender.ID, req.Amount); err != nil {
 			return err
 		}
-		if err := tx.Model(receiver).Update("balance", gorm.Expr("balance + ?", req.Amount)).Error; err != nil {
+		if err := s.repos.Account.CreditBalance(tx, receiver.ID, req.Amount); err != nil {
 			return err
 		}
 
@@ -322,7 +322,7 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 			return err
 		}
 
-		if err := tx.Model(acc).Update("balance", gorm.Expr("balance + ?", req.Amount)).Error; err != nil {
+		if err := s.repos.Account.CreditBalance(tx, acc.ID, req.Amount); err != nil {
 			return err
 		}
 
@@ -350,6 +350,9 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 }
 
 func (s *transactionService) publishCompleted(t *models.Transaction) {
+	if s.rmq == nil {
+		return
+	}
 	go func() {
 		var senderStr, receiverStr *string
 		if t.SenderAccountID != nil {

@@ -23,6 +23,8 @@ type AccountRepository interface {
 	Update(db *gorm.DB, account *models.Account) error
 	All(db *gorm.DB) ([]models.Account, error)
 	UpdateReconciliationFields(db *gorm.DB, account *models.Account, fields map[string]interface{}) error
+	DebitBalance(db *gorm.DB, accountID uuid.UUID, amount int64) error
+	CreditBalance(db *gorm.DB, accountID uuid.UUID, amount int64) error
 }
 
 type TransactionRepository interface {
