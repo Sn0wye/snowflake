@@ -30,7 +30,6 @@ const maxTypedFlakeKeys = 5
 
 var unlimitedKeyTypes = map[models.FlakeType]bool{
 	models.FlakeTypeRandom: true,
-	models.FlakeTypeHandle: true,
 }
 
 func (s *flakeService) CreateFlake(db *gorm.DB, userID string, req dto.CreateFlakeRequest) (dto.FlakeResponse, error) {
