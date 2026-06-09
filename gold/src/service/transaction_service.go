@@ -7,7 +7,6 @@ import (
 
 	"github.com/getsnowflake/snowflake/gold/pkg/events"
 	"github.com/getsnowflake/snowflake/gold/pkg/logger"
-	"github.com/getsnowflake/snowflake/gold/pkg/messaging"
 	"github.com/getsnowflake/snowflake/gold/src/dto"
 	"github.com/getsnowflake/snowflake/gold/src/models"
 	"github.com/getsnowflake/snowflake/gold/src/repository"
@@ -23,6 +22,10 @@ const (
 	maxDailyTransactions  int64 = 100
 )
 
+type EventPublisher interface {
+	Produce(queueName, message string) error
+}
+
 type TransactionService interface {
 	GetTransactions(db *gorm.DB, userID string, filter repository.TransactionFilter) (dto.PaginatedTransactionsResponse, error)
 	GetTransactionByID(db *gorm.DB, userID string, id uuid.UUID) (dto.TransactionResponse, error)
@@ -31,14 +34,14 @@ type TransactionService interface {
 }
 
 type transactionService struct {
-	repos *repository.Factory
-	svc   *ServiceFactory
-	rmq   *messaging.MessagingService
-	log   *logger.Logger
+	repos     *repository.Factory
+	svc       *ServiceFactory
+	publisher EventPublisher
+	log       *logger.Logger
 }
 
-func NewTransactionService(repos *repository.Factory, svc *ServiceFactory, rmq *messaging.MessagingService, log *logger.Logger) TransactionService {
-	return &transactionService{repos: repos, svc: svc, rmq: rmq, log: log}
+func NewTransactionService(repos *repository.Factory, svc *ServiceFactory, publisher EventPublisher, log *logger.Logger) TransactionService {
+	return &transactionService{repos: repos, svc: svc, publisher: publisher, log: log}
 }
 
 func (s *transactionService) GetTransactions(db *gorm.DB, userID string, filter repository.TransactionFilter) (dto.PaginatedTransactionsResponse, error) {
@@ -350,7 +353,7 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 }
 
 func (s *transactionService) publishCompleted(t *models.Transaction) {
-	if s.rmq == nil {
+	if s.publisher == nil {
 		return
 	}
 	go func() {
@@ -384,7 +387,7 @@ func (s *transactionService) publishCompleted(t *models.Transaction) {
 			return
 		}
 
-		if err := s.rmq.Produce(events.QueueTransactionCompleted, payload); err != nil {
+		if err := s.publisher.Produce(events.QueueTransactionCompleted, payload); err != nil {
 			s.log.Error("Failed to publish transaction.completed event", zap.Error(err), zap.String("transactionID", t.ID.String()))
 		}
 	}()
