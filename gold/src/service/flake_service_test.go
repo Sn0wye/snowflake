@@ -15,8 +15,10 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupFlakeService() (*mocks.MockAccountRepo, *mocks.MockFlakeRepo, *gorm.DB, service.FlakeService) {
-	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+func setupFlakeService(t *testing.T) (*mocks.MockAccountRepo, *mocks.MockFlakeRepo, *gorm.DB, service.FlakeService) {
+	t.Helper()
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
 	accRepo := mocks.NewMockAccountRepo()
 	flakeRepo := mocks.NewMockFlakeRepo()
 	repos := &repository.Factory{
@@ -28,7 +30,7 @@ func setupFlakeService() (*mocks.MockAccountRepo, *mocks.MockFlakeRepo, *gorm.DB
 }
 
 func TestCreateFlake_Success(t *testing.T) {
-	accRepo, flakeRepo, db, svc := setupFlakeService()
+	accRepo, flakeRepo, db, svc := setupFlakeService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 
@@ -45,7 +47,7 @@ func TestCreateFlake_Success(t *testing.T) {
 }
 
 func TestCreateFlake_DuplicateType(t *testing.T) {
-	accRepo, flakeRepo, db, svc := setupFlakeService()
+	accRepo, flakeRepo, db, svc := setupFlakeService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 	flakeRepo.Seed(makeFlake(account.ID, "first@test.com"))
@@ -59,7 +61,7 @@ func TestCreateFlake_DuplicateType(t *testing.T) {
 }
 
 func TestCreateFlake_KeyConflict(t *testing.T) {
-	accRepo, flakeRepo, db, svc := setupFlakeService()
+	accRepo, flakeRepo, db, svc := setupFlakeService(t)
 	account1 := makeAccount()
 	account2 := makeAccount()
 	accRepo.Seed(account1, account2)
@@ -74,7 +76,7 @@ func TestCreateFlake_KeyConflict(t *testing.T) {
 }
 
 func TestCreateFlake_ReconciliationDiscrepancy(t *testing.T) {
-	accRepo, _, db, svc := setupFlakeService()
+	accRepo, _, db, svc := setupFlakeService(t)
 	account := makeAccount()
 	account.ReconciliationStatus = models.AccountReconciliationStatusDiscrepancy
 	accRepo.Seed(account)
@@ -88,7 +90,7 @@ func TestCreateFlake_ReconciliationDiscrepancy(t *testing.T) {
 }
 
 func TestCreateFlake_AccountNotFound(t *testing.T) {
-	_, _, db, svc := setupFlakeService()
+	_, _, db, svc := setupFlakeService(t)
 	req := dto.CreateFlakeRequest{
 		KeyType:  models.FlakeTypeEmail,
 		KeyValue: "new@test.com",
@@ -98,7 +100,7 @@ func TestCreateFlake_AccountNotFound(t *testing.T) {
 }
 
 func TestGetFlakes_Success(t *testing.T) {
-	accRepo, flakeRepo, db, svc := setupFlakeService()
+	accRepo, flakeRepo, db, svc := setupFlakeService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 	flakeRepo.Seed(makeFlake(account.ID, "first@test.com"), makeFlake(account.ID, "second@test.com"))
@@ -109,7 +111,7 @@ func TestGetFlakes_Success(t *testing.T) {
 }
 
 func TestGetFlakes_Empty(t *testing.T) {
-	accRepo, _, db, svc := setupFlakeService()
+	accRepo, _, db, svc := setupFlakeService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 
@@ -119,7 +121,7 @@ func TestGetFlakes_Empty(t *testing.T) {
 }
 
 func TestDeleteFlake_Success(t *testing.T) {
-	accRepo, flakeRepo, db, svc := setupFlakeService()
+	accRepo, flakeRepo, db, svc := setupFlakeService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 	f := makeFlake(account.ID, "delete@test.com")
@@ -134,7 +136,7 @@ func TestDeleteFlake_Success(t *testing.T) {
 }
 
 func TestDeleteFlake_AlreadyInactive(t *testing.T) {
-	accRepo, flakeRepo, db, svc := setupFlakeService()
+	accRepo, flakeRepo, db, svc := setupFlakeService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 	f := makeFlake(account.ID, "inactive@test.com")
@@ -146,7 +148,7 @@ func TestDeleteFlake_AlreadyInactive(t *testing.T) {
 }
 
 func TestDeleteFlake_NotFound(t *testing.T) {
-	accRepo, _, db, svc := setupFlakeService()
+	accRepo, _, db, svc := setupFlakeService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 
@@ -155,7 +157,7 @@ func TestDeleteFlake_NotFound(t *testing.T) {
 }
 
 func TestCreateFlake_RandomUnlimited_CanCreateMultiple(t *testing.T) {
-	accRepo, flakeRepo, db, svc := setupFlakeService()
+	accRepo, flakeRepo, db, svc := setupFlakeService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 
@@ -171,7 +173,7 @@ func TestCreateFlake_RandomUnlimited_CanCreateMultiple(t *testing.T) {
 }
 
 func TestPublicLookup_Success(t *testing.T) {
-	accRepo, flakeRepo, db, svc := setupFlakeService()
+	accRepo, flakeRepo, db, svc := setupFlakeService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 	flakeRepo.Seed(makeFlake(account.ID, "lookup@test.com"))
@@ -183,13 +185,13 @@ func TestPublicLookup_Success(t *testing.T) {
 }
 
 func TestPublicLookup_NotFound(t *testing.T) {
-	_, _, db, svc := setupFlakeService()
+	_, _, db, svc := setupFlakeService(t)
 	_, err := svc.PublicLookup(db, "nonexistent@test.com")
 	assert.ErrorIs(t, err, service.ErrFlakeNotFound)
 }
 
 func TestResolveReceiver_Success(t *testing.T) {
-	accRepo, flakeRepo, db, svc := setupFlakeService()
+	accRepo, flakeRepo, db, svc := setupFlakeService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 	flakeRepo.Seed(makeFlake(account.ID, "receiver@test.com"))
@@ -201,7 +203,7 @@ func TestResolveReceiver_Success(t *testing.T) {
 }
 
 func TestResolveReceiver_NotFound(t *testing.T) {
-	_, _, db, svc := setupFlakeService()
+	_, _, db, svc := setupFlakeService(t)
 	_, _, err := svc.ResolveReceiver(db, "nonexistent@test.com")
 	assert.ErrorIs(t, err, service.ErrFlakeNotFound)
 }

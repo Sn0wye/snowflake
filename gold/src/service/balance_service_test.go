@@ -14,8 +14,10 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupBalanceService() (*mocks.MockAccountRepo, *mocks.MockTransactionHistoryRepo, *gorm.DB, service.BalanceService) {
-	db, _ := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+func setupBalanceService(t *testing.T) (*mocks.MockAccountRepo, *mocks.MockTransactionHistoryRepo, *gorm.DB, service.BalanceService) {
+	t.Helper()
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
 	accRepo := mocks.NewMockAccountRepo()
 	histRepo := mocks.NewMockTransactionHistoryRepo()
 	repos := &repository.Factory{
@@ -27,7 +29,7 @@ func setupBalanceService() (*mocks.MockAccountRepo, *mocks.MockTransactionHistor
 }
 
 func TestGetBalance_Success(t *testing.T) {
-	accRepo, _, db, svc := setupBalanceService()
+	accRepo, _, db, svc := setupBalanceService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 
@@ -40,13 +42,13 @@ func TestGetBalance_Success(t *testing.T) {
 }
 
 func TestGetBalance_NotFound(t *testing.T) {
-	_, _, db, svc := setupBalanceService()
+	_, _, db, svc := setupBalanceService(t)
 	_, err := svc.GetBalance(db, uuid.New().String())
 	assert.ErrorIs(t, err, service.ErrAccountNotFound)
 }
 
 func TestGetBalanceHistory_Success(t *testing.T) {
-	accRepo, histRepo, db, svc := setupBalanceService()
+	accRepo, histRepo, db, svc := setupBalanceService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 
@@ -76,7 +78,7 @@ func TestGetBalanceHistory_Success(t *testing.T) {
 }
 
 func TestGetBalanceHistory_Empty(t *testing.T) {
-	accRepo, _, db, svc := setupBalanceService()
+	accRepo, _, db, svc := setupBalanceService(t)
 	account := makeAccount()
 	accRepo.Seed(account)
 
@@ -87,7 +89,7 @@ func TestGetBalanceHistory_Empty(t *testing.T) {
 }
 
 func TestGetBalanceHistory_NotFound(t *testing.T) {
-	_, _, db, svc := setupBalanceService()
+	_, _, db, svc := setupBalanceService(t)
 	_, err := svc.GetBalanceHistory(db, uuid.New().String(), 1, 20)
 	assert.ErrorIs(t, err, service.ErrAccountNotFound)
 }
