@@ -24,14 +24,14 @@ public class LoanService(
             return await RejectAsync(userId, loanAmount, term, "No credit score available.");
 
         var tier = Domain.ScoreTier.For(score.Value);
-        var maxAmount = user.AnnualIncome * tier.MaxLoanPercentage;
+        var maxAmount = user.AnnualIncome * tier.MaxLoanFraction;
 
         if (loanAmount > maxAmount)
             return await RejectAsync(userId, loanAmount, term, "Requested amount exceeds your tier maximum.");
 
         var termMultiplier = Domain.TermMultiplier.For(term);
-        var finalRatePercent = tier.BaseRate * termMultiplier.Value;
-        var monthlyRate = finalRatePercent / 12m / 100m;
+        var finalRate = tier.Rate * termMultiplier.Value;
+        var monthlyRate = finalRate / 12m;
         var factor = Domain.DecimalPower.Pow(1m + monthlyRate, term);
         var monthlyPayment = loanAmount * monthlyRate * factor / (factor - 1m);
         var totalPayment = monthlyPayment * term;
@@ -42,7 +42,7 @@ public class LoanService(
             Amount = loanAmount,
             Term = term,
             Status = LoanApplicationStatus.APPROVED,
-            InterestRate = finalRatePercent,
+            InterestRate = finalRate * 100m,
             MonthlyPayment = monthlyPayment,
             TotalPayment = totalPayment
         };
