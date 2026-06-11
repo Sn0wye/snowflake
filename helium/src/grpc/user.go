@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/getsnowflake/snowflake/helium/pb"
-	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/src/models"
 
 	"google.golang.org/grpc"
@@ -16,8 +15,7 @@ import (
 
 type userService struct {
 	pb.UnimplementedUserServiceServer
-	db    *gorm.DB
-	jwter *jwt.JWT
+	db *gorm.DB
 }
 
 func (s *userService) GetUsers(context.Context, *emptypb.Empty) (*pb.GetUsersResponse, error) {
@@ -75,6 +73,6 @@ func (s *userService) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest)
 	}, nil
 }
 
-func RegisterUserService(s *grpc.Server, db *gorm.DB, jwter *jwt.JWT) {
-	pb.RegisterUserServiceServer(s, &userService{db: db, jwter: jwter})
+func RegisterUserService(s *grpc.Server, db *gorm.DB) {
+	pb.RegisterUserServiceServer(s, &userService{db: db})
 }

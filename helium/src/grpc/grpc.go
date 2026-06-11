@@ -24,5 +24,5 @@ func NewServer(log *zap.Logger) *grpc.Server {
 func RegisterAllServices(s *grpc.Server, jwter *jwt.JWT) {
 	dbInstance := db.GetDB()
 	RegisterAuthService(s, jwter)
-	RegisterUserService(s, dbInstance, jwter)
+	RegisterUserService(s, dbInstance)
 }
