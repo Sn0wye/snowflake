@@ -20,50 +20,50 @@ public class LoanService(
         var user = await userTask;
         var score = await scoreTask;
 
+        if (score is null)
+            return await RejectAsync(userId, loanAmount, term);
+
+        var tier = Domain.ScoreTier.For(score.Value);
+        var maxAmount = user.AnnualIncome * tier.MaxLoanPercentage;
+
+        if (loanAmount > maxAmount)
+            return await RejectAsync(userId, loanAmount, term);
+
+        var termMultiplier = Domain.TermMultiplier.For(term);
+        var finalRatePercent = tier.BaseRate * termMultiplier.Value;
+        var monthlyRate = finalRatePercent / 12 / 100;
+        var factor = Math.Pow(1 + monthlyRate, term);
+        var monthlyPayment = loanAmount * monthlyRate * factor / (factor - 1);
+        var totalPayment = monthlyPayment * term;
+
         var loan = new Domain.Entities.LoanApplication
         {
             UserId = userId,
             Amount = loanAmount,
             Term = term,
-            Status = score >= 600 ? LoanApplicationStatus.APPROVED : LoanApplicationStatus.REJECTED
+            Status = LoanApplicationStatus.APPROVED,
+            InterestRate = (decimal)finalRatePercent,
+            MonthlyPayment = (decimal)monthlyPayment,
+            TotalPayment = (decimal)totalPayment
         };
 
         await loanRepository.AddAsync(loan);
 
-        var suggestedLoan = score.HasValue 
-            ? await SuggestBetterLoan(user, score.Value) 
-            : null;
-
-        return new LoanApplicationDTO
-        {
-            LoanApplication = loan,
-            SuggestedLoan = suggestedLoan
-        };
+        return new LoanApplicationDTO { LoanApplication = loan };
     }
 
-    private Task<Domain.Entities.LoanApplication?> SuggestBetterLoan(User user, int score)
+    private async Task<LoanApplicationDTO> RejectAsync(string userId, double amount, int term)
     {
-        double incomePercentage = score switch
+        var loan = new Domain.Entities.LoanApplication
         {
-            >= 800 => 0.5,
-            < 600 => 0.2,
-            _ => 0.35
-        };
-        int term = score switch
-        {
-            >= 800 => 36,
-            < 600 => 12,
-            _ => 24
-        };
-
-        var suggestedLoan = new Domain.Entities.LoanApplication
-        {
-            UserId = user.Id,
-            Amount = user.AnnualIncome * incomePercentage,
+            UserId = userId,
+            Amount = amount,
             Term = term,
-            Status = LoanApplicationStatus.APPROVED
+            Status = LoanApplicationStatus.REJECTED
         };
 
-        return Task.FromResult<Domain.Entities.LoanApplication?>(suggestedLoan);
+        await loanRepository.AddAsync(loan);
+
+        return new LoanApplicationDTO { LoanApplication = loan };
     }
 }

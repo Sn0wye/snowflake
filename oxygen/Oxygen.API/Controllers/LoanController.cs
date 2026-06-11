@@ -24,7 +24,7 @@ public class LoanController(ILoanService loanService) : ControllerBase
     public async Task<ActionResult<ApplyForLoanResponse>> ApplyForLoan([FromBody] ApplyForLoanRequest request)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        
+
         if (userId is null) return Unauthorized();
 
         var application = await loanService.ApplyForLoan(
@@ -33,34 +33,17 @@ public class LoanController(ILoanService loanService) : ControllerBase
             request.Term
         );
 
-        string? message;
-        if (application.SuggestedLoan is null)
-        {
-            message = application.LoanApplication.Status == LoanApplicationStatus.APPROVED
-                ? "Loan approved :)"
-                : "Loan rejected, unfortunately we don't have a better option for you at the moment :(";
-
-            return Ok(new ApplyForLoanResponse
-            {
-                Message = message,
-                Status = application.LoanApplication.Status,
-                Amount = application.LoanApplication.Amount,
-                Term = application.LoanApplication.Term,
-                SuggestedLoan = null
-            });
-        }
-
-        message = application.LoanApplication.Status == LoanApplicationStatus.APPROVED
-            ? "Loan approved, but we have a better option for you!"
-            : "Loan rejected, but we have a better option for you!";
-
         return Ok(new ApplyForLoanResponse
         {
-            Message = message,
+            Message = application.LoanApplication.Status == LoanApplicationStatus.APPROVED
+                ? "Loan approved :)"
+                : "Loan rejected, amount exceeds your tier maximum.",
             Status = application.LoanApplication.Status,
             Amount = application.LoanApplication.Amount,
             Term = application.LoanApplication.Term,
-            SuggestedLoan = application.SuggestedLoan
+            InterestRate = application.LoanApplication.InterestRate,
+            MonthlyPayment = application.LoanApplication.MonthlyPayment,
+            TotalPayment = application.LoanApplication.TotalPayment
         });
     }
 }

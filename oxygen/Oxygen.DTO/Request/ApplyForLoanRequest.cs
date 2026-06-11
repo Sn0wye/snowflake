@@ -7,6 +7,6 @@ public class ApplyForLoanRequest
     public double LoanAmount { get; set; }
 
     [Required(ErrorMessage = "Term is required.")]
-    [Range(1, 12, ErrorMessage = "Term must be between 1 and 12.")]
+    [Range(1, 60, ErrorMessage = "Term must be between 1 and 60.")]
     public int Term { get; set; }
 }
