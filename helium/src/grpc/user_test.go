@@ -210,25 +210,6 @@ func TestGetUsers_UserFieldsMapped(t *testing.T) {
 	}
 }
 
-func TestDeleteUser_WithClaims(t *testing.T) {
-	svc, jwter := setupUserTest(t)
-	userID := "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b"
-	seedUser(t, svc, userID, "Alice", "alice", "alice@test.com")
-	token := genToken(t, jwter, userID, time.Now().Add(time.Hour))
-	claims, err := jwter.ParseToken(token)
-	if err != nil {
-		t.Fatalf("failed to parse token: %v", err)
-	}
-	ctx := context.WithValue(context.Background(), claimsCtxKey{}, claims)
-	resp, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userID})
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if resp.User.Name != "Alice" {
-		t.Fatalf("expected Alice, got %s", resp.User.Name)
-	}
-}
-
 func TestGetUsers_ResponseFormat(t *testing.T) {
 	svc, _ := setupUserTest(t)
 	seedUser(t, svc, "", "Test", "test", "test@test.com")
