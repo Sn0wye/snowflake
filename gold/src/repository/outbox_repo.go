@@ -8,8 +8,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const maxOutboxAttempts = 5
-
 type outboxRepo struct{}
 
 func NewOutboxRepo() OutboxRepository {
@@ -42,7 +40,7 @@ func (r *outboxRepo) MarkPublished(db *gorm.DB, id uuid.UUID) error {
 		}).Error
 }
 
-func (r *outboxRepo) MarkFailed(db *gorm.DB, id uuid.UUID, errMsg string) error {
+func (r *outboxRepo) MarkFailed(db *gorm.DB, id uuid.UUID, errMsg string, maxAttempts int) error {
 	return db.Model(&models.OutboxEvent{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
@@ -50,7 +48,7 @@ func (r *outboxRepo) MarkFailed(db *gorm.DB, id uuid.UUID, errMsg string) error 
 			"last_error": errMsg,
 			"status": gorm.Expr(
 				"CASE WHEN attempts + 1 >= ? THEN ?::varchar ELSE status END",
-				maxOutboxAttempts, models.OutboxStatusDead,
+				maxAttempts, models.OutboxStatusDead,
 			),
 		}).Error
 }

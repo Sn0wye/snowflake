@@ -57,7 +57,7 @@ type OutboxRepository interface {
 	Create(db *gorm.DB, entry *models.OutboxEvent) error
 	ClaimPending(db *gorm.DB, limit int) ([]models.OutboxEvent, error)
 	MarkPublished(db *gorm.DB, id uuid.UUID) error
-	MarkFailed(db *gorm.DB, id uuid.UUID, errMsg string) error
+	MarkFailed(db *gorm.DB, id uuid.UUID, errMsg string, maxAttempts int) error
 }
 
 type Factory struct {

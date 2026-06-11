@@ -351,6 +351,9 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 }
 
 func (s *transactionService) writeOutbox(db *gorm.DB, t models.Transaction) error {
+	if t.ReceiverAccountID == nil {
+		return errors.New("transaction has nil ReceiverAccountID, cannot write outbox event")
+	}
 	receiverStr := t.ReceiverAccountID.String()
 
 	completedAt := time.Now()
