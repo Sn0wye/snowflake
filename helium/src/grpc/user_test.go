@@ -29,7 +29,7 @@ func setupUserTest(t *testing.T) (*userService, *jwt.JWT) {
 	if err != nil {
 		t.Fatalf("failed to create test JWT: %v", err)
 	}
-	return &userService{db: db, jwter: jwter}, jwter
+	return &userService{db: db}, jwter
 }
 
 func seedUser(t *testing.T, svc *userService, id, name, username, email string) {
