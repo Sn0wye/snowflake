@@ -48,6 +48,7 @@ public class LoanServiceTests
         var result = await _sut.ApplyForLoan(DefaultUserId, 50_000, 12);
 
         result.LoanApplication.Status.Should().Be(LoanApplicationStatus.REJECTED);
+        result.RejectionReason.Should().Be("Requested amount exceeds your tier maximum.");
     }
 
     [Fact]
@@ -58,6 +59,7 @@ public class LoanServiceTests
         var result = await _sut.ApplyForLoan(DefaultUserId, 10_000, 12);
 
         result.LoanApplication.Status.Should().Be(LoanApplicationStatus.REJECTED);
+        result.RejectionReason.Should().Be("No credit score available.");
     }
 
     [Fact]

@@ -37,7 +37,7 @@ public class LoanController(ILoanService loanService) : ControllerBase
         {
             Message = application.LoanApplication.Status == LoanApplicationStatus.APPROVED
                 ? "Loan approved :)"
-                : "Loan rejected, amount exceeds your tier maximum.",
+                : $"Loan rejected: {application.RejectionReason}",
             Status = application.LoanApplication.Status,
             Amount = application.LoanApplication.Amount,
             Term = application.LoanApplication.Term,

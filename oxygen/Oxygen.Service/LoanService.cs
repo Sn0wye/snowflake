@@ -21,13 +21,13 @@ public class LoanService(
         var score = await scoreTask;
 
         if (score is null)
-            return await RejectAsync(userId, loanAmount, term);
+            return await RejectAsync(userId, loanAmount, term, "No credit score available.");
 
         var tier = Domain.ScoreTier.For(score.Value);
         var maxAmount = user.AnnualIncome * tier.MaxLoanPercentage;
 
         if (loanAmount > maxAmount)
-            return await RejectAsync(userId, loanAmount, term);
+            return await RejectAsync(userId, loanAmount, term, "Requested amount exceeds your tier maximum.");
 
         var termMultiplier = Domain.TermMultiplier.For(term);
         var finalRatePercent = tier.BaseRate * termMultiplier.Value;
@@ -52,7 +52,7 @@ public class LoanService(
         return new LoanApplicationDTO { LoanApplication = loan };
     }
 
-    private async Task<LoanApplicationDTO> RejectAsync(string userId, double amount, int term)
+    private async Task<LoanApplicationDTO> RejectAsync(string userId, double amount, int term, string reason)
     {
         var loan = new Domain.Entities.LoanApplication
         {
@@ -64,6 +64,6 @@ public class LoanService(
 
         await loanRepository.AddAsync(loan);
 
-        return new LoanApplicationDTO { LoanApplication = loan };
+        return new LoanApplicationDTO { LoanApplication = loan, RejectionReason = reason };
     }
 }
