@@ -196,9 +196,18 @@ func TestDeleteUser_NotFound(t *testing.T) {
 
 func TestGetUsers_UserFieldsMapped(t *testing.T) {
 	svc, _ := setupUserTest(t)
-	seedUser(t, svc, "", "Alice", "alice", "alice@test.com")
-	svc.db.Model(&models.User{}).Where("email = ?", "alice@test.com").
-		Updates(map[string]interface{}{"annual_income": 100000, "debt": 50000, "assets_value": 200000})
+	user := models.User{
+		Name:         "Alice",
+		Username:     "alice",
+		Email:        "alice@test.com",
+		Password:     "hashed-password",
+		AnnualIncome: 100000,
+		Debt:         50000,
+		AssetsValue:  200000,
+	}
+	if err := svc.db.Create(&user).Error; err != nil {
+		t.Fatalf("failed to seed user: %v", err)
+	}
 	resp, _ := svc.GetUsers(context.Background(), &emptypb.Empty{})
 	u := resp.Users[0]
 	if u.AnnualIncome != 100000 {
