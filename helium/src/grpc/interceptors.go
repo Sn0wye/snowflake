@@ -81,7 +81,7 @@ func AuthInterceptor(jwter *jwt.JWT) grpc.UnaryServerInterceptor {
 
 		claims, err := jwter.ParseToken(vals[0])
 		if err != nil {
-			return nil, status.Errorf(codes.Unauthenticated, "invalid token: %v", err)
+			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}
 
 		ctx = context.WithValue(ctx, claimsCtxKey{}, claims)
