@@ -132,7 +132,7 @@ func (s *transactionsController) GetTransactionByID(ctx *fiber.Ctx) error {
 //
 //	@Summary		/account/transactions
 //	@Description	Create a new transaction/transfer between accounts
-//	@Description	Emits: `transaction.completed` event upon successful transfer completion.
+//	@Description	Emits: `transaction.received` event (outbox pattern, at-least-once) upon successful transfer completion.
 //	@Tags			Transactions
 //	@Accept			json
 //	@Produce		json
@@ -183,7 +183,7 @@ func (s *transactionsController) CreateTransaction(ctx *fiber.Ctx) error {
 //
 //	@Summary		/account/transactions/deposit
 //	@Description	Deposit funds into an account
-//	@Description	Emits: `transaction.completed` event upon successful deposit completion.
+//	@Description	Emits: `transaction.received` event (outbox pattern, at-least-once) upon successful deposit completion.
 //	@Tags			Transactions
 //	@Accept			json
 //	@Produce		json

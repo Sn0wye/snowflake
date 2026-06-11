@@ -10,7 +10,6 @@ const (
 	ExchangeUserCreated       = "user.created"
 	QueueUserCreatedAccount   = "user.created.account"
 	QueueTransactionCreated   = "transaction.created"
-	QueueTransactionCompleted = "transaction.completed"
 	QueueTransactionReceived  = "transaction.received"
 	QueueTransactionFailed    = "transaction.failed"
 )
