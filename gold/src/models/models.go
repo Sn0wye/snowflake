@@ -7,5 +7,6 @@ func RetrieveAll() []interface{} {
 		&Flake{},
 		&Transaction{},
 		&TransactionHistory{},
+		&OutboxEvent{},
 	}
 }

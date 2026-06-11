@@ -46,13 +46,14 @@ func setupRealApp(t *testing.T) (*fiber.App, *gorm.DB) {
 	require.NoError(t, db.AutoMigrate(
 		&models.Account{}, &models.Transaction{},
 		&models.TransactionHistory{}, &models.Flake{},
+		&models.OutboxEvent{},
 	))
 
 	repos := repository.NewFactory()
 	flakeSvc := service.NewFlakeService(repos)
 	svcFactory := &service.ServiceFactory{}
 	svcFactory.Flake = flakeSvc
-	svcFactory.Transaction = service.NewTransactionService(repos, svcFactory, nil, mocks.TestLogger())
+	svcFactory.Transaction = service.NewTransactionService(repos, svcFactory, mocks.TestLogger())
 	svcFactory.Balance = service.NewBalanceService(repos)
 
 	txCtl := controllers.NewTransactionsController(db, nil, svcFactory.Transaction)

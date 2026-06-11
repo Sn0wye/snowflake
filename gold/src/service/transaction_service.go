@@ -11,7 +11,6 @@ import (
 	"github.com/getsnowflake/snowflake/gold/src/models"
 	"github.com/getsnowflake/snowflake/gold/src/repository"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
@@ -22,10 +21,6 @@ const (
 	maxDailyTransactions  int64 = 100
 )
 
-type EventPublisher interface {
-	Produce(queueName, message string) error
-}
-
 type TransactionService interface {
 	GetTransactions(db *gorm.DB, userID string, filter repository.TransactionFilter) (dto.PaginatedTransactionsResponse, error)
 	GetTransactionByID(db *gorm.DB, userID string, id uuid.UUID) (dto.TransactionResponse, error)
@@ -34,14 +29,13 @@ type TransactionService interface {
 }
 
 type transactionService struct {
-	repos     *repository.Factory
-	svc       *ServiceFactory
-	publisher EventPublisher
-	log       *logger.Logger
+	repos *repository.Factory
+	svc   *ServiceFactory
+	log   *logger.Logger
 }
 
-func NewTransactionService(repos *repository.Factory, svc *ServiceFactory, publisher EventPublisher, log *logger.Logger) TransactionService {
-	return &transactionService{repos: repos, svc: svc, publisher: publisher, log: log}
+func NewTransactionService(repos *repository.Factory, svc *ServiceFactory, log *logger.Logger) TransactionService {
+	return &transactionService{repos: repos, svc: svc, log: log}
 }
 
 func (s *transactionService) GetTransactions(db *gorm.DB, userID string, filter repository.TransactionFilter) (dto.PaginatedTransactionsResponse, error) {
@@ -235,6 +229,10 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 			return err
 		}
 
+		if err := s.writeOutbox(tx, transaction); err != nil {
+			return err
+		}
+
 		result = &transaction
 		return nil
 	})
@@ -246,8 +244,6 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 		}
 		return dto.TransactionResponse{}, err
 	}
-
-	s.publishCompleted(result)
 
 	return dto.TransactionToResponse(*result), nil
 }
@@ -335,6 +331,10 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 			return err
 		}
 
+		if err := s.writeOutbox(tx, transaction); err != nil {
+			return err
+		}
+
 		result = &transaction
 		return nil
 	})
@@ -347,48 +347,33 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 		return dto.TransactionResponse{}, err
 	}
 
-	s.publishCompleted(result)
-
 	return dto.TransactionToResponse(*result), nil
 }
 
-func (s *transactionService) publishCompleted(t *models.Transaction) {
-	if s.publisher == nil {
-		return
+func (s *transactionService) writeOutbox(db *gorm.DB, t models.Transaction) error {
+	receiverStr := t.ReceiverAccountID.String()
+
+	completedAt := time.Now()
+	if t.CompletedAt != nil {
+		completedAt = *t.CompletedAt
 	}
-	go func() {
-		var senderStr, receiverStr *string
-		if t.SenderAccountID != nil {
-			v := t.SenderAccountID.String()
-			senderStr = &v
-		}
-		if t.ReceiverAccountID != nil {
-			v := t.ReceiverAccountID.String()
-			receiverStr = &v
-		}
 
-		completedAt := time.Now()
-		if t.CompletedAt != nil {
-			completedAt = *t.CompletedAt
-		}
+	evt := events.NewTransactionReceived(
+		t.ID.String(),
+		string(t.Type),
+		t.Amount,
+		receiverStr,
+		completedAt,
+	)
 
-		evt := events.NewTransactionCompleted(
-			t.ID.String(),
-			string(t.Type),
-			t.Amount,
-			senderStr,
-			receiverStr,
-			completedAt,
-		)
+	payload, err := events.Marshal(evt)
+	if err != nil {
+		return err
+	}
 
-		payload, err := events.Marshal(evt)
-		if err != nil {
-			s.log.Error("Failed to marshal transaction.completed event", zap.Error(err), zap.String("transactionID", t.ID.String()))
-			return
-		}
-
-		if err := s.publisher.Produce(events.QueueTransactionCompleted, payload); err != nil {
-			s.log.Error("Failed to publish transaction.completed event", zap.Error(err), zap.String("transactionID", t.ID.String()))
-		}
-	}()
+	return s.repos.Outbox.Create(db, &models.OutboxEvent{
+		QueueName: events.QueueTransactionReceived,
+		Payload:   payload,
+		Status:    models.OutboxStatusPending,
+	})
 }

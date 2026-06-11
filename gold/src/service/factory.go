@@ -2,7 +2,6 @@ package service
 
 import (
 	"github.com/getsnowflake/snowflake/gold/pkg/logger"
-	"github.com/getsnowflake/snowflake/gold/pkg/messaging"
 	"github.com/getsnowflake/snowflake/gold/src/repository"
 )
 
@@ -12,10 +11,10 @@ type ServiceFactory struct {
 	Transaction TransactionService
 }
 
-func NewServiceFactory(repos *repository.Factory, rmq *messaging.MessagingService, log *logger.Logger) *ServiceFactory {
+func NewServiceFactory(repos *repository.Factory, log *logger.Logger) *ServiceFactory {
 	svc := &ServiceFactory{}
 	svc.Balance = NewBalanceService(repos)
 	svc.Flake = NewFlakeService(repos)
-	svc.Transaction = NewTransactionService(repos, svc, rmq, log)
+	svc.Transaction = NewTransactionService(repos, svc, log)
 	return svc
 }

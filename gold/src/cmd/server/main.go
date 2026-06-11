@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -18,6 +19,7 @@ import (
 	"github.com/getsnowflake/snowflake/gold/pkg/validator"
 	"github.com/getsnowflake/snowflake/gold/src/db"
 	"github.com/getsnowflake/snowflake/gold/src/models"
+	"github.com/getsnowflake/snowflake/gold/src/outbox"
 	"github.com/getsnowflake/snowflake/gold/src/reconciliation"
 	"github.com/getsnowflake/snowflake/gold/src/repository"
 	"github.com/getsnowflake/snowflake/gold/src/routes"
@@ -53,9 +55,18 @@ func main() {
 	rmq := startRabbitMQ(conf, logger)
 	defer rmq.Close()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Channel to handle shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	repos := repository.NewFactory()
+
+	// Start outbox worker (polls every 5s, publishes pending events)
+	outboxWorker := outbox.NewWorker(db.GetDB(), rmq, repos, logger)
+	go outboxWorker.Start(ctx)
 
 	// Start reconciliation job (hourly)
 	reconcileJob := reconciliation.NewJob(db.GetDB(), logger)
@@ -117,7 +128,7 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 	rateLimit := middleware.UserRateLimitMiddleware(conf)
 
 	repos := repository.NewFactory()
-	services := service.NewServiceFactory(repos, rmq, logger)
+	services := service.NewServiceFactory(repos, logger)
 
 	routes.BindHealthRoutes(app, db.GetDB(), rmq)
 	routes.BindFlakeRoutes(app, db.GetDB(), jwtpkg.NewJwt(conf), jwt, services)
