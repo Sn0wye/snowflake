@@ -12,7 +12,7 @@ using Oxygen.Infrastructure;
 namespace Oxygen.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260611172422_AddLoanFinancialColumns")]
+    [Migration("20260611173756_AddLoanFinancialColumns")]
     partial class AddLoanFinancialColumns
     {
         /// <inheritdoc />
@@ -35,15 +35,18 @@ namespace Oxygen.Infrastructure.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Amount")
-                        .HasColumnType("numeric")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
                         .HasColumnName("amount");
 
                     b.Property<decimal?>("InterestRate")
-                        .HasColumnType("numeric")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("numeric(18,6)")
                         .HasColumnName("interest_rate");
 
                     b.Property<decimal?>("MonthlyPayment")
-                        .HasColumnType("numeric")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
                         .HasColumnName("monthly_payment");
 
                     b.Property<int>("Status")
@@ -55,7 +58,8 @@ namespace Oxygen.Infrastructure.Migrations
                         .HasColumnName("term");
 
                     b.Property<decimal?>("TotalPayment")
-                        .HasColumnType("numeric")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
                         .HasColumnName("total_payment");
 
                     b.Property<string>("UserId")

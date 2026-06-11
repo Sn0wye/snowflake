@@ -22,4 +22,15 @@ public class ApplicationDbContext : DbContext
     }
     
     public DbSet<Oxygen.Domain.Entities.LoanApplication> LoanApplications { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Oxygen.Domain.Entities.LoanApplication>(entity =>
+        {
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.InterestRate).HasPrecision(18, 6);
+            entity.Property(e => e.MonthlyPayment).HasPrecision(18, 2);
+            entity.Property(e => e.TotalPayment).HasPrecision(18, 2);
+        });
+    }
 }
