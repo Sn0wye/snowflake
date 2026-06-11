@@ -4,13 +4,11 @@ import (
 	"context"
 
 	"github.com/getsnowflake/snowflake/helium/pb"
-	"github.com/getsnowflake/snowflake/helium/pkg/config"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/src/models"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/gorm"
@@ -53,19 +51,9 @@ func (s *userService) GetUser(ctx context.Context, req *pb.GetUserRequest) (*pb.
 }
 
 func (s *userService) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest) (*pb.DeleteUserResponse, error) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return nil, status.Error(codes.Unauthenticated, "missing metadata")
-	}
-
-	vals := md.Get("authorization")
-	if len(vals) == 0 {
-		return nil, status.Error(codes.Unauthenticated, "missing authorization token")
-	}
-
-	claims, err := s.jwter.ParseToken(vals[0])
-	if err != nil {
-		return nil, status.Error(codes.Unauthenticated, "invalid token")
+	claims := ClaimsFromContext(ctx)
+	if claims == nil {
+		return nil, status.Error(codes.Unauthenticated, "missing auth claims")
 	}
 
 	if claims.Subject != req.Id {
@@ -87,7 +75,6 @@ func (s *userService) DeleteUser(ctx context.Context, req *pb.DeleteUserRequest)
 	}, nil
 }
 
-func RegisterUserService(s *grpc.Server, db *gorm.DB) {
-	jwter := jwt.NewJwt(config.GetConfig())
+func RegisterUserService(s *grpc.Server, db *gorm.DB, jwter *jwt.JWT) {
 	pb.RegisterUserServiceServer(s, &userService{db: db, jwter: jwter})
 }

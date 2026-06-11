@@ -10,7 +10,6 @@ import (
 	"github.com/getsnowflake/snowflake/helium/src/models"
 
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"gorm.io/driver/sqlite"
@@ -108,8 +107,11 @@ func TestDeleteUser_Success(t *testing.T) {
 	userID := "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b"
 	seedUser(t, svc, userID, "Alice", "alice", "alice@test.com")
 	token := genToken(t, jwter, userID, time.Now().Add(time.Hour))
-	md := metadata.Pairs("authorization", "Bearer "+token)
-	ctx := metadata.NewIncomingContext(context.Background(), md)
+	claims, err := jwter.ParseToken(token)
+	if err != nil {
+		t.Fatalf("failed to parse token: %v", err)
+	}
+	ctx := context.WithValue(context.Background(), claimsCtxKey{}, claims)
 	resp, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userID})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -127,7 +129,7 @@ func TestDeleteUser_MissingMetadata(t *testing.T) {
 	svc, _ := setupUserTest(t)
 	_, err := svc.DeleteUser(context.Background(), &pb.DeleteUserRequest{Id: "some-id"})
 	if err == nil {
-		t.Fatal("expected error for missing metadata")
+		t.Fatal("expected error for missing auth claims")
 	}
 	st, _ := status.FromError(err)
 	if st.Code() != codes.Unauthenticated {
@@ -137,11 +139,9 @@ func TestDeleteUser_MissingMetadata(t *testing.T) {
 
 func TestDeleteUser_MissingAuthorizationHeader(t *testing.T) {
 	svc, _ := setupUserTest(t)
-	md := metadata.Pairs("x-custom", "value")
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	_, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: "some-id"})
+	_, err := svc.DeleteUser(context.Background(), &pb.DeleteUserRequest{Id: "some-id"})
 	if err == nil {
-		t.Fatal("expected error for missing authorization")
+		t.Fatal("expected error for missing auth claims")
 	}
 	st, _ := status.FromError(err)
 	if st.Code() != codes.Unauthenticated {
@@ -151,11 +151,9 @@ func TestDeleteUser_MissingAuthorizationHeader(t *testing.T) {
 
 func TestDeleteUser_InvalidToken(t *testing.T) {
 	svc, _ := setupUserTest(t)
-	md := metadata.Pairs("authorization", "Bearer garbage")
-	ctx := metadata.NewIncomingContext(context.Background(), md)
-	_, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: "some-id"})
+	_, err := svc.DeleteUser(context.Background(), &pb.DeleteUserRequest{Id: "some-id"})
 	if err == nil {
-		t.Fatal("expected error for invalid token")
+		t.Fatal("expected error for missing auth claims")
 	}
 	st, _ := status.FromError(err)
 	if st.Code() != codes.Unauthenticated {
@@ -170,8 +168,8 @@ func TestDeleteUser_CannotDeleteOtherUser(t *testing.T) {
 	seedUser(t, svc, userA, "Alice", "alice", "alice@test.com")
 	seedUser(t, svc, userB, "Bob", "bob", "bob@test.com")
 	token := genToken(t, jwter, userA, time.Now().Add(time.Hour))
-	md := metadata.Pairs("authorization", "Bearer "+token)
-	ctx := metadata.NewIncomingContext(context.Background(), md)
+	claims, _ := jwter.ParseToken(token)
+	ctx := context.WithValue(context.Background(), claimsCtxKey{}, claims)
 	_, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userB})
 	if err == nil {
 		t.Fatal("expected error when deleting another user")
@@ -186,8 +184,8 @@ func TestDeleteUser_NotFound(t *testing.T) {
 	svc, jwter := setupUserTest(t)
 	userID := "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b"
 	token := genToken(t, jwter, userID, time.Now().Add(time.Hour))
-	md := metadata.Pairs("authorization", "Bearer "+token)
-	ctx := metadata.NewIncomingContext(context.Background(), md)
+	claims, _ := jwter.ParseToken(token)
+	ctx := context.WithValue(context.Background(), claimsCtxKey{}, claims)
 	_, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userID})
 	if err == nil {
 		t.Fatal("expected error for non-existent user")
@@ -235,11 +233,11 @@ func TestDeleteUser_TokenWithoutBearer(t *testing.T) {
 	userID := "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b"
 	seedUser(t, svc, userID, "Alice", "alice", "alice@test.com")
 	token := genToken(t, jwter, userID, time.Now().Add(time.Hour))
-	md := metadata.Pairs("authorization", token)
-	ctx := metadata.NewIncomingContext(context.Background(), md)
+	claims, _ := jwter.ParseToken(token)
+	ctx := context.WithValue(context.Background(), claimsCtxKey{}, claims)
 	resp, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userID})
 	if err != nil {
-		t.Fatalf("token without Bearer prefix should work: %v", err)
+		t.Fatalf("unexpected error: %v", err)
 	}
 	if resp.User.Name != "Alice" {
 		t.Fatalf("expected Alice, got %s", resp.User.Name)
