@@ -125,31 +125,7 @@ func TestDeleteUser_Success(t *testing.T) {
 	}
 }
 
-func TestDeleteUser_MissingMetadata(t *testing.T) {
-	svc, _ := setupUserTest(t)
-	_, err := svc.DeleteUser(context.Background(), &pb.DeleteUserRequest{Id: "some-id"})
-	if err == nil {
-		t.Fatal("expected error for missing auth claims")
-	}
-	st, _ := status.FromError(err)
-	if st.Code() != codes.Unauthenticated {
-		t.Fatalf("expected Unauthenticated, got %v", st.Code())
-	}
-}
-
-func TestDeleteUser_MissingAuthorizationHeader(t *testing.T) {
-	svc, _ := setupUserTest(t)
-	_, err := svc.DeleteUser(context.Background(), &pb.DeleteUserRequest{Id: "some-id"})
-	if err == nil {
-		t.Fatal("expected error for missing auth claims")
-	}
-	st, _ := status.FromError(err)
-	if st.Code() != codes.Unauthenticated {
-		t.Fatalf("expected Unauthenticated, got %v", st.Code())
-	}
-}
-
-func TestDeleteUser_InvalidToken(t *testing.T) {
+func TestDeleteUser_MissingClaims(t *testing.T) {
 	svc, _ := setupUserTest(t)
 	_, err := svc.DeleteUser(context.Background(), &pb.DeleteUserRequest{Id: "some-id"})
 	if err == nil {
