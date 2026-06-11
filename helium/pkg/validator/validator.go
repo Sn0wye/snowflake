@@ -43,3 +43,8 @@ func (v *Validator) Validate(data interface{}) []ErrorResponse {
 
 	return validationErrors
 }
+
+func InitValidatorForTest() {
+	validate := validator.New()
+	ValidatorInstance = &Validator{validator: validate, log: nil}
+}
