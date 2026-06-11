@@ -34,6 +34,14 @@ func NewJwt(conf *viper.Viper) *JWT {
 	}
 }
 
+func NewTestJWT(accessKey, refreshKey, issuer string) (*JWT, error) {
+	return &JWT{
+		key:        []byte(accessKey),
+		refreshKey: []byte(refreshKey),
+		issuer:     issuer,
+	}, nil
+}
+
 func (j *JWT) Key() []byte {
 	return j.key
 }

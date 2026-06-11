@@ -187,6 +187,9 @@ func (s *authService) Logout(db *gorm.DB, refreshTokenString string) error {
 }
 
 func (s *authService) emitUserCreated(user models.User) {
+	if s.rmq == nil {
+		return
+	}
 	data := map[string]interface{}{
 		"id":            user.ID.String(),
 		"username":      user.Username,
@@ -199,12 +202,16 @@ func (s *authService) emitUserCreated(user models.User) {
 
 	jsonData, marshalErr := json.Marshal(data)
 	if marshalErr != nil {
-		s.log.Error("failed to marshal user.created event", zap.Error(marshalErr))
+		if s.log != nil {
+			s.log.Error("failed to marshal user.created event", zap.Error(marshalErr))
+		}
 		return
 	}
 
 	if err := s.rmq.ProduceToExchange(messaging.ExchangeUserCreated, string(jsonData)); err != nil {
-		s.log.Error("failed to publish user.created event", zap.Error(err))
+		if s.log != nil {
+			s.log.Error("failed to publish user.created event", zap.Error(err))
+		}
 	}
 }
 
