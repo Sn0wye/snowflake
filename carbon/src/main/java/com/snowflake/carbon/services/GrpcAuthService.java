@@ -2,13 +2,13 @@ package com.snowflake.carbon.services;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import io.grpc.Status;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import pb.Auth;
 import pb.AuthServiceGrpc;
 
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -23,6 +23,20 @@ public class GrpcAuthService {
     ) {
         this.channel = ManagedChannelBuilder.forAddress(host, port)
                 .usePlaintext()
+                .defaultServiceConfig(Map.of(
+                        "methodConfig", java.util.List.of(Map.of(
+                                "name", java.util.List.of(Map.of("service", "pb.AuthService")),
+                                "retryPolicy", Map.of(
+                                        // gRPC service config maps only accept Double, not Integer
+                                        "maxAttempts", 4.0,
+                                        "initialBackoff", "0.5s",
+                                        "maxBackoff", "5s",
+                                        "backoffMultiplier", 2.0,
+                                        "retryableStatusCodes", java.util.List.of("UNAVAILABLE")
+                                )
+                        ))
+                ))
+                .enableRetry()
                 .build();
 
         this.authServiceStub = AuthServiceGrpc.newBlockingStub(channel);
@@ -43,28 +57,12 @@ public class GrpcAuthService {
 
     public boolean validateToken(String token) {
         Auth.ValidateTokenRequest request = Auth.ValidateTokenRequest.newBuilder().setToken(token).build();
-        try {
-            Auth.ValidateTokenResponse response = authServiceStub.validateToken(request);
-            return response.getValid();
-        } catch (Exception e) {
-            if (Status.fromThrowable(e).getCode() == Status.Code.UNAVAILABLE) {
-                System.out.println("gRPC server is unavailable!");
-                return false;
-            }
-            throw new RuntimeException("Failed to validate token", e);
-        }
+        Auth.ValidateTokenResponse response = authServiceStub.validateToken(request);
+        return response.getValid();
     }
 
-    public Auth.ParseTokenResponse parseToken(String token) throws Exception {
+    public Auth.ParseTokenResponse parseToken(String token) {
         Auth.ParseTokenRequest request = Auth.ParseTokenRequest.newBuilder().setToken(token).build();
-        try {
-            return authServiceStub.parseToken(request);
-        } catch (Exception e) {
-            if (Status.fromThrowable(e).getCode() == Status.Code.UNAVAILABLE) {
-                System.out.println("gRPC server is unavailable!");
-                return null;
-            }
-            throw new Exception("Failed to parse token", e);
-        }
+        return authServiceStub.parseToken(request);
     }
 }

@@ -17,7 +17,7 @@ public class CreditScoreAdapter : ICreditScoreAdapter
 
     public async Task<int?> GetCreditScoreAsync(string userId)
     {
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient("CreditScorer");
         using var response = await client.GetAsync($"{_scorerBaseUrl.TrimEnd('/')}/{Uri.EscapeDataString(userId)}");
         if (!response.IsSuccessStatusCode) return null;
 
