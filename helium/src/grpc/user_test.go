@@ -204,7 +204,7 @@ func TestGetUsers_UserFieldsMapped(t *testing.T) {
 	}
 }
 
-func TestDeleteUser_TokenWithoutBearer(t *testing.T) {
+func TestDeleteUser_WithClaims(t *testing.T) {
 	svc, jwter := setupUserTest(t)
 	userID := "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b"
 	seedUser(t, svc, userID, "Alice", "alice", "alice@test.com")
