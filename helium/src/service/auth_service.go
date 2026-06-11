@@ -18,6 +18,10 @@ import (
 	"gorm.io/gorm"
 )
 
+type EventBus interface {
+	ProduceToExchange(exchangeName, message string) error
+}
+
 type AuthService interface {
 	Profile(db *gorm.DB, userID string) (dto.ProfileResponse, error)
 	Register(db *gorm.DB, req dto.RegisterRequest) (dto.RegisterResponse, error)
@@ -30,11 +34,11 @@ type authService struct {
 	repos *repository.Factory
 	jwt   *jwt.JWT
 	token TokenService
-	rmq   *messaging.MessagingService
+	rmq   EventBus
 	log   *logger.Logger
 }
 
-func newAuthService(repos *repository.Factory, j *jwt.JWT, token TokenService, rmq *messaging.MessagingService, log *logger.Logger) AuthService {
+func newAuthService(repos *repository.Factory, j *jwt.JWT, token TokenService, rmq EventBus, log *logger.Logger) AuthService {
 	return &authService{repos: repos, jwt: j, token: token, rmq: rmq, log: log}
 }
 

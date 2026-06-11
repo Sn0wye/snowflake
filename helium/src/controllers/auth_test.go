@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
+	"github.com/getsnowflake/snowflake/helium/pkg/logger"
 	"github.com/getsnowflake/snowflake/helium/pkg/validator"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
 	"github.com/getsnowflake/snowflake/helium/src/models"
@@ -16,10 +17,17 @@ import (
 	"github.com/getsnowflake/snowflake/helium/src/service"
 
 	"github.com/gofiber/fiber/v2"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
+
+type fakeEventBus struct{}
+
+func (f *fakeEventBus) ProduceToExchange(exchangeName, message string) error {
+	return nil
+}
 
 type controllerFixture struct {
 	app    *fiber.App
@@ -41,7 +49,8 @@ func setupControllerTest(t *testing.T) *controllerFixture {
 	}
 	jwter, _ := jwt.NewTestJWT("test-access-key-32byteslong!!", "test-refresh-key-32bytes!!", "helium-test")
 	repos := repository.NewFactory()
-	svcFactory := service.NewFactory(repos, jwter, nil, nil)
+	fakeLog := &logger.Logger{Logger: zap.NewNop()}
+	svcFactory := service.NewFactory(repos, jwter, &fakeEventBus{}, fakeLog)
 	ctrl := NewAuthController(db, jwter, svcFactory.Auth, nil)
 	app := fiber.New()
 	return &controllerFixture{
