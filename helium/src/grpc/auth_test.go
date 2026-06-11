@@ -18,9 +18,18 @@ func newTestAuthService(t *testing.T) *authService {
 	return &authService{jwter: jwter}
 }
 
+func genToken(t *testing.T, jwter *jwt.JWT, userID string, exp time.Time) string {
+	t.Helper()
+	token, err := jwter.GenToken(userID, exp)
+	if err != nil {
+		t.Fatalf("failed to generate token: %v", err)
+	}
+	return token
+}
+
 func TestValidateToken_Valid(t *testing.T) {
 	svc := newTestAuthService(t)
-	token, _ := svc.jwter.GenToken("user-1", time.Now().Add(time.Hour))
+	token := genToken(t, svc.jwter, "user-1", time.Now().Add(time.Hour))
 	resp, err := svc.ValidateToken(context.Background(), &pb.ValidateTokenRequest{Token: token})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -32,7 +41,7 @@ func TestValidateToken_Valid(t *testing.T) {
 
 func TestValidateToken_Expired(t *testing.T) {
 	svc := newTestAuthService(t)
-	token, _ := svc.jwter.GenToken("user-1", time.Now().Add(-time.Hour))
+	token := genToken(t, svc.jwter, "user-1", time.Now().Add(-time.Hour))
 	resp, err := svc.ValidateToken(context.Background(), &pb.ValidateTokenRequest{Token: token})
 	if err == nil {
 		t.Fatal("expected error for expired token alongside response")
@@ -55,7 +64,7 @@ func TestValidateToken_Garbage(t *testing.T) {
 
 func TestParseToken_Valid(t *testing.T) {
 	svc := newTestAuthService(t)
-	token, _ := svc.jwter.GenToken("user-1", time.Now().Add(time.Hour))
+	token := genToken(t, svc.jwter, "user-1", time.Now().Add(time.Hour))
 	resp, err := svc.ParseToken(context.Background(), &pb.ParseTokenRequest{Token: token})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -84,7 +93,7 @@ func TestParseToken_Invalid(t *testing.T) {
 
 func TestParseToken_ReturnsRFC3339Timestamps(t *testing.T) {
 	svc := newTestAuthService(t)
-	token, _ := svc.jwter.GenToken("user-1", time.Now().Add(time.Hour))
+	token := genToken(t, svc.jwter, "user-1", time.Now().Add(time.Hour))
 	resp, _ := svc.ParseToken(context.Background(), &pb.ParseTokenRequest{Token: token})
 	_, err := time.Parse(time.RFC3339, resp.Iat)
 	if err != nil {
@@ -98,7 +107,7 @@ func TestParseToken_ReturnsRFC3339Timestamps(t *testing.T) {
 
 func TestParseToken_BearerPrefix(t *testing.T) {
 	svc := newTestAuthService(t)
-	token, _ := svc.jwter.GenToken("user-1", time.Now().Add(time.Hour))
+	token := genToken(t, svc.jwter, "user-1", time.Now().Add(time.Hour))
 	resp, err := svc.ParseToken(context.Background(), &pb.ParseTokenRequest{Token: "Bearer " + token})
 	if err != nil {
 		t.Fatalf("unexpected error with Bearer prefix: %v", err)
@@ -108,13 +117,3 @@ func TestParseToken_BearerPrefix(t *testing.T) {
 	}
 }
 
-func TestValidateToken_ReturnsValidFalseOnError(t *testing.T) {
-	svc := newTestAuthService(t)
-	resp, err := svc.ValidateToken(context.Background(), &pb.ValidateTokenRequest{Token: "junk"})
-	if err == nil {
-		t.Fatal("expected error alongside response for invalid token")
-	}
-	if resp.Valid {
-		t.Fatal("expected Valid=false for invalid token")
-	}
-}

@@ -107,7 +107,7 @@ func TestDeleteUser_Success(t *testing.T) {
 	svc, jwter := setupUserTest(t)
 	userID := "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b"
 	seedUser(t, svc, userID, "Alice", "alice", "alice@test.com")
-	token, _ := jwter.GenToken(userID, time.Now().Add(time.Hour))
+	token := genToken(t, jwter, userID, time.Now().Add(time.Hour))
 	md := metadata.Pairs("authorization", "Bearer "+token)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	resp, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userID})
@@ -169,7 +169,7 @@ func TestDeleteUser_CannotDeleteOtherUser(t *testing.T) {
 	userB := "b2c3d4e5-f6a7-8901-bcde-f12345678901"
 	seedUser(t, svc, userA, "Alice", "alice", "alice@test.com")
 	seedUser(t, svc, userB, "Bob", "bob", "bob@test.com")
-	token, _ := jwter.GenToken(userA, time.Now().Add(time.Hour))
+	token := genToken(t, jwter, userA, time.Now().Add(time.Hour))
 	md := metadata.Pairs("authorization", "Bearer "+token)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	_, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userB})
@@ -185,7 +185,7 @@ func TestDeleteUser_CannotDeleteOtherUser(t *testing.T) {
 func TestDeleteUser_NotFound(t *testing.T) {
 	svc, jwter := setupUserTest(t)
 	userID := "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b"
-	token, _ := jwter.GenToken(userID, time.Now().Add(time.Hour))
+	token := genToken(t, jwter, userID, time.Now().Add(time.Hour))
 	md := metadata.Pairs("authorization", "Bearer "+token)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	_, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userID})
@@ -234,7 +234,7 @@ func TestDeleteUser_TokenWithoutBearer(t *testing.T) {
 	svc, jwter := setupUserTest(t)
 	userID := "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b"
 	seedUser(t, svc, userID, "Alice", "alice", "alice@test.com")
-	token, _ := jwter.GenToken(userID, time.Now().Add(time.Hour))
+	token := genToken(t, jwter, userID, time.Now().Add(time.Hour))
 	md := metadata.Pairs("authorization", token)
 	ctx := metadata.NewIncomingContext(context.Background(), md)
 	resp, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userID})
