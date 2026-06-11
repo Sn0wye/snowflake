@@ -24,7 +24,7 @@ public class ScoreTierTests
         var tier = ScoreTier.For(score);
 
         tier.Name.Should().Be(expectedName);
-        tier.BaseRate.Should().Be(expectedRate);
-        tier.MaxLoanPercentage.Should().Be(expectedMaxLoan);
+        tier.BaseRate.Should().Be((decimal)expectedRate);
+        tier.MaxLoanPercentage.Should().Be((decimal)expectedMaxLoan);
     }
 }

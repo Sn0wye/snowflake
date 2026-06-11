@@ -9,7 +9,7 @@ public class LoanApplication
     public int Id { get; set; }
     public required string UserId { get; set; }
     public LoanApplicationStatus Status { get; set; } = LoanApplicationStatus.PENDING;
-    public double Amount { get; set; }
+    public decimal Amount { get; set; }
     public int Term { get; set; }
     public decimal InterestRate { get; set; }
     public decimal MonthlyPayment { get; set; }

@@ -21,6 +21,6 @@ public class TermMultiplierTests
     {
         var multiplier = TermMultiplier.For(months);
 
-        multiplier.Value.Should().Be(expectedMultiplier);
+        multiplier.Value.Should().Be((decimal)expectedMultiplier);
     }
 }
