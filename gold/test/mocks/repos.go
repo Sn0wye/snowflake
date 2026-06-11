@@ -502,6 +502,9 @@ func (m *MockOutboxRepo) All() []models.OutboxEvent {
 func (m *MockOutboxRepo) Create(_ *gorm.DB, entry *models.OutboxEvent) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if entry.ID == uuid.Nil {
+		entry.ID = uuid.New()
+	}
 	m.entries[entry.ID.String()] = entry
 	return nil
 }
@@ -534,7 +537,7 @@ func (m *MockOutboxRepo) MarkPublished(_ *gorm.DB, id uuid.UUID) error {
 	return nil
 }
 
-func (m *MockOutboxRepo) MarkFailed(_ *gorm.DB, id uuid.UUID, errMsg string) error {
+func (m *MockOutboxRepo) MarkFailed(_ *gorm.DB, id uuid.UUID, errMsg string, maxAttempts int) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	e, ok := m.entries[id.String()]
@@ -543,7 +546,7 @@ func (m *MockOutboxRepo) MarkFailed(_ *gorm.DB, id uuid.UUID, errMsg string) err
 	}
 	e.Attempts++
 	e.LastError = &errMsg
-	if e.Attempts >= 5 {
+	if e.Attempts >= maxAttempts {
 		e.Status = models.OutboxStatusDead
 	}
 	return nil

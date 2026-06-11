@@ -50,33 +50,40 @@ func (w *Worker) Start(ctx context.Context) {
 }
 
 func (w *Worker) processOnce() {
-	entries, err := w.repos.Outbox.ClaimPending(w.db, 20)
-	if err != nil {
-		w.log.Error("Outbox worker: failed to claim pending events", zap.Error(err))
-		return
-	}
+	err := w.db.Transaction(func(tx *gorm.DB) error {
+		entries, err := w.repos.Outbox.ClaimPending(tx, 20)
+		if err != nil {
+			w.log.Error("Outbox worker: failed to claim pending events", zap.Error(err))
+			return err
+		}
 
-	for _, entry := range entries {
-		if err := w.publisher.Produce(entry.QueueName, entry.Payload); err != nil {
-			w.log.Error("Outbox worker: failed to publish event",
-				zap.String("eventID", entry.ID.String()),
-				zap.String("queueName", entry.QueueName),
-				zap.Error(err),
-			)
-			if markErr := w.repos.Outbox.MarkFailed(w.db, entry.ID, err.Error()); markErr != nil {
-				w.log.Error("Outbox worker: failed to mark event as failed",
+		for _, entry := range entries {
+			if pubErr := w.publisher.Produce(entry.QueueName, entry.Payload); pubErr != nil {
+				w.log.Error("Outbox worker: failed to publish event",
+					zap.String("eventID", entry.ID.String()),
+					zap.String("queueName", entry.QueueName),
+					zap.Error(pubErr),
+				)
+				if markErr := w.repos.Outbox.MarkFailed(tx, entry.ID, pubErr.Error(), w.maxAttempts); markErr != nil {
+					w.log.Error("Outbox worker: failed to mark event as failed",
+						zap.String("eventID", entry.ID.String()),
+						zap.Error(markErr),
+					)
+				}
+				continue
+			}
+
+			if markErr := w.repos.Outbox.MarkPublished(tx, entry.ID); markErr != nil {
+				w.log.Error("Outbox worker: failed to mark event as published",
 					zap.String("eventID", entry.ID.String()),
 					zap.Error(markErr),
 				)
 			}
-			continue
 		}
 
-		if err := w.repos.Outbox.MarkPublished(w.db, entry.ID); err != nil {
-			w.log.Error("Outbox worker: failed to mark event as published",
-				zap.String("eventID", entry.ID.String()),
-				zap.Error(err),
-			)
-		}
+		return nil
+	})
+	if err != nil {
+		w.log.Error("Outbox worker: processOnce transaction failed", zap.Error(err))
 	}
 }
