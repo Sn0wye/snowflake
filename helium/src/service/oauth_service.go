@@ -25,11 +25,11 @@ type OAuthService interface {
 type oauthService struct {
 	repos *repository.Factory
 	token TokenService
-	rmq   *messaging.MessagingService
+	rmq   EventBus
 	log   *logger.Logger
 }
 
-func newOAuthService(repos *repository.Factory, token TokenService, rmq *messaging.MessagingService, log *logger.Logger) OAuthService {
+func newOAuthService(repos *repository.Factory, token TokenService, rmq EventBus, log *logger.Logger) OAuthService {
 	return &oauthService{repos: repos, token: token, rmq: rmq, log: log}
 }
 
@@ -173,7 +173,7 @@ func buildUserCreatedJSON(user models.User) (string, error) {
 	return string(jsonData), nil
 }
 
-func publishUserCreated(rmq *messaging.MessagingService, log *logger.Logger, user models.User) {
+func publishUserCreated(rmq EventBus, log *logger.Logger, user models.User) {
 	userJSON, marshalErr := buildUserCreatedJSON(user)
 	if marshalErr != nil {
 		log.Error("failed to marshal user.created event", zap.Error(marshalErr))
