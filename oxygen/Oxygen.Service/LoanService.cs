@@ -12,7 +12,7 @@ public class LoanService(
     IUsersGRPCAdapter usersGrpcAdapter)
     : ILoanService
 {
-    public async Task<LoanApplicationDTO> ApplyForLoan(string userId, double loanAmount, int term)
+    public async Task<LoanApplicationDTO> ApplyForLoan(string userId, decimal loanAmount, int term)
     {
         var userTask = usersGrpcAdapter.GetUserAsync(userId);
         var scoreTask = creditScoreAdapter.GetCreditScoreAsync(userId);
@@ -31,9 +31,9 @@ public class LoanService(
 
         var termMultiplier = Domain.TermMultiplier.For(term);
         var finalRatePercent = tier.BaseRate * termMultiplier.Value;
-        var monthlyRate = finalRatePercent / 12 / 100;
-        var factor = Math.Pow(1 + monthlyRate, term);
-        var monthlyPayment = loanAmount * monthlyRate * factor / (factor - 1);
+        var monthlyRate = finalRatePercent / 12m / 100m;
+        var factor = Domain.DecimalPower.Pow(1m + monthlyRate, term);
+        var monthlyPayment = loanAmount * monthlyRate * factor / (factor - 1m);
         var totalPayment = monthlyPayment * term;
 
         var loan = new Domain.Entities.LoanApplication
@@ -42,9 +42,9 @@ public class LoanService(
             Amount = loanAmount,
             Term = term,
             Status = LoanApplicationStatus.APPROVED,
-            InterestRate = (decimal)finalRatePercent,
-            MonthlyPayment = (decimal)monthlyPayment,
-            TotalPayment = (decimal)totalPayment
+            InterestRate = finalRatePercent,
+            MonthlyPayment = monthlyPayment,
+            TotalPayment = totalPayment
         };
 
         await loanRepository.AddAsync(loan);
@@ -52,7 +52,7 @@ public class LoanService(
         return new LoanApplicationDTO { LoanApplication = loan };
     }
 
-    private async Task<LoanApplicationDTO> RejectAsync(string userId, double amount, int term, string reason)
+    private async Task<LoanApplicationDTO> RejectAsync(string userId, decimal amount, int term, string reason)
     {
         var loan = new Domain.Entities.LoanApplication
         {

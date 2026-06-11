@@ -2,9 +2,9 @@ namespace Oxygen.Domain;
 
 public class TermMultiplier
 {
-    public double Value { get; }
+    public decimal Value { get; }
 
-    private TermMultiplier(double value)
+    private TermMultiplier(decimal value)
     {
         Value = value;
     }
@@ -13,11 +13,11 @@ public class TermMultiplier
     {
         var multiplier = months switch
         {
-            <= 12 => 1.00,
-            <= 24 => 1.15,
-            <= 36 => 1.30,
-            <= 48 => 1.50,
-            _ => 1.70
+            <= 12 => 1.00m,
+            <= 24 => 1.15m,
+            <= 36 => 1.30m,
+            <= 48 => 1.50m,
+            _ => 1.70m
         };
 
         return new TermMultiplier(multiplier);

@@ -14,7 +14,7 @@ public class ApplyForLoanResponse
     
     // <summary> Loan amount </summary>
     // <example>1000.00</example>
-    public double Amount { get; set; }
+    public decimal Amount { get; set; }
     
     // <summary> Loan term in months</summary>
     // <example>12</example>

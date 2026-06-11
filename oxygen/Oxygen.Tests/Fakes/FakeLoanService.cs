@@ -8,10 +8,10 @@ public class FakeLoanService : ILoanService
     public LoanApplicationDTO? Result { get; set; }
 
     public string? LastUserId { get; private set; }
-    public double LastLoanAmount { get; private set; }
+    public decimal LastLoanAmount { get; private set; }
     public int LastTerm { get; private set; }
 
-    public Task<LoanApplicationDTO> ApplyForLoan(string userId, double loanAmount, int term)
+    public Task<LoanApplicationDTO> ApplyForLoan(string userId, decimal loanAmount, int term)
     {
         LastUserId = userId;
         LastLoanAmount = loanAmount;
