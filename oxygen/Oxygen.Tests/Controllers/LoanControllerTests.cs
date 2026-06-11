@@ -34,7 +34,10 @@ public class LoanControllerTests
     }
 
     private static LoanApplicationDTO CreateApplication(
-        LoanApplicationStatus status, LoanApplication? suggestedLoan = null)
+        LoanApplicationStatus status,
+        decimal interestRate = 5m,
+        decimal monthlyPayment = 100m,
+        decimal totalPayment = 1200m)
     {
         return new LoanApplicationDTO
         {
@@ -43,9 +46,11 @@ public class LoanControllerTests
                 UserId = "user-1",
                 Status = status,
                 Amount = 10_000,
-                Term = 12
-            },
-            SuggestedLoan = suggestedLoan
+                Term = 12,
+                InterestRate = interestRate,
+                MonthlyPayment = monthlyPayment,
+                TotalPayment = totalPayment
+            }
         };
     }
 
@@ -63,7 +68,7 @@ public class LoanControllerTests
     }
 
     [Fact]
-    public async Task apply_for_loan_returns_approved_message_when_status_is_approved_and_no_suggestion()
+    public async Task apply_for_loan_returns_approved_message_when_status_is_approved()
     {
         SetUserIdClaim("user-1");
         _loanService.Result = CreateApplication(LoanApplicationStatus.APPROVED);
@@ -74,11 +79,10 @@ public class LoanControllerTests
         var response = okResult.Value.Should().BeOfType<ApplyForLoanResponse>().Subject;
         response.Status.Should().Be(LoanApplicationStatus.APPROVED);
         response.Message.Should().Be("Loan approved :)");
-        response.SuggestedLoan.Should().BeNull();
     }
 
     [Fact]
-    public async Task apply_for_loan_returns_rejected_message_when_status_is_rejected_and_no_suggestion()
+    public async Task apply_for_loan_returns_rejected_message_when_status_is_rejected()
     {
         SetUserIdClaim("user-1");
         _loanService.Result = CreateApplication(LoanApplicationStatus.REJECTED);
@@ -88,51 +92,23 @@ public class LoanControllerTests
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<ApplyForLoanResponse>().Subject;
         response.Status.Should().Be(LoanApplicationStatus.REJECTED);
-        response.Message.Should().Be("Loan rejected, unfortunately we don't have a better option for you at the moment :(");
+        response.Message.Should().Be("Loan rejected, amount exceeds your tier maximum.");
     }
 
     [Fact]
-    public async Task apply_for_loan_returns_better_option_message_when_approved_with_suggestion()
+    public async Task apply_for_loan_returns_financial_fields_from_application()
     {
         SetUserIdClaim("user-1");
-        var suggested = new LoanApplication
-        {
-            UserId = "user-1",
-            Status = LoanApplicationStatus.APPROVED,
-            Amount = 50_000,
-            Term = 36
-        };
-        _loanService.Result = CreateApplication(LoanApplicationStatus.APPROVED, suggested);
+        _loanService.Result = CreateApplication(LoanApplicationStatus.APPROVED, 16m, 907.31m, 10887.70m);
 
         var result = await _sut.ApplyForLoan(new ApplyForLoanRequest { LoanAmount = 10_000, Term = 12 });
 
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<ApplyForLoanResponse>().Subject;
-        response.Status.Should().Be(LoanApplicationStatus.APPROVED);
-        response.Message.Should().Be("Loan approved, but we have a better option for you!");
-        response.SuggestedLoan.Should().NotBeNull();
-        response.SuggestedLoan!.Amount.Should().Be(50_000);
-    }
-
-    [Fact]
-    public async Task apply_for_loan_returns_better_option_message_when_rejected_with_suggestion()
-    {
-        SetUserIdClaim("user-1");
-        var suggested = new LoanApplication
-        {
-            UserId = "user-1",
-            Status = LoanApplicationStatus.APPROVED,
-            Amount = 20_000,
-            Term = 24
-        };
-        _loanService.Result = CreateApplication(LoanApplicationStatus.REJECTED, suggested);
-
-        var result = await _sut.ApplyForLoan(new ApplyForLoanRequest { LoanAmount = 10_000, Term = 12 });
-
-        var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
-        var response = okResult.Value.Should().BeOfType<ApplyForLoanResponse>().Subject;
-        response.Status.Should().Be(LoanApplicationStatus.REJECTED);
-        response.Message.Should().Be("Loan rejected, but we have a better option for you!");
-        response.SuggestedLoan.Should().NotBeNull();
+        response.InterestRate.Should().Be(16m);
+        response.MonthlyPayment.Should().Be(907.31m);
+        response.TotalPayment.Should().Be(10887.70m);
+        response.Amount.Should().Be(10_000);
+        response.Term.Should().Be(12);
     }
 }

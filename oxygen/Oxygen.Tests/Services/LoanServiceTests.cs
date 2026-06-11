@@ -16,89 +16,65 @@ public class LoanServiceTests
     private readonly FakeUsersGRPCAdapter _usersGrpc = new();
     private readonly LoanService _sut;
 
+    private const string DefaultUserId = "user-1";
+    private const long DefaultAnnualIncome = 100_000;
+
     public LoanServiceTests()
     {
         _sut = new LoanService(_loanRepo, _creditScore, _usersGrpc);
+        _usersGrpc.User = new User { Id = DefaultUserId, AnnualIncome = DefaultAnnualIncome };
     }
 
     [Fact]
-    public async Task apply_for_loan_approves_when_credit_score_at_least_600()
+    public async Task approve_loan_with_correct_rate_and_payments_when_amount_within_tier_cap()
     {
-        const string userId = "user-1";
-        var user = new User { Id = userId, AnnualIncome = 100_000 };
-        _usersGrpc.User = user;
         _creditScore.Score = 650;
 
-        var result = await _sut.ApplyForLoan(userId, 10_000, 12);
+        var result = await _sut.ApplyForLoan(DefaultUserId, 10_000, 12);
 
         result.LoanApplication.Status.Should().Be(LoanApplicationStatus.APPROVED);
-        result.LoanApplication.UserId.Should().Be(userId);
         result.LoanApplication.Amount.Should().Be(10_000);
         result.LoanApplication.Term.Should().Be(12);
+        result.LoanApplication.InterestRate.Should().Be(16m);
+        result.LoanApplication.MonthlyPayment.Should().BeApproximately(907.31m, 0.01m);
+        result.LoanApplication.TotalPayment.Should().BeApproximately(10887.70m, 0.01m);
     }
 
     [Fact]
-    public async Task apply_for_loan_rejects_when_credit_score_below_600()
+    public async Task reject_loan_when_requested_amount_exceeds_tier_income_cap()
     {
-        const string userId = "user-2";
-        _usersGrpc.User = new User { Id = userId, AnnualIncome = 100_000 };
-        _creditScore.Score = 550;
+        _creditScore.Score = 650;
 
-        var result = await _sut.ApplyForLoan(userId, 10_000, 12);
+        var result = await _sut.ApplyForLoan(DefaultUserId, 50_000, 12);
 
         result.LoanApplication.Status.Should().Be(LoanApplicationStatus.REJECTED);
     }
 
     [Fact]
-    public async Task apply_for_loan_returns_no_suggestion_when_score_is_null()
+    public async Task reject_loan_when_score_is_null()
     {
-        const string userId = "user-3";
-        _usersGrpc.User = new User { Id = userId, AnnualIncome = 100_000 };
         _creditScore.Score = null;
 
-        var result = await _sut.ApplyForLoan(userId, 10_000, 12);
+        var result = await _sut.ApplyForLoan(DefaultUserId, 10_000, 12);
 
-        result.SuggestedLoan.Should().BeNull();
         result.LoanApplication.Status.Should().Be(LoanApplicationStatus.REJECTED);
     }
 
     [Fact]
-    public async Task apply_for_loan_persists_the_original_application()
+    public async Task persist_loan_application_with_financial_fields()
     {
-        const string userId = "user-4";
-        _usersGrpc.User = new User { Id = userId, AnnualIncome = 100_000 };
         _creditScore.Score = 700;
 
-        await _sut.ApplyForLoan(userId, 5_000, 6);
+        await _sut.ApplyForLoan(DefaultUserId, 5_000, 6);
 
         _loanRepo.AddedLoans.Should().ContainSingle()
             .Which.Should().Match<LoanApplication>(
-                la => la.UserId == userId && la.Amount == 5_000 && la.Term == 6);
-    }
-
-    [Theory]
-    [InlineData(800, 0.5, 36)]
-    [InlineData(900, 0.5, 36)]
-    [InlineData(600, 0.35, 24)]
-    [InlineData(700, 0.35, 24)]
-    [InlineData(799, 0.35, 24)]
-    [InlineData(300, 0.2, 12)]
-    [InlineData(599, 0.2, 12)]
-    public async Task apply_for_loan_suggests_better_loan_with_correct_income_and_term(
-        int score, double incomeFraction, int expectedTerm)
-    {
-        const long annualIncome = 200_000;
-        const string userId = "user-suggest";
-        _usersGrpc.User = new User { Id = userId, AnnualIncome = annualIncome };
-        _creditScore.Score = score;
-
-        var result = await _sut.ApplyForLoan(userId, 10_000, 12);
-
-        result.SuggestedLoan.Should().NotBeNull();
-        result.SuggestedLoan!.Status.Should().Be(LoanApplicationStatus.APPROVED);
-        result.SuggestedLoan.Amount.Should().Be(annualIncome * incomeFraction);
-        result.SuggestedLoan.Term.Should().Be(expectedTerm);
-        result.SuggestedLoan.UserId.Should().Be(userId);
+                la => la.UserId == DefaultUserId
+                      && la.Amount == 5_000
+                      && la.Term == 6
+                      && la.InterestRate > 0
+                      && la.MonthlyPayment > 0
+                      && la.TotalPayment > 0);
     }
 
     [Fact]
