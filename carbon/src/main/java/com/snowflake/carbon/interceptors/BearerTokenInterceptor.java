@@ -1,6 +1,8 @@
 package com.snowflake.carbon.interceptors;
 
+import com.snowflake.carbon.exceptions.ServiceUnavailableException;
 import com.snowflake.carbon.exceptions.UnauthorizedException;
+import io.grpc.StatusRuntimeException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,16 +38,16 @@ public class BearerTokenInterceptor implements HandlerInterceptor {
             try {
                 Auth.ParseTokenResponse validatedToken = grpcAuthService.parseToken(bearerToken);
 
-                if (validatedToken == null) {
-                    System.err.println("Token validation returned null");
-                    throw new UnauthorizedException("Invalid token");
-                }
-
                 request.setAttribute("bearerToken", bearerToken);
                 request.setAttribute("userId", validatedToken.getSub());
                 request.setAttribute("token", validatedToken);
+            } catch (StatusRuntimeException e) {
+                if (e.getStatus().getCode() == io.grpc.Status.Code.UNAVAILABLE) {
+                    throw new ServiceUnavailableException("Auth service unavailable");
+                }
+                throw new UnauthorizedException("JWT parsing or validation failed: " + e.getMessage());
             } catch (Exception e) {
-                throw new UnauthorizedException("JWT parsing or validation failed" + e.getMessage());
+                throw new UnauthorizedException("JWT parsing or validation failed: " + e.getMessage());
             }
         } else {
             throw new UnauthorizedException("Unauthorized");

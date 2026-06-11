@@ -6,6 +6,7 @@ using Oxygen.API.Filters;
 using Oxygen.API.Middleware;
 using Oxygen.Infrastructure;
 using Oxygen.Infrastructure.Adapters;
+using Oxygen.Infrastructure.Extensions;
 using Oxygen.Repository;
 using Oxygen.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -73,7 +74,7 @@ builder.Services.AddControllers(options =>
     })
     .AddJsonOptions(options => { options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()); });
 builder.Services.AddDbContext<ApplicationDbContext>();
-builder.Services.AddHttpClient();
+builder.Services.AddCreditScoreAdapter();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -109,7 +110,6 @@ builder.Services.AddScoped<ILoanRepository, LoanRepository>();
 
 // Adapters
 builder.Services.AddScoped<IUsersGRPCAdapter, UsersGRPCAdapter>();
-builder.Services.AddScoped<ICreditScoreAdapter, CreditScoreAdapter>();
 
 // Services
 builder.Services.AddScoped<ILoanService, LoanService>();
