@@ -23,4 +23,15 @@ public class TermMultiplierTests
 
         multiplier.Value.Should().Be((decimal)expectedMultiplier);
     }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(61)]
+    public void for_months_throws_on_out_of_range(int months)
+    {
+        var act = () => TermMultiplier.For(months);
+
+        act.Should().Throw<ArgumentOutOfRangeException>()
+            .WithMessage($"*{months}*");
+    }
 }

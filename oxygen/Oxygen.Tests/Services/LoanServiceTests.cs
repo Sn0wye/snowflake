@@ -49,6 +49,9 @@ public class LoanServiceTests
 
         result.LoanApplication.Status.Should().Be(LoanApplicationStatus.REJECTED);
         result.RejectionReason.Should().Be("Requested amount exceeds your tier maximum.");
+        result.LoanApplication.InterestRate.Should().BeNull();
+        result.LoanApplication.MonthlyPayment.Should().BeNull();
+        result.LoanApplication.TotalPayment.Should().BeNull();
     }
 
     [Fact]
@@ -60,6 +63,9 @@ public class LoanServiceTests
 
         result.LoanApplication.Status.Should().Be(LoanApplicationStatus.REJECTED);
         result.RejectionReason.Should().Be("No credit score available.");
+        result.LoanApplication.InterestRate.Should().BeNull();
+        result.LoanApplication.MonthlyPayment.Should().BeNull();
+        result.LoanApplication.TotalPayment.Should().BeNull();
     }
 
     [Fact]

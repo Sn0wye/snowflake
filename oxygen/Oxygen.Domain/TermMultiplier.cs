@@ -11,6 +11,10 @@ public class TermMultiplier
 
     public static TermMultiplier For(int months)
     {
+        if (months < 1 || months > 60)
+            throw new ArgumentOutOfRangeException(nameof(months),
+                $"Term must be between 1 and 60 months, got {months}.");
+
         var multiplier = months switch
         {
             <= 12 => 1.00m,
