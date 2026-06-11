@@ -100,22 +100,25 @@ channels:
       TransactionCreated:
         $ref: '#/components/messages/TransactionCreated'
 
-  transactionCompleted:
-    address: transaction.completed
+  transactionReceived:
+    address: transaction.received
     description: >
-      Published by Gold when a transaction completes (transfer or deposit).
+      Published by Gold via outbox pattern when a transaction completes
+      (transfer or deposit). Receiver-centric — only the receiving account
+      is notified. At-least-once delivery; consumers must deduplicate on
+      transaction_id.
     bindings:
       amqp:
         is: queue
         queue:
-          name: transaction.completed
+          name: transaction.received
           durable: true
           exclusive: false
           autoDelete: false
         bindingVersion: 0.3.0
     messages:
-      TransactionCompleted:
-        $ref: '#/components/messages/TransactionCompleted'
+      TransactionReceived:
+        $ref: '#/components/messages/TransactionReceived'
 
   transactionFailed:
     address: transaction.failed
@@ -176,13 +179,13 @@ operations:
     messages:
       - $ref: '#/channels/transactionCreated/messages/TransactionCreated'
 
-  goldSendTransactionCompleted:
+  goldSendTransactionReceived:
     action: send
     channel:
-      $ref: '#/channels/transactionCompleted'
-    summary: Gold publishes transaction.completed on successful transfer or deposit
+      $ref: '#/channels/transactionReceived'
+    summary: Gold publishes transaction.received on successful transfer or deposit (outbox pattern, at-least-once)
     messages:
-      - $ref: '#/channels/transactionCompleted/messages/TransactionCompleted'
+      - $ref: '#/channels/transactionReceived/messages/TransactionReceived'
 
   goldSendTransactionFailed:
     action: send
@@ -292,10 +295,10 @@ components:
             format: date-time
             description: ISO 8601 timestamp of transaction creation
 
-    TransactionCompleted:
-      name: TransactionCompleted
-      title: Transaction Completed Event
-      summary: Published by Gold when a transaction completes successfully.
+    TransactionReceived:
+      name: TransactionReceived
+      title: Transaction Received Event
+      summary: Published by Gold via outbox pattern when a transaction completes. Receiver-centric — only the receiving account payload. At-least-once; consumers must deduplicate on transaction_id.
       contentType: application/json
       payload:
         type: object
@@ -303,6 +306,7 @@ components:
           - transaction_id
           - type
           - amount
+          - receiver_account_id
           - completed_at
         properties:
           transaction_id:
@@ -315,10 +319,6 @@ components:
           amount:
             type: integer
             description: Amount in USD cents
-          sender_account_id:
-            type: string
-            format: uuid
-            description: Sender account UUID (present for transfers)
           receiver_account_id:
             type: string
             format: uuid
