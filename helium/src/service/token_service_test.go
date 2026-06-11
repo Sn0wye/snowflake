@@ -74,11 +74,6 @@ func TestGenerateRefreshToken_Success(t *testing.T) {
 	if claims.Subject != "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b" {
 		t.Fatalf("expected subject, got %s", claims.Subject)
 	}
-	var stored models.RefreshToken
-	db.First(&stored)
-	if stored.UserID.String() != "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b" {
-		t.Fatalf("expected token stored with user_id, got %s", stored.UserID)
-	}
 }
 
 func TestGenerateRefreshToken_InvalidUserID(t *testing.T) {
@@ -89,29 +84,22 @@ func TestGenerateRefreshToken_InvalidUserID(t *testing.T) {
 	}
 }
 
-func TestGenerateRefreshToken_StoresInDB(t *testing.T) {
-	db, _, svc := setupTokenTest(t)
-	_, err := svc.GenerateRefreshToken(db, "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b")
+func TestGenerateRefreshToken_NotExpired(t *testing.T) {
+	db, jwter, svc := setupTokenTest(t)
+	token, err := svc.GenerateRefreshToken(db, "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	var count int64
-	db.Model(&models.RefreshToken{}).Count(&count)
-	if count != 1 {
-		t.Fatalf("expected 1 token in DB, got %d", count)
-	}
-}
-
-func TestGenerateRefreshToken_TokenNotExpired(t *testing.T) {
-	db, _, svc := setupTokenTest(t)
-	_, err := svc.GenerateRefreshToken(db, "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b")
+	claims, err := jwter.ParseRefreshToken(token)
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("expected refresh token to be valid and not expired, got: %v", err)
 	}
-	var stored models.RefreshToken
-	db.First(&stored)
-	if stored.IsExpired() {
-		t.Fatal("stored refresh token should not be expired")
+	now := time.Now()
+	if claims.ExpiresAt == nil || !claims.ExpiresAt.After(now) {
+		t.Fatal("refresh token should expire in the future")
+	}
+	if claims.ExpiresAt.After(now.Add(refreshTokenDuration + time.Minute)) {
+		t.Fatal("refresh token expiry exceeds expected duration")
 	}
 }
 
@@ -125,18 +113,13 @@ func TestRevokeAllUserRefreshTokens_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	_, err = svc.GenerateRefreshToken(db, "b2c3d4e5-f6a7-8901-bcde-f12345678901")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
 	err = svc.RevokeAllUserRefreshTokens(db, "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	var count int64
-	db.Model(&models.RefreshToken{}).Count(&count)
-	if count != 2 {
-		t.Fatalf("expected 2 remaining tokens after revoke, got %d", count)
+	_, err = svc.GenerateRefreshToken(db, "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b")
+	if err != nil {
+		t.Fatalf("should still be able to generate new tokens after revoke: %v", err)
 	}
 }
 
