@@ -14,6 +14,8 @@ namespace Oxygen.Infrastructure.Migrations
                 name: "amount",
                 table: "loan_applications",
                 type: "numeric(18,2)",
+                precision: 18,
+                scale: 2,
                 nullable: false,
                 oldClrType: typeof(double),
                 oldType: "double precision");
@@ -22,18 +24,24 @@ namespace Oxygen.Infrastructure.Migrations
                 name: "interest_rate",
                 table: "loan_applications",
                 type: "numeric(18,6)",
+                precision: 18,
+                scale: 6,
                 nullable: true);
 
             migrationBuilder.AddColumn<decimal>(
                 name: "monthly_payment",
                 table: "loan_applications",
                 type: "numeric(18,2)",
+                precision: 18,
+                scale: 2,
                 nullable: true);
 
             migrationBuilder.AddColumn<decimal>(
                 name: "total_payment",
                 table: "loan_applications",
                 type: "numeric(18,2)",
+                precision: 18,
+                scale: 2,
                 nullable: true);
         }
 
@@ -58,7 +66,9 @@ namespace Oxygen.Infrastructure.Migrations
                 type: "double precision",
                 nullable: false,
                 oldClrType: typeof(decimal),
-                oldType: "numeric");
+                oldType: "numeric(18,2)",
+                oldPrecision: 18,
+                oldScale: 2);
         }
     }
 }
