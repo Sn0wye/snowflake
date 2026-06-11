@@ -151,7 +151,9 @@ func TestControllerLogin_Success(t *testing.T) {
 		t.Fatalf("expected 200, got %d. body: %s", resp.StatusCode, string(body))
 	}
 	var loginResp dto.LoginResponse
-	json.Unmarshal(body, &loginResp)
+	if err := json.Unmarshal(body, &loginResp); err != nil {
+		t.Fatalf("failed to parse login response: %v", err)
+	}
 	if loginResp.AccessToken == "" {
 		t.Fatal("expected access_token in login response")
 	}
@@ -184,7 +186,9 @@ func TestControllerRefresh_Success(t *testing.T) {
 		t.Fatalf("expected 200 for refresh, got %d. body: %s", resp.StatusCode, string(body))
 	}
 	var refreshResp dto.RefreshResponse
-	json.Unmarshal(body, &refreshResp)
+	if err := json.Unmarshal(body, &refreshResp); err != nil {
+		t.Fatalf("failed to parse refresh response: %v", err)
+	}
 	if refreshResp.AccessToken == "" || refreshResp.RefreshToken == "" {
 		t.Fatal("expected access_token and refresh_token in refresh response")
 	}
