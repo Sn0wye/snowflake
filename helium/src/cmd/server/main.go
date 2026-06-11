@@ -21,7 +21,6 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 )
 
 //	@title			Snowflake API Reference
@@ -52,7 +51,7 @@ func main() {
 
 	// Start servers
 	go startHTTPServer(conf, logger, rmq)
-	go startGRPCServer(conf)
+	go startGRPCServer(conf, logger)
 
 	<-quit // Wait for shutdown signal
 
@@ -120,7 +119,7 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 	}
 }
 
-func startGRPCServer(conf *viper.Viper) {
+func startGRPCServer(conf *viper.Viper, l *logger.Logger) {
 	grpcPort := conf.GetInt("grpc.port")
 	grpcFormattedPort := fmt.Sprintf(":%d", grpcPort)
 
@@ -129,8 +128,7 @@ func startGRPCServer(conf *viper.Viper) {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
-	s := grpc.NewServer()
-	grpcs.RegisterAllServices(s)
+	s := grpcs.NewServer(l.Logger)
 	log.Printf("gRPC server is running on port %d\n", grpcPort)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve gRPC server: %v", err)

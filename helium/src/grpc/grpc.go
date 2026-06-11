@@ -1,13 +1,28 @@
 package grpc
 
 import (
+	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/src/db"
 
-	grpc "google.golang.org/grpc"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
-func RegisterAllServices(s *grpc.Server) {
+func NewServer(log *zap.Logger) *grpc.Server {
+	jwter := newJWT()
+	s := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(
+			RecoveryInterceptor(log),
+			LoggingInterceptor(log),
+			AuthInterceptor(jwter),
+		),
+	)
+	RegisterAllServices(s, jwter)
+	return s
+}
+
+func RegisterAllServices(s *grpc.Server, jwter *jwt.JWT) {
 	dbInstance := db.GetDB()
-	RegisterAuthService(s)
-	RegisterUserService(s, dbInstance)
+	RegisterAuthService(s, jwter)
+	RegisterUserService(s, dbInstance, jwter)
 }

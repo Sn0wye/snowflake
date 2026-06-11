@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/getsnowflake/snowflake/helium/pb"
-	"github.com/getsnowflake/snowflake/helium/pkg/config"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 
 	"google.golang.org/grpc"
@@ -41,7 +40,6 @@ func (s *authService) ParseToken(ctx context.Context, req *pb.ParseTokenRequest)
 	}, nil
 }
 
-func RegisterAuthService(s *grpc.Server) {
-	jwter := jwt.NewJwt(config.GetConfig())
+func RegisterAuthService(s *grpc.Server, jwter *jwt.JWT) {
 	pb.RegisterAuthServiceServer(s, &authService{jwter: jwter})
 }
