@@ -479,3 +479,72 @@ func (m *MockFlakeRepo) UpdateStatus(_ *gorm.DB, flake *models.Flake, status mod
 func newUniqueViolation() error {
 	return &pgconn.PgError{Code: "23505", Message: "duplicate key value violates unique constraint"}
 }
+
+type MockOutboxRepo struct {
+	mu      sync.RWMutex
+	entries map[string]*models.OutboxEvent
+}
+
+func NewMockOutboxRepo() *MockOutboxRepo {
+	return &MockOutboxRepo{entries: make(map[string]*models.OutboxEvent)}
+}
+
+func (m *MockOutboxRepo) All() []models.OutboxEvent {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	result := make([]models.OutboxEvent, 0, len(m.entries))
+	for _, e := range m.entries {
+		result = append(result, *e)
+	}
+	return result
+}
+
+func (m *MockOutboxRepo) Create(_ *gorm.DB, entry *models.OutboxEvent) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.entries[entry.ID.String()] = entry
+	return nil
+}
+
+func (m *MockOutboxRepo) ClaimPending(_ *gorm.DB, limit int) ([]models.OutboxEvent, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	var result []models.OutboxEvent
+	for _, e := range m.entries {
+		if e.Status == models.OutboxStatusPending {
+			result = append(result, *e)
+		}
+	}
+	if len(result) > limit {
+		result = result[:limit]
+	}
+	return result, nil
+}
+
+func (m *MockOutboxRepo) MarkPublished(_ *gorm.DB, id uuid.UUID) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e, ok := m.entries[id.String()]
+	if !ok {
+		return gorm.ErrRecordNotFound
+	}
+	e.Status = models.OutboxStatusPublished
+	now := time.Now()
+	e.PublishedAt = &now
+	return nil
+}
+
+func (m *MockOutboxRepo) MarkFailed(_ *gorm.DB, id uuid.UUID, errMsg string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	e, ok := m.entries[id.String()]
+	if !ok {
+		return gorm.ErrRecordNotFound
+	}
+	e.Attempts++
+	e.LastError = &errMsg
+	if e.Attempts >= 5 {
+		e.Status = models.OutboxStatusDead
+	}
+	return nil
+}

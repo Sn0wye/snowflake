@@ -53,11 +53,19 @@ type FlakeRepository interface {
 	UpdateStatus(db *gorm.DB, flake *models.Flake, status models.FlakeStatus) error
 }
 
+type OutboxRepository interface {
+	Create(db *gorm.DB, entry *models.OutboxEvent) error
+	ClaimPending(db *gorm.DB, limit int) ([]models.OutboxEvent, error)
+	MarkPublished(db *gorm.DB, id uuid.UUID) error
+	MarkFailed(db *gorm.DB, id uuid.UUID, errMsg string) error
+}
+
 type Factory struct {
 	Account            AccountRepository
 	Transaction        TransactionRepository
 	TransactionHistory TransactionHistoryRepository
 	Flake              FlakeRepository
+	Outbox             OutboxRepository
 }
 
 func NewFactory() *Factory {
@@ -66,5 +74,6 @@ func NewFactory() *Factory {
 		Transaction:        NewTransactionRepo(),
 		TransactionHistory: NewTransactionHistoryRepo(),
 		Flake:              NewFlakeRepo(),
+		Outbox:             NewOutboxRepo(),
 	}
 }
