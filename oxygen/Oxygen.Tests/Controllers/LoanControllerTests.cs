@@ -37,7 +37,8 @@ public class LoanControllerTests
         LoanApplicationStatus status,
         decimal interestRate = 5m,
         decimal monthlyPayment = 100m,
-        decimal totalPayment = 1200m)
+        decimal totalPayment = 1200m,
+        string? rejectionReason = null)
     {
         return new LoanApplicationDTO
         {
@@ -50,7 +51,8 @@ public class LoanControllerTests
                 InterestRate = interestRate,
                 MonthlyPayment = monthlyPayment,
                 TotalPayment = totalPayment
-            }
+            },
+            RejectionReason = rejectionReason
         };
     }
 
@@ -85,14 +87,15 @@ public class LoanControllerTests
     public async Task apply_for_loan_returns_rejected_message_when_status_is_rejected()
     {
         SetUserIdClaim("user-1");
-        _loanService.Result = CreateApplication(LoanApplicationStatus.REJECTED);
+        _loanService.Result = CreateApplication(LoanApplicationStatus.REJECTED,
+            rejectionReason: "Requested amount exceeds your tier maximum.");
 
         var result = await _sut.ApplyForLoan(new ApplyForLoanRequest { LoanAmount = 10_000, Term = 12 });
 
         var okResult = result.Result.Should().BeOfType<OkObjectResult>().Subject;
         var response = okResult.Value.Should().BeOfType<ApplyForLoanResponse>().Subject;
         response.Status.Should().Be(LoanApplicationStatus.REJECTED);
-        response.Message.Should().Be("Loan rejected, amount exceeds your tier maximum.");
+        response.Message.Should().Be("Loan rejected: Requested amount exceeds your tier maximum.");
     }
 
     [Fact]
