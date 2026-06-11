@@ -22,13 +22,13 @@ public class ApplyForLoanResponse
     
     // <summary> Final annual interest rate applied </summary>
     // <example>5.0</example>
-    public decimal InterestRate { get; set; }
+    public decimal? InterestRate { get; set; }
 
     // <summary> Monthly payment amount </summary>
     // <example>456.78</example>
-    public decimal MonthlyPayment { get; set; }
+    public decimal? MonthlyPayment { get; set; }
 
     // <summary> Total payment over the life of the loan </summary>
     // <example>5481.36</example>
-    public decimal TotalPayment { get; set; }
+    public decimal? TotalPayment { get; set; }
 }

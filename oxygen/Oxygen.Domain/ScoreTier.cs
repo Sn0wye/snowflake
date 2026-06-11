@@ -15,6 +15,10 @@ public class ScoreTier
 
     public static ScoreTier For(int score)
     {
+        if (score < 0 || score > 900)
+            throw new ArgumentOutOfRangeException(nameof(score),
+                $"Score must be between 0 and 900, got {score}.");
+
         if (score <= 599)
             return new ScoreTier("Poor", 0.22m, 0.15m);
 

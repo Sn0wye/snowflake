@@ -27,4 +27,15 @@ public class ScoreTierTests
         tier.Rate.Should().Be((decimal)expectedRate);
         tier.MaxLoanFraction.Should().Be((decimal)expectedMaxLoanFraction);
     }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(901)]
+    public void for_score_throws_on_out_of_range(int score)
+    {
+        var act = () => ScoreTier.For(score);
+
+        act.Should().Throw<ArgumentOutOfRangeException>()
+            .WithMessage($"*{score}*");
+    }
 }
