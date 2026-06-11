@@ -144,9 +144,12 @@ func TestDeleteUser_CannotDeleteOtherUser(t *testing.T) {
 	seedUser(t, svc, userA, "Alice", "alice", "alice@test.com")
 	seedUser(t, svc, userB, "Bob", "bob", "bob@test.com")
 	token := genToken(t, jwter, userA, time.Now().Add(time.Hour))
-	claims, _ := jwter.ParseToken(token)
+	claims, err := jwter.ParseToken(token)
+	if err != nil {
+		t.Fatalf("failed to parse token: %v", err)
+	}
 	ctx := context.WithValue(context.Background(), claimsCtxKey{}, claims)
-	_, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userB})
+	_, err = svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userB})
 	if err == nil {
 		t.Fatal("expected error when deleting another user")
 	}
@@ -160,9 +163,12 @@ func TestDeleteUser_NotFound(t *testing.T) {
 	svc, jwter := setupUserTest(t)
 	userID := "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b"
 	token := genToken(t, jwter, userID, time.Now().Add(time.Hour))
-	claims, _ := jwter.ParseToken(token)
+	claims, err := jwter.ParseToken(token)
+	if err != nil {
+		t.Fatalf("failed to parse token: %v", err)
+	}
 	ctx := context.WithValue(context.Background(), claimsCtxKey{}, claims)
-	_, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userID})
+	_, err = svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userID})
 	if err == nil {
 		t.Fatal("expected error for non-existent user")
 	}
@@ -209,7 +215,10 @@ func TestDeleteUser_WithClaims(t *testing.T) {
 	userID := "1b7e4a5e-9d3c-4e2f-8a1d-6c5b9e0f1a2b"
 	seedUser(t, svc, userID, "Alice", "alice", "alice@test.com")
 	token := genToken(t, jwter, userID, time.Now().Add(time.Hour))
-	claims, _ := jwter.ParseToken(token)
+	claims, err := jwter.ParseToken(token)
+	if err != nil {
+		t.Fatalf("failed to parse token: %v", err)
+	}
 	ctx := context.WithValue(context.Background(), claimsCtxKey{}, claims)
 	resp, err := svc.DeleteUser(ctx, &pb.DeleteUserRequest{Id: userID})
 	if err != nil {
