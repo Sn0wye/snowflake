@@ -13,6 +13,7 @@ func NewServer(log *zap.Logger) *grpc.Server {
 	s := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
 			RecoveryInterceptor(log),
+			CorrelationInterceptor(),
 			LoggingInterceptor(log),
 			AuthInterceptor(jwter),
 		),
