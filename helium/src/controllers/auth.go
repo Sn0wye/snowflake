@@ -4,7 +4,7 @@ import (
 	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/pkg/logger"
-	"github.com/getsnowflake/snowflake/helium/src/middleware"
+	"github.com/getsnowflake/snowflake/helium/pkg/middleware"
 	"github.com/getsnowflake/snowflake/helium/src/service"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
 	"github.com/getsnowflake/snowflake/helium/src/utils"
@@ -81,7 +81,7 @@ func (s *authController) Register(c *fiber.Ctx) error {
 		return err
 	}
 
-	resp, err := s.services.Register(s.db, *body, middleware.GetCorrelationID(c))
+	resp, err := s.services.Register(s.db, *body, s.log.WithContext(c).Logger, middleware.GetCorrelationID(c))
 	if err != nil {
 		if errors.Is(err, service.ErrEmailAlreadyTaken) {
 			return exceptions.Conflict(c, "Email already taken")

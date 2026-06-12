@@ -14,7 +14,7 @@ import (
 	"github.com/getsnowflake/snowflake/helium/pkg/validator"
 	"github.com/getsnowflake/snowflake/helium/src/db"
 	grpcs "github.com/getsnowflake/snowflake/helium/src/grpc"
-	"github.com/getsnowflake/snowflake/helium/src/middleware"
+	"github.com/getsnowflake/snowflake/helium/pkg/middleware"
 	"github.com/getsnowflake/snowflake/helium/src/routes"
 
 	"github.com/gofiber/fiber/v2"
