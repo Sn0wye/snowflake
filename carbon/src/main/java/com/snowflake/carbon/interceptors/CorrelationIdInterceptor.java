@@ -16,6 +16,12 @@ public class CorrelationIdInterceptor implements HandlerInterceptor {
         String correlationId = request.getHeader("X-Correlation-ID");
         if (correlationId == null || correlationId.isEmpty()) {
             correlationId = UUID.randomUUID().toString();
+        } else {
+            try {
+                UUID.fromString(correlationId);
+            } catch (IllegalArgumentException e) {
+                correlationId = UUID.randomUUID().toString();
+            }
         }
         response.setHeader("X-Correlation-ID", correlationId);
         MDC.put("correlation_id", correlationId);

@@ -49,10 +49,16 @@ func CorrelationInterceptor() grpc.UnaryServerInterceptor {
 		if len(vals) > 0 {
 			id = vals[0]
 		}
+		if id != "" {
+			if _, err := uuid.Parse(id); err != nil {
+				id = ""
+			}
+		}
 		if id == "" {
 			id = uuid.New().String()
 		}
 		ctx = context.WithValue(ctx, correlationCtxKey{}, id)
+		_ = grpc.SetHeader(ctx, metadata.Pairs("x-correlation-id", id))
 		return handler(ctx, req)
 	}
 }

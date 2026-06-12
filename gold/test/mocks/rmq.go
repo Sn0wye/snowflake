@@ -8,12 +8,16 @@ import (
 )
 
 type MockRmq struct {
-	mu       sync.Mutex
-	messages []string
+	mu             sync.Mutex
+	messages       []string
+	correlationIDs []string
 }
 
 func NewMockRmq() *MockRmq {
-	return &MockRmq{messages: make([]string, 0)}
+	return &MockRmq{
+		messages:       make([]string, 0),
+		correlationIDs: make([]string, 0),
+	}
 }
 
 func (m *MockRmq) Produce(queueName, message string) error {
@@ -27,6 +31,7 @@ func (m *MockRmq) ProduceWithHeaders(queueName, message, correlationID string) e
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.messages = append(m.messages, message)
+	m.correlationIDs = append(m.correlationIDs, correlationID)
 	return nil
 }
 
@@ -35,6 +40,14 @@ func (m *MockRmq) Messages() []string {
 	defer m.mu.Unlock()
 	cp := make([]string, len(m.messages))
 	copy(cp, m.messages)
+	return cp
+}
+
+func (m *MockRmq) CorrelationIDs() []string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	cp := make([]string, len(m.correlationIDs))
+	copy(cp, m.correlationIDs)
 	return cp
 }
 

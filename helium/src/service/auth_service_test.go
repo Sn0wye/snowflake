@@ -178,6 +178,29 @@ func TestAuthService_Register_Success(t *testing.T) {
 	}
 }
 
+func TestAuthService_Register_CorrelationIDForwarded(t *testing.T) {
+	fx := setupAuthServiceTest(t)
+	req := dto.RegisterRequest{
+		Name:         "Carol",
+		Username:     "carol",
+		Password:     "secret123",
+		Email:        "carol@test.com",
+		AnnualIncome: 60000,
+		Debt:         10000,
+		AssetsValue:  150000,
+	}
+	_, err := fx.auth.Register(fx.db, req, zap.NewNop(), "test-correlation-id")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(fx.eventBus.calls) != 1 {
+		t.Fatalf("expected 1 event, got %d", len(fx.eventBus.calls))
+	}
+	if fx.eventBus.calls[0].correlationID != "test-correlation-id" {
+		t.Fatalf("expected correlationID test-correlation-id, got %s", fx.eventBus.calls[0].correlationID)
+	}
+}
+
 func TestAuthService_Register_EmailAlreadyTaken(t *testing.T) {
 	fx := setupAuthServiceTest(t)
 	req := dto.RegisterRequest{
