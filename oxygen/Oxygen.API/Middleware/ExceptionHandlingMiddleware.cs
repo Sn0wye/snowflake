@@ -18,7 +18,7 @@ public class ExceptionHandlingMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         var correlationId = context.Request.Headers["X-Correlation-ID"].FirstOrDefault();
-        if (string.IsNullOrEmpty(correlationId))
+        if (string.IsNullOrEmpty(correlationId) || !Guid.TryParse(correlationId, out _))
         {
             correlationId = Guid.NewGuid().ToString();
         }

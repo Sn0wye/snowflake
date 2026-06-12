@@ -47,7 +47,7 @@ public class ScoreConsumer {
                     BigDecimal.valueOf(userCreatedEvent.assets_value())
             );
 
-            broadcastScoreUpdatedEvent(score);
+            broadcastScoreUpdatedEvent(score, correlationId);
         } catch (JsonProcessingException e) {
             log.error("Error parsing message: {}", e.getMessage());
         } finally {
@@ -55,14 +55,17 @@ public class ScoreConsumer {
         }
     }
 
-    private void broadcastScoreUpdatedEvent(Score score) {
+    private void broadcastScoreUpdatedEvent(Score score, String correlationId) {
         try {
             ScoreUpdatedEvent scoreUpdatedEvent = new ScoreUpdatedEvent(
                     score.getUserId(),
                     score.getCreditScore()
             );
             String msg = objectMapper.writeValueAsString(scoreUpdatedEvent);
-            rabbitTemplate.convertAndSend(RabbitMQConstants.SCORE_UPDATED_QUEUE, msg);
+            rabbitTemplate.convertAndSend(RabbitMQConstants.SCORE_UPDATED_QUEUE, (Object) msg, message -> {
+                message.getMessageProperties().getHeaders().put("x-correlation-id", correlationId);
+                return message;
+            });
             log.info("Broadcast score updated event: {}", msg);
         } catch (JsonProcessingException e) {
             log.error("Error broadcasting score updated event: {}", e.getMessage());
