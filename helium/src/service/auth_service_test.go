@@ -33,6 +33,11 @@ func (b *capturingEventBus) ProduceToExchange(exchange, message string) error {
 	return nil
 }
 
+func (b *capturingEventBus) ProduceToExchangeWithHeaders(exchange, message, correlationID string) error {
+	b.calls = append(b.calls, produceCall{exchange, message})
+	return nil
+}
+
 type authTestFixture struct {
 	db       *gorm.DB
 	jwter    *jwt.JWT
@@ -143,7 +148,7 @@ func TestAuthService_Register_Success(t *testing.T) {
 		Debt:         50000,
 		AssetsValue:  200000,
 	}
-	resp, err := fx.auth.Register(fx.db, req)
+	resp, err := fx.auth.Register(fx.db, req, "test-correlation-id")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -175,11 +180,11 @@ func TestAuthService_Register_EmailAlreadyTaken(t *testing.T) {
 		Name: "Alice", Username: "alice", Password: "secret123",
 		Email: "alice@test.com",
 	}
-	_, err := fx.auth.Register(fx.db, req)
+	_, err := fx.auth.Register(fx.db, req, "")
 	if err != nil {
 		t.Fatalf("first register should succeed: %v", err)
 	}
-	_, err = fx.auth.Register(fx.db, req)
+	_, err = fx.auth.Register(fx.db, req, "")
 	if err == nil {
 		t.Fatal("expected error for duplicate email")
 	}
@@ -204,7 +209,7 @@ func TestAuthService_Register_NilRMQNoPanic(t *testing.T) {
 		Name: "Alice", Username: "alice", Password: "secret123",
 		Email: "alice@test.com",
 	}
-	resp, err := factory.Auth.Register(db, req)
+	resp, err := factory.Auth.Register(db, req, "")
 	if err != nil {
 		t.Fatalf("register should succeed with nil rmq: %v", err)
 	}

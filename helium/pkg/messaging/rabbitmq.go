@@ -84,6 +84,11 @@ func (m *MessagingService) Produce(queueName, message string) error {
 
 // ProduceToExchange publishes to a fanout exchange (creates exchange if missing)
 func (m *MessagingService) ProduceToExchange(exchangeName, message string) error {
+	return m.ProduceToExchangeWithHeaders(exchangeName, message, "")
+}
+
+// ProduceToExchangeWithHeaders publishes to a fanout exchange with AMQP headers (e.g. correlation ID).
+func (m *MessagingService) ProduceToExchangeWithHeaders(exchangeName, message, correlationID string) error {
 	channel, err := m.conn.Channel()
 	if err != nil {
 		m.logger.Error("Failed to open a channel", zap.Error(err))
@@ -105,6 +110,11 @@ func (m *MessagingService) ProduceToExchange(exchangeName, message string) error
 		return fmt.Errorf("failed to declare exchange: %w", err)
 	}
 
+	headers := amqp091.Table{}
+	if correlationID != "" {
+		headers["x-correlation-id"] = correlationID
+	}
+
 	err = channel.Publish(
 		exchangeName, // exchange
 		"",           // routing key (ignored by fanout)
@@ -113,6 +123,7 @@ func (m *MessagingService) ProduceToExchange(exchangeName, message string) error
 		amqp091.Publishing{
 			ContentType: "application/json",
 			Body:        []byte(message),
+			Headers:     headers,
 		},
 	)
 	if err != nil {

@@ -18,7 +18,7 @@ import (
 )
 
 type OAuthService interface {
-	UpsertOAuthUser(db *gorm.DB, googleSub, email, name string) (string, error)
+	UpsertOAuthUser(db *gorm.DB, googleSub, email, name string, correlationID string) (string, error)
 	GenerateAuthResponse(db *gorm.DB, userID string) (dto.OAuthResponse, error)
 }
 
@@ -33,7 +33,7 @@ func newOAuthService(repos *repository.Factory, token TokenService, rmq EventBus
 	return &oauthService{repos: repos, token: token, rmq: rmq, log: log}
 }
 
-func (s *oauthService) UpsertOAuthUser(db *gorm.DB, googleSub, email, name string) (string, error) {
+func (s *oauthService) UpsertOAuthUser(db *gorm.DB, googleSub, email, name string, correlationID string) (string, error) {
 	tx := db.Begin()
 	if tx.Error != nil {
 		return "", errors.Wrap(tx.Error, "failed to begin transaction")
@@ -110,7 +110,7 @@ func (s *oauthService) UpsertOAuthUser(db *gorm.DB, googleSub, email, name strin
 		return "", errors.Wrap(commitErr, "failed to commit transaction")
 	}
 
-	publishUserCreated(s.rmq, s.log, newUser)
+	publishUserCreated(s.rmq, s.log, newUser, correlationID)
 
 	return newUser.ID.String(), nil
 }
@@ -173,13 +173,13 @@ func buildUserCreatedJSON(user models.User) (string, error) {
 	return string(jsonData), nil
 }
 
-func publishUserCreated(rmq EventBus, log *logger.Logger, user models.User) {
+func publishUserCreated(rmq EventBus, log *logger.Logger, user models.User, correlationID string) {
 	userJSON, marshalErr := buildUserCreatedJSON(user)
 	if marshalErr != nil {
 		log.Error("failed to marshal user.created event", zap.Error(marshalErr))
 		return
 	}
-	if err := rmq.ProduceToExchange(messaging.ExchangeUserCreated, userJSON); err != nil {
+	if err := rmq.ProduceToExchangeWithHeaders(messaging.ExchangeUserCreated, userJSON, correlationID); err != nil {
 		log.Error("failed to publish user.created event", zap.Error(err))
 	}
 }

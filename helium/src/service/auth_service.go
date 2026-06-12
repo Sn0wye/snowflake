@@ -20,11 +20,12 @@ import (
 
 type EventBus interface {
 	ProduceToExchange(exchangeName, message string) error
+	ProduceToExchangeWithHeaders(exchangeName, message string, correlationID string) error
 }
 
 type AuthService interface {
 	Profile(db *gorm.DB, userID string) (dto.ProfileResponse, error)
-	Register(db *gorm.DB, req dto.RegisterRequest) (dto.RegisterResponse, error)
+	Register(db *gorm.DB, req dto.RegisterRequest, correlationID string) (dto.RegisterResponse, error)
 	Login(db *gorm.DB, req dto.LoginRequest) (dto.LoginResponse, error)
 	Refresh(db *gorm.DB, refreshTokenString string) (dto.RefreshResponse, error)
 	Logout(db *gorm.DB, refreshTokenString string) error
@@ -59,7 +60,7 @@ func (s *authService) Profile(db *gorm.DB, userID string) (dto.ProfileResponse, 
 	}, nil
 }
 
-func (s *authService) Register(db *gorm.DB, req dto.RegisterRequest) (dto.RegisterResponse, error) {
+func (s *authService) Register(db *gorm.DB, req dto.RegisterRequest, correlationID string) (dto.RegisterResponse, error) {
 	_, err := s.repos.User.FindByEmail(db, req.Email)
 	if err == nil {
 		return dto.RegisterResponse{}, ErrEmailAlreadyTaken
@@ -87,7 +88,7 @@ func (s *authService) Register(db *gorm.DB, req dto.RegisterRequest) (dto.Regist
 		return dto.RegisterResponse{}, errors.Wrap(err, "failed to create user")
 	}
 
-	s.emitUserCreated(user)
+	s.emitUserCreated(user, correlationID)
 
 	accessToken, err := s.token.GenerateAccessToken(user.ID.String())
 	if err != nil {
@@ -190,7 +191,7 @@ func (s *authService) Logout(db *gorm.DB, refreshTokenString string) error {
 	return nil
 }
 
-func (s *authService) emitUserCreated(user models.User) {
+func (s *authService) emitUserCreated(user models.User, correlationID string) {
 	if s.rmq == nil {
 		return
 	}
@@ -212,7 +213,7 @@ func (s *authService) emitUserCreated(user models.User) {
 		return
 	}
 
-	if err := s.rmq.ProduceToExchange(messaging.ExchangeUserCreated, string(jsonData)); err != nil {
+	if err := s.rmq.ProduceToExchangeWithHeaders(messaging.ExchangeUserCreated, string(jsonData), correlationID); err != nil {
 		if s.log != nil {
 			s.log.Error("failed to publish user.created event", zap.Error(err))
 		}

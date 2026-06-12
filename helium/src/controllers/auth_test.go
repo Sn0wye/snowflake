@@ -29,6 +29,10 @@ func (f *fakeEventBus) ProduceToExchange(exchangeName, message string) error {
 	return nil
 }
 
+func (f *fakeEventBus) ProduceToExchangeWithHeaders(exchangeName, message, correlationID string) error {
+	return nil
+}
+
 type controllerFixture struct {
 	app    *fiber.App
 	ctrl   AuthController
