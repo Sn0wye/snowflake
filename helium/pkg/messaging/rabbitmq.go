@@ -7,7 +7,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/rabbitmq/amqp091-go"
 )
 
@@ -35,51 +34,6 @@ func NewRabbitMQ(url string, logger *logger.Logger) (*MessagingService, error) {
 		conn:   conn,
 		logger: logger,
 	}, nil
-}
-
-// Produce sends a message to a specific queue
-func (m *MessagingService) Produce(queueName, message string) error {
-	// Create a new channel for the operation
-	channel, err := m.conn.Channel()
-	if err != nil {
-		m.logger.Error("Failed to open a channel", zap.Error(err))
-		return fmt.Errorf("failed to open a channel: %w", err)
-	}
-	defer channel.Close()
-
-	// Declare the queue
-	queue, err := channel.QueueDeclare(
-		queueName, // name
-		true,      // durable
-		false,     // delete when unused
-		false,     // exclusive
-		false,     // no-wait
-		nil,       // arguments
-	)
-	if err != nil {
-		m.logger.Error("Failed to declare queue", zap.Error(err), zap.String("queueName", queueName))
-		return fmt.Errorf("failed to declare a queue: %w", err)
-	}
-
-	// Publish the message
-	err = channel.Publish(
-		"",         // exchange
-		queue.Name, // routing key (queue name)
-		true,       // mandatory, ensures message will not be dropped
-		false,      // immediate
-		amqp091.Publishing{
-			ContentType: "text/plain",
-			Body:        []byte(message),
-		},
-	)
-	if err != nil {
-		m.logger.Error("Failed to send message", zap.Error(err), zap.String("queueName", queueName), zap.String("message", message))
-		return fmt.Errorf("failed to send message: %w", err)
-	}
-
-	log.Info("Sent message", zap.String("queueName", queueName), zap.String("message", message))
-
-	return nil
 }
 
 // ProduceToExchange publishes to a fanout exchange (creates exchange if missing)
