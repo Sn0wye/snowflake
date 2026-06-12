@@ -74,7 +74,7 @@ func TestCreateTransfer_Success(t *testing.T) {
 		IdempotencyKey:   uuid.New(),
 	}
 
-	resp, err := svc.CreateTransaction(db, sender.UserID.String(), req)
+	resp, err := svc.CreateTransaction(db, sender.UserID.String(), req, "")
 	require.NoError(t, err)
 	assert.Equal(t, req.Amount, resp.Amount)
 	assert.Equal(t, models.TransactionStatusCompleted, resp.Status)
@@ -128,7 +128,7 @@ func TestCreateTransfer_InsufficientFunds(t *testing.T) {
 		Amount:           5000,
 		IdempotencyKey:   uuid.New(),
 	}
-	_, err := svc.CreateTransaction(db, sender.UserID.String(), req)
+	_, err := svc.CreateTransaction(db, sender.UserID.String(), req, "")
 	assert.ErrorIs(t, err, service.ErrInsufficientFunds)
 }
 
@@ -146,11 +146,11 @@ func TestCreateTransfer_Idempotent(t *testing.T) {
 		IdempotencyKey:   idempotencyKey,
 	}
 
-	resp1, err := svc.CreateTransaction(db, sender.UserID.String(), req)
+	resp1, err := svc.CreateTransaction(db, sender.UserID.String(), req, "")
 	require.NoError(t, err)
 	assert.Len(t, txRepo.All(), 1)
 
-	_, err = svc.CreateTransaction(db, sender.UserID.String(), req)
+	_, err = svc.CreateTransaction(db, sender.UserID.String(), req, "")
 	var idempotent *service.IdempotentTransactionError
 	require.ErrorAs(t, err, &idempotent)
 	assert.Equal(t, resp1.ID, idempotent.Response.ID)
@@ -168,7 +168,7 @@ func TestCreateTransfer_SelfTransfer(t *testing.T) {
 		Amount:           5000,
 		IdempotencyKey:   uuid.New(),
 	}
-	_, err := svc.CreateTransaction(db, sender.UserID.String(), req)
+	_, err := svc.CreateTransaction(db, sender.UserID.String(), req, "")
 	assert.ErrorIs(t, err, service.ErrSelfTransfer)
 }
 
@@ -184,7 +184,7 @@ func TestCreateTransfer_AmountTooLow(t *testing.T) {
 		Amount:           0,
 		IdempotencyKey:   uuid.New(),
 	}
-	_, err := svc.CreateTransaction(db, sender.UserID.String(), req)
+	_, err := svc.CreateTransaction(db, sender.UserID.String(), req, "")
 	assert.ErrorIs(t, err, service.ErrAmountTooLow)
 }
 
@@ -200,7 +200,7 @@ func TestCreateTransfer_AmountTooHigh(t *testing.T) {
 		Amount:           10000001,
 		IdempotencyKey:   uuid.New(),
 	}
-	_, err := svc.CreateTransaction(db, sender.UserID.String(), req)
+	_, err := svc.CreateTransaction(db, sender.UserID.String(), req, "")
 	assert.ErrorIs(t, err, service.ErrAmountTooHigh)
 }
 
@@ -217,7 +217,7 @@ func TestCreateTransfer_AccountNotActive(t *testing.T) {
 		Amount:           5000,
 		IdempotencyKey:   uuid.New(),
 	}
-	_, err := svc.CreateTransaction(db, sender.UserID.String(), req)
+	_, err := svc.CreateTransaction(db, sender.UserID.String(), req, "")
 	assert.ErrorIs(t, err, service.ErrAccountNotActive)
 }
 
@@ -234,7 +234,7 @@ func TestCreateTransfer_ReconciliationDiscrepancy(t *testing.T) {
 		Amount:           5000,
 		IdempotencyKey:   uuid.New(),
 	}
-	_, err := svc.CreateTransaction(db, sender.UserID.String(), req)
+	_, err := svc.CreateTransaction(db, sender.UserID.String(), req, "")
 	assert.ErrorIs(t, err, service.ErrAccountReconciliation)
 }
 
@@ -262,7 +262,7 @@ func TestCreateTransfer_DailyLimitExceeded(t *testing.T) {
 		Amount:           100000,
 		IdempotencyKey:   uuid.New(),
 	}
-	_, err := svc.CreateTransaction(db, sender.UserID.String(), req)
+	_, err := svc.CreateTransaction(db, sender.UserID.String(), req, "")
 	assert.ErrorIs(t, err, service.ErrDailyLimitExceeded)
 }
 
@@ -291,7 +291,7 @@ func TestCreateTransfer_DailyCountExceeded(t *testing.T) {
 		Amount:           100,
 		IdempotencyKey:   uuid.New(),
 	}
-	_, err := svc.CreateTransaction(db, sender.UserID.String(), req)
+	_, err := svc.CreateTransaction(db, sender.UserID.String(), req, "")
 	assert.ErrorIs(t, err, service.ErrDailyCountExceeded)
 }
 
@@ -307,7 +307,7 @@ func TestDeposit_Success(t *testing.T) {
 		IdempotencyKey: uuid.New(),
 	}
 
-	resp, err := svc.Deposit(db, account.UserID.String(), req)
+	resp, err := svc.Deposit(db, account.UserID.String(), req, "")
 	require.NoError(t, err)
 	assert.Equal(t, models.TransactionStatusCompleted, resp.Status)
 	assert.Equal(t, models.TransactionTypeDeposit, resp.Type)
@@ -334,7 +334,7 @@ func TestDeposit_Forbidden(t *testing.T) {
 		Amount:         5000,
 		IdempotencyKey: uuid.New(),
 	}
-	_, err := svc.Deposit(db, uuid.New().String(), req)
+	_, err := svc.Deposit(db, uuid.New().String(), req, "")
 	assert.ErrorIs(t, err, service.ErrForbidden)
 }
 
@@ -350,10 +350,10 @@ func TestDeposit_Idempotent(t *testing.T) {
 		IdempotencyKey: idempotencyKey,
 	}
 
-	resp1, err := svc.Deposit(db, account.UserID.String(), req)
+	resp1, err := svc.Deposit(db, account.UserID.String(), req, "")
 	require.NoError(t, err)
 
-	_, err = svc.Deposit(db, account.UserID.String(), req)
+	_, err = svc.Deposit(db, account.UserID.String(), req, "")
 	var idempotent *service.IdempotentTransactionError
 	require.ErrorAs(t, err, &idempotent)
 	assert.Equal(t, resp1.ID, idempotent.Response.ID)
@@ -461,7 +461,7 @@ func TestCreateTransfer_WritesOutboxEvent(t *testing.T) {
 		IdempotencyKey:   uuid.New(),
 	}
 
-	_, err := svc.CreateTransaction(db, sender.UserID.String(), req)
+	_, err := svc.CreateTransaction(db, sender.UserID.String(), req, "")
 	require.NoError(t, err)
 
 	entries := outboxRepo.All()
@@ -482,7 +482,7 @@ func TestDeposit_WritesOutboxEvent(t *testing.T) {
 		IdempotencyKey: uuid.New(),
 	}
 
-	_, err := svc.Deposit(db, account.UserID.String(), req)
+	_, err := svc.Deposit(db, account.UserID.String(), req, "")
 	require.NoError(t, err)
 
 	entries := outboxRepo.All()

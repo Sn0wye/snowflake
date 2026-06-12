@@ -7,6 +7,7 @@ import (
 
 	"github.com/getsnowflake/snowflake/gold/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/gold/pkg/jwt"
+	"github.com/getsnowflake/snowflake/gold/pkg/middleware"
 	"github.com/getsnowflake/snowflake/gold/src/dto"
 	"github.com/getsnowflake/snowflake/gold/src/repository"
 	"github.com/getsnowflake/snowflake/gold/src/service"
@@ -152,7 +153,7 @@ func (s *transactionsController) CreateTransaction(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	resp, err := s.service.CreateTransaction(s.db, claims.Subject, *body)
+	resp, err := s.service.CreateTransaction(s.db, claims.Subject, *body, middleware.GetCorrelationID(ctx))
 	if err != nil {
 		var idempotent *service.IdempotentTransactionError
 		if errors.As(err, &idempotent) {
@@ -203,7 +204,7 @@ func (s *transactionsController) Deposit(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	resp, err := s.service.Deposit(s.db, claims.Subject, *body)
+	resp, err := s.service.Deposit(s.db, claims.Subject, *body, middleware.GetCorrelationID(ctx))
 	if err != nil {
 		var idempotent *service.IdempotentTransactionError
 		if errors.As(err, &idempotent) {
