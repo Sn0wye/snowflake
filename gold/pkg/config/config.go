@@ -41,6 +41,12 @@ func getConfig(path string) *viper.Viper {
 	conf.AutomaticEnv()
 
 	// Conventional bindings — only applied if env var is non-empty
+	if v := os.Getenv("ENV"); v != "" {
+		conf.Set("env", v)
+	}
+	if v := os.Getenv("LOG_ENCODING"); v != "" {
+		conf.Set("log.encoding", v)
+	}
 	if v := os.Getenv("DATABASE_URL"); v != "" {
 		conf.Set("db.connectionString", v)
 	}

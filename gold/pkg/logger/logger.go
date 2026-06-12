@@ -85,7 +85,7 @@ func initZap(conf *viper.Viper) *Logger {
 	}
 
 	core := zapcore.NewCore(encoder, syncer, level)
-	if conf.GetString("env") != "prod" {
+	if conf.GetString("env") != "production" {
 		return &Logger{zap.New(core, zap.Development(), zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))}
 	}
 	return &Logger{zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))}
