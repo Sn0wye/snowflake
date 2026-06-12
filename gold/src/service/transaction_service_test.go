@@ -461,13 +461,15 @@ func TestCreateTransfer_WritesOutboxEvent(t *testing.T) {
 		IdempotencyKey:   uuid.New(),
 	}
 
-	_, err := svc.CreateTransaction(db, sender.UserID.String(), req, "")
+	_, err := svc.CreateTransaction(db, sender.UserID.String(), req, "test-correlation-id")
 	require.NoError(t, err)
 
 	entries := outboxRepo.All()
 	assert.Len(t, entries, 1)
 	assert.Equal(t, "transaction.received", entries[0].QueueName)
 	assert.Equal(t, models.OutboxStatusPending, entries[0].Status)
+	require.NotNil(t, entries[0].CorrelationID)
+	assert.Equal(t, "test-correlation-id", *entries[0].CorrelationID)
 }
 
 func TestDeposit_WritesOutboxEvent(t *testing.T) {
@@ -482,13 +484,15 @@ func TestDeposit_WritesOutboxEvent(t *testing.T) {
 		IdempotencyKey: uuid.New(),
 	}
 
-	_, err := svc.Deposit(db, account.UserID.String(), req, "")
+	_, err := svc.Deposit(db, account.UserID.String(), req, "test-correlation-id")
 	require.NoError(t, err)
 
 	entries := outboxRepo.All()
 	assert.Len(t, entries, 1)
 	assert.Equal(t, "transaction.received", entries[0].QueueName)
 	assert.Equal(t, models.OutboxStatusPending, entries[0].Status)
+	require.NotNil(t, entries[0].CorrelationID)
+	assert.Equal(t, "test-correlation-id", *entries[0].CorrelationID)
 }
 
 func ptrUUID(id uuid.UUID) *uuid.UUID { return &id }
