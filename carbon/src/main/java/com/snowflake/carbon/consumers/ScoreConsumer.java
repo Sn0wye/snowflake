@@ -75,7 +75,12 @@ public class ScoreConsumer {
     private String extractCorrelationId(Message message) {
         Object headers = message.getMessageProperties().getHeaders().get("x-correlation-id");
         if (headers instanceof String s && !s.isEmpty()) {
-            return s;
+            try {
+                UUID.fromString(s);
+                return s;
+            } catch (IllegalArgumentException e) {
+                return UUID.randomUUID().toString();
+            }
         }
         return UUID.randomUUID().toString();
     }

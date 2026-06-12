@@ -17,9 +17,14 @@ using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Host.UseSerilog((ctx, lc) => lc
-    .Enrich.FromLogContext()
-    .WriteTo.Console(new CompactJsonFormatter()));
+builder.Host.UseSerilog((ctx, lc) =>
+{
+    lc.Enrich.FromLogContext();
+    if (ctx.HostingEnvironment.IsDevelopment())
+        lc.WriteTo.Console();
+    else
+        lc.WriteTo.Console(new CompactJsonFormatter());
+});
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
