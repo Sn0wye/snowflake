@@ -37,13 +37,6 @@ func initZap(conf *viper.Viper) *Logger {
 	default:
 		level = zap.InfoLevel
 	}
-	hook := lumberjack.Logger{
-		Filename:   lp,
-		MaxSize:    conf.GetInt("log.max_size"),
-		MaxBackups: conf.GetInt("log.max_backups"),
-		MaxAge:     conf.GetInt("log.max_age"),
-		Compress:   conf.GetBool("log.compress"),
-	}
 
 	var encoder zapcore.Encoder
 	if conf.GetString("log.encoding") == "console" {
@@ -76,11 +69,22 @@ func initZap(conf *viper.Viper) *Logger {
 			EncodeCaller:   zapcore.ShortCallerEncoder,
 		})
 	}
-	core := zapcore.NewCore(
-		encoder,
-		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(&hook)),
-		level,
-	)
+
+	var syncer zapcore.WriteSyncer
+	if lp == "" {
+		syncer = zapcore.AddSync(os.Stdout)
+	} else {
+		hook := lumberjack.Logger{
+			Filename:   lp,
+			MaxSize:    conf.GetInt("log.max_size"),
+			MaxBackups: conf.GetInt("log.max_backups"),
+			MaxAge:     conf.GetInt("log.max_age"),
+			Compress:   conf.GetBool("log.compress"),
+		}
+		syncer = zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(&hook))
+	}
+
+	core := zapcore.NewCore(encoder, syncer, level)
 	if conf.GetString("env") != "prod" {
 		return &Logger{zap.New(core, zap.Development(), zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))}
 	}

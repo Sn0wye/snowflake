@@ -1,0 +1,27 @@
+env: production
+http:
+  port: 8083
+security:
+  jwt_secret: ${JWT_SECRET}
+  jwt_issuer: snowflake
+db:
+  driver: postgres
+  host: ${DB_HOST}
+  port: ${DB_PORT}
+  database: ${DB_DATABASE}
+  user: ${DB_USER}
+  password: ${DB_PASSWORD}
+  connectionString: ${DATABASE_URL}
+messaging:
+  connectionString: ${RABBITMQ_URL}
+rate_limit:
+  enabled: true
+  transactional: 10
+log:
+  level: info
+  encoding: json
+  log_file_name: ''
+  max_backups: 0
+  max_age: 0
+  max_size: 0
+  compress: false
