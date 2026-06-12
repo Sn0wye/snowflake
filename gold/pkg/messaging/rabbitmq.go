@@ -7,7 +7,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/gofiber/fiber/v2/log"
 	"github.com/rabbitmq/amqp091-go"
 )
 
@@ -86,7 +85,7 @@ func (m *MessagingService) ProduceWithHeaders(queueName, message, correlationID 
 		return fmt.Errorf("failed to send message: %w", err)
 	}
 
-	log.Info("Sent message", zap.String("queueName", queueName), zap.String("message", message))
+	m.logger.Info("Sent message", zap.String("queueName", queueName), zap.String("message", message))
 
 	return nil
 }
