@@ -7,6 +7,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddCreditScoreAdapter(this IServiceCollection services)
     {
+        services.AddHttpContextAccessor();
         services.AddHttpClient("CreditScorer")
             .AddStandardResilienceHandler(options =>
             {
