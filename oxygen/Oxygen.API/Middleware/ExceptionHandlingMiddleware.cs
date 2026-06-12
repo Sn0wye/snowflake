@@ -1,5 +1,6 @@
 using System.Data.Common;
 using Grpc.Core;
+using Serilog.Context;
 
 namespace Oxygen.API.Middleware;
 
@@ -16,27 +17,38 @@ public class ExceptionHandlingMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        try
+        var correlationId = context.Request.Headers["X-Correlation-ID"].FirstOrDefault();
+        if (string.IsNullOrEmpty(correlationId))
         {
-            await _next(context);
+            correlationId = Guid.NewGuid().ToString();
         }
-        catch (OperationCanceledException ex) when (ex.CancellationToken == context.RequestAborted)
-        {
-            _logger.LogInformation("Request cancelled by client");
+        context.Response.Headers["X-Correlation-ID"] = correlationId;
+        context.Items["correlation_id"] = correlationId;
 
-            if (!context.Response.HasStarted)
+        using (LogContext.PushProperty("correlation_id", correlationId))
+        {
+            try
             {
-                context.Response.StatusCode = 499;
+                await _next(context);
             }
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex) when (!context.Response.HasStarted)
-        {
-            _logger.LogError(ex, "Unhandled exception");
-            await HandleExceptionAsync(context, ex);
+            catch (OperationCanceledException ex) when (ex.CancellationToken == context.RequestAborted)
+            {
+                _logger.LogInformation("Request cancelled by client");
+
+                if (!context.Response.HasStarted)
+                {
+                    context.Response.StatusCode = 499;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex) when (!context.Response.HasStarted)
+            {
+                _logger.LogError(ex, "Unhandled exception");
+                await HandleExceptionAsync(context, ex);
+            }
         }
     }
 
