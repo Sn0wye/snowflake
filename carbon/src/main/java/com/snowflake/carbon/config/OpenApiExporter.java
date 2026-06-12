@@ -1,5 +1,7 @@
 package com.snowflake.carbon.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -12,6 +14,8 @@ import java.io.IOException;
 
 @Configuration
 public class OpenApiExporter {
+
+    private static final Logger log = LoggerFactory.getLogger(OpenApiExporter.class);
 
     @Value("${openapi.output.path:openapi.json}")
     private String outputPath;
@@ -27,7 +31,7 @@ public class OpenApiExporter {
                 String openApiJson = restTemplate.getForObject(apiDocsUrl, String.class);
 
                 if (openApiJson == null) {
-                    System.err.println("Failed to fetch OpenAPI spec");
+                    log.warn("Failed to fetch OpenAPI spec");
                     return;
                 }
 
@@ -35,9 +39,9 @@ public class OpenApiExporter {
                     writer.write(openApiJson);
                 }
 
-                System.out.println("OpenAPI spec saved to: " + outputPath);
+                log.info("OpenAPI spec saved to: {}", outputPath);
             } catch (IOException e) {
-                System.err.println("Failed to save OpenAPI spec: " + e.getMessage());
+                log.error("Failed to save OpenAPI spec: {}", e.getMessage());
             }
         };
     }
