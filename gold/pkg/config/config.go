@@ -47,6 +47,9 @@ func getConfig(path string) *viper.Viper {
 	if v := os.Getenv("LOG_ENCODING"); v != "" {
 		conf.Set("log.encoding", v)
 	}
+	if v, exists := os.LookupEnv("LOG_FILE_NAME"); exists {
+		conf.Set("log.log_file_name", v)
+	}
 	if v := os.Getenv("DATABASE_URL"); v != "" {
 		conf.Set("db.connectionString", v)
 	}
