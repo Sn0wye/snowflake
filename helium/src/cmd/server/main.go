@@ -100,6 +100,9 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
 	}))
 
+	// Correlation ID middleware (must run before all routes)
+	app.Use(middleware.CorrelationMiddleware(logger))
+
 	// JWT Middleware
 	jwt := middleware.JWTMiddleware(conf, logger)
 
