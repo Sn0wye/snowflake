@@ -99,6 +99,7 @@ services:
       - '8081:8081'
     restart: on-failure
     environment:
+      - SPRING_PROFILES_ACTIVE=production
       - SPRING_DATASOURCE_URL=${CARBON_DATABASE_URL:-}
       - SPRING_RABBITMQ_HOST=${CARBON_RABBITMQ_HOST:-rabbitmq}
       - SPRING_GRPC_HOST=${CARBON_GRPC_HOST:-snowflake-helium}
