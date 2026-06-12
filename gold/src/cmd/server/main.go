@@ -27,6 +27,7 @@ import (
 
 	"github.com/google/uuid"
 
+	amqp091 "github.com/rabbitmq/amqp091-go"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/spf13/viper"
@@ -189,7 +190,10 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		for msg := range messages {
-			logger.Info("Received message",
+			correlationID := extractCorrelationID(msg.Headers)
+			msgLogger := &logger.Logger{Logger: logger.With(zap.String("correlation_id", correlationID))}
+
+			msgLogger.Info("Received message",
 				zap.String("queueName", queueName),
 				zap.String("body", string(msg.Body)),
 				zap.String("contentType", msg.ContentType),
@@ -197,13 +201,13 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 
 			var event UserCreatedEvent
 			if err := json.Unmarshal(msg.Body, &event); err != nil {
-				logger.Error("Failed to unmarshal message", zap.Error(err), zap.String("body", string(msg.Body)))
+				msgLogger.Error("Failed to unmarshal message", zap.Error(err), zap.String("body", string(msg.Body)))
 				msg.Nack(false, false)
 				continue
 			}
 
-			if err := processUserCreated(event, logger); err != nil {
-				logger.Error("Failed to process user.created event", zap.Error(err), zap.String("userID", event.ID))
+			if err := processUserCreated(event, msgLogger); err != nil {
+				msgLogger.Error("Failed to process user.created event", zap.Error(err), zap.String("userID", event.ID))
 				msg.Nack(false, true)
 				continue
 			}
@@ -250,6 +254,21 @@ type UserCreatedEvent struct {
 	Debt         float64 `json:"debt"`
 	AssetsValue  float64 `json:"assets_value"`
 	CreatedAt    string  `json:"created_at"`
+}
+
+func extractCorrelationID(headers amqp091.Table) string {
+	if headers == nil {
+		return uuid.New().String()
+	}
+	val, ok := headers["x-correlation-id"]
+	if !ok {
+		return uuid.New().String()
+	}
+	s, ok := val.(string)
+	if !ok || s == "" {
+		return uuid.New().String()
+	}
+	return s
 }
 
 func processUserCreated(event UserCreatedEvent, logger *logger.Logger) error {
