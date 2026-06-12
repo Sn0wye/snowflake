@@ -8,6 +8,7 @@ import (
 	"github.com/getsnowflake/snowflake/helium/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 	"github.com/getsnowflake/snowflake/helium/pkg/logger"
+	"github.com/getsnowflake/snowflake/helium/src/middleware"
 	"github.com/getsnowflake/snowflake/helium/src/service"
 
 	"github.com/gofiber/fiber/v2"
@@ -136,7 +137,7 @@ func (s *oauthController) Callback(c *fiber.Ctx) error {
 		return exceptions.InternalServer(c, "failed to decode user info")
 	}
 
-	userID, err := s.services.UpsertOAuthUser(s.db, googleUser.Sub, googleUser.Email, googleUser.Name)
+	userID, err := s.services.UpsertOAuthUser(s.db, googleUser.Sub, googleUser.Email, googleUser.Name, middleware.GetCorrelationID(c))
 	if err != nil {
 		return exceptions.InternalServer(c, "failed to complete oauth sign-in")
 	}
