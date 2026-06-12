@@ -55,7 +55,7 @@ func setupControllerTest(t *testing.T) *controllerFixture {
 	repos := repository.NewFactory()
 	fakeLog := &logger.Logger{Logger: zap.NewNop()}
 	svcFactory := service.NewFactory(repos, jwter, &fakeEventBus{}, fakeLog)
-	ctrl := NewAuthController(db, jwter, svcFactory.Auth, nil)
+	ctrl := NewAuthController(db, jwter, svcFactory.Auth, fakeLog)
 	app := fiber.New()
 	return &controllerFixture{
 		app:    app,

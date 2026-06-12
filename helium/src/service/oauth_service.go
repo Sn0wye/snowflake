@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/getsnowflake/snowflake/helium/pkg/logger"
 	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
 	"github.com/getsnowflake/snowflake/helium/src/repository"
 	"github.com/getsnowflake/snowflake/helium/src/dto"
@@ -18,7 +17,7 @@ import (
 )
 
 type OAuthService interface {
-	UpsertOAuthUser(db *gorm.DB, googleSub, email, name string, correlationID string) (string, error)
+	UpsertOAuthUser(db *gorm.DB, googleSub, email, name string, log *zap.Logger, correlationID string) (string, error)
 	GenerateAuthResponse(db *gorm.DB, userID string) (dto.OAuthResponse, error)
 }
 
@@ -26,14 +25,13 @@ type oauthService struct {
 	repos *repository.Factory
 	token TokenService
 	rmq   EventBus
-	log   *logger.Logger
 }
 
-func newOAuthService(repos *repository.Factory, token TokenService, rmq EventBus, log *logger.Logger) OAuthService {
-	return &oauthService{repos: repos, token: token, rmq: rmq, log: log}
+func newOAuthService(repos *repository.Factory, token TokenService, rmq EventBus) OAuthService {
+	return &oauthService{repos: repos, token: token, rmq: rmq}
 }
 
-func (s *oauthService) UpsertOAuthUser(db *gorm.DB, googleSub, email, name string, correlationID string) (string, error) {
+func (s *oauthService) UpsertOAuthUser(db *gorm.DB, googleSub, email, name string, log *zap.Logger, correlationID string) (string, error) {
 	tx := db.Begin()
 	if tx.Error != nil {
 		return "", errors.Wrap(tx.Error, "failed to begin transaction")
@@ -110,7 +108,7 @@ func (s *oauthService) UpsertOAuthUser(db *gorm.DB, googleSub, email, name strin
 		return "", errors.Wrap(commitErr, "failed to commit transaction")
 	}
 
-	publishUserCreated(s.rmq, s.log, newUser, correlationID)
+	publishUserCreated(s.rmq, log, newUser, correlationID)
 
 	return newUser.ID.String(), nil
 }
@@ -173,7 +171,7 @@ func buildUserCreatedJSON(user models.User) (string, error) {
 	return string(jsonData), nil
 }
 
-func publishUserCreated(rmq EventBus, log *logger.Logger, user models.User, correlationID string) {
+func publishUserCreated(rmq EventBus, log *zap.Logger, user models.User, correlationID string) {
 	userJSON, marshalErr := buildUserCreatedJSON(user)
 	if marshalErr != nil {
 		log.Error("failed to marshal user.created event", zap.Error(marshalErr))

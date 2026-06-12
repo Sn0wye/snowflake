@@ -1,5 +1,5 @@
 // Rate limiting middleware using sync.Map + golang.org/x/time/rate.Limiter.
-// Keep in sync with helium/src/middleware/ratelimit.go — both share the same
+// Keep in sync with helium/pkg/middleware/ratelimit.go — both share the same
 // limitEntry + reap pattern. If fixing a bug here, mirror the fix there.
 package middleware
 

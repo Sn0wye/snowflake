@@ -25,7 +25,7 @@ type EventBus interface {
 
 type AuthService interface {
 	Profile(db *gorm.DB, userID string) (dto.ProfileResponse, error)
-	Register(db *gorm.DB, req dto.RegisterRequest, correlationID string) (dto.RegisterResponse, error)
+	Register(db *gorm.DB, req dto.RegisterRequest, log *zap.Logger, correlationID string) (dto.RegisterResponse, error)
 	Login(db *gorm.DB, req dto.LoginRequest) (dto.LoginResponse, error)
 	Refresh(db *gorm.DB, refreshTokenString string) (dto.RefreshResponse, error)
 	Logout(db *gorm.DB, refreshTokenString string) error
@@ -60,7 +60,7 @@ func (s *authService) Profile(db *gorm.DB, userID string) (dto.ProfileResponse, 
 	}, nil
 }
 
-func (s *authService) Register(db *gorm.DB, req dto.RegisterRequest, correlationID string) (dto.RegisterResponse, error) {
+func (s *authService) Register(db *gorm.DB, req dto.RegisterRequest, log *zap.Logger, correlationID string) (dto.RegisterResponse, error) {
 	_, err := s.repos.User.FindByEmail(db, req.Email)
 	if err == nil {
 		return dto.RegisterResponse{}, ErrEmailAlreadyTaken
@@ -88,7 +88,7 @@ func (s *authService) Register(db *gorm.DB, req dto.RegisterRequest, correlation
 		return dto.RegisterResponse{}, errors.Wrap(err, "failed to create user")
 	}
 
-	s.emitUserCreated(user, correlationID)
+	s.emitUserCreated(user, log, correlationID)
 
 	accessToken, err := s.token.GenerateAccessToken(user.ID.String())
 	if err != nil {
@@ -191,7 +191,7 @@ func (s *authService) Logout(db *gorm.DB, refreshTokenString string) error {
 	return nil
 }
 
-func (s *authService) emitUserCreated(user models.User, correlationID string) {
+func (s *authService) emitUserCreated(user models.User, log *zap.Logger, correlationID string) {
 	if s.rmq == nil {
 		return
 	}
@@ -207,16 +207,12 @@ func (s *authService) emitUserCreated(user models.User, correlationID string) {
 
 	jsonData, marshalErr := json.Marshal(data)
 	if marshalErr != nil {
-		if s.log != nil {
-			s.log.Error("failed to marshal user.created event", zap.Error(marshalErr))
-		}
+		log.Error("failed to marshal user.created event", zap.Error(marshalErr))
 		return
 	}
 
 	if err := s.rmq.ProduceToExchangeWithHeaders(messaging.ExchangeUserCreated, string(jsonData), correlationID); err != nil {
-		if s.log != nil {
-			s.log.Error("failed to publish user.created event", zap.Error(err))
-		}
+		log.Error("failed to publish user.created event", zap.Error(err))
 	}
 }
 

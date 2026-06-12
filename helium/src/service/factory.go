@@ -16,6 +16,6 @@ func NewFactory(repos *repository.Factory, j *jwt.JWT, rmq EventBus, log *logger
 	svc := &Factory{}
 	svc.Token = newTokenService(j, repos.RefreshToken)
 	svc.Auth = newAuthService(repos, j, svc.Token, rmq, log)
-	svc.OAuth = newOAuthService(repos, svc.Token, rmq, log)
+	svc.OAuth = newOAuthService(repos, svc.Token, rmq)
 	return svc
 }

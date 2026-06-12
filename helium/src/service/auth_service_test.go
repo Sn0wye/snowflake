@@ -20,8 +20,9 @@ import (
 )
 
 type produceCall struct {
-	exchange string
-	message  string
+	exchange      string
+	message       string
+	correlationID string
 }
 
 type capturingEventBus struct {
@@ -29,12 +30,12 @@ type capturingEventBus struct {
 }
 
 func (b *capturingEventBus) ProduceToExchange(exchange, message string) error {
-	b.calls = append(b.calls, produceCall{exchange, message})
+	b.calls = append(b.calls, produceCall{exchange, message, ""})
 	return nil
 }
 
 func (b *capturingEventBus) ProduceToExchangeWithHeaders(exchange, message, correlationID string) error {
-	b.calls = append(b.calls, produceCall{exchange, message})
+	b.calls = append(b.calls, produceCall{exchange, message, correlationID})
 	return nil
 }
 
@@ -148,7 +149,7 @@ func TestAuthService_Register_Success(t *testing.T) {
 		Debt:         50000,
 		AssetsValue:  200000,
 	}
-	resp, err := fx.auth.Register(fx.db, req, "test-correlation-id")
+	resp, err := fx.auth.Register(fx.db, req, zap.NewNop(), "test-correlation-id")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -172,6 +173,9 @@ func TestAuthService_Register_Success(t *testing.T) {
 	if payload["annual_income"] != float64(100000) {
 		t.Fatalf("expected annual_income 100000, got %v", payload["annual_income"])
 	}
+	if call.correlationID != "test-correlation-id" {
+		t.Fatalf("expected correlationID test-correlation-id, got %s", call.correlationID)
+	}
 }
 
 func TestAuthService_Register_EmailAlreadyTaken(t *testing.T) {
@@ -180,11 +184,11 @@ func TestAuthService_Register_EmailAlreadyTaken(t *testing.T) {
 		Name: "Alice", Username: "alice", Password: "secret123",
 		Email: "alice@test.com",
 	}
-	_, err := fx.auth.Register(fx.db, req, "")
+	_, err := fx.auth.Register(fx.db, req, zap.NewNop(), "")
 	if err != nil {
 		t.Fatalf("first register should succeed: %v", err)
 	}
-	_, err = fx.auth.Register(fx.db, req, "")
+	_, err = fx.auth.Register(fx.db, req, zap.NewNop(), "")
 	if err == nil {
 		t.Fatal("expected error for duplicate email")
 	}
@@ -209,7 +213,7 @@ func TestAuthService_Register_NilRMQNoPanic(t *testing.T) {
 		Name: "Alice", Username: "alice", Password: "secret123",
 		Email: "alice@test.com",
 	}
-	resp, err := factory.Auth.Register(db, req, "")
+	resp, err := factory.Auth.Register(db, req, zap.NewNop(), "")
 	if err != nil {
 		t.Fatalf("register should succeed with nil rmq: %v", err)
 	}
