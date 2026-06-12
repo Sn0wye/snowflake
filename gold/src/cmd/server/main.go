@@ -13,7 +13,7 @@ import (
 	"github.com/getsnowflake/snowflake/gold/pkg/config"
 	"github.com/getsnowflake/snowflake/gold/pkg/events"
 	jwtpkg "github.com/getsnowflake/snowflake/gold/pkg/jwt"
-	"github.com/getsnowflake/snowflake/gold/pkg/logger"
+	logpkg "github.com/getsnowflake/snowflake/gold/pkg/logger"
 	"github.com/getsnowflake/snowflake/gold/pkg/messaging"
 	"github.com/getsnowflake/snowflake/gold/pkg/middleware"
 	"github.com/getsnowflake/snowflake/gold/pkg/validator"
@@ -50,7 +50,7 @@ import (
 // @Schemes	https
 func main() {
 	conf := config.GetConfig()
-	logger := logger.NewLog(conf)
+	logger := logpkg.NewLog(conf)
 
 	// Start RabbitMQ and defer its closure
 	rmq := startRabbitMQ(conf, logger)
@@ -83,7 +83,7 @@ func main() {
 	log.Println("All servers stopped gracefully")
 }
 
-func startRabbitMQ(conf *viper.Viper, log *logger.Logger) *messaging.MessagingService {
+func startRabbitMQ(conf *viper.Viper, log *logpkg.Logger) *messaging.MessagingService {
 	rmq, err := messaging.NewRabbitMQ(conf.GetString("messaging.connectionString"), log)
 	if err != nil {
 		log.Fatal("Failed to connect to RabbitMQ", zap.Error(err))
@@ -94,7 +94,7 @@ func startRabbitMQ(conf *viper.Viper, log *logger.Logger) *messaging.MessagingSe
 	return rmq
 }
 
-func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.MessagingService, reconcileJob *reconciliation.Job) {
+func startHTTPServer(conf *viper.Viper, logger *logpkg.Logger, rmq *messaging.MessagingService, reconcileJob *reconciliation.Job) {
 	validator.InitValidator(logger)
 
 	app := fiber.New(fiber.Config{
@@ -149,7 +149,7 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 	}
 }
 
-func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logger.Logger) {
+func startAccountCreationConsumer(rmq *messaging.MessagingService, log *logpkg.Logger) {
 	exchangeName := events.ExchangeUserCreated
 	queueName := events.QueueUserCreatedAccount
 
@@ -163,7 +163,7 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 	messages, amqpCh, err := rmq.ConsumeFromExchange(exchangeName, queueName)
 	if err != nil {
 		for attempt := 1; attempt <= maxRetries; attempt++ {
-			logger.Error("Failed to start consumer, retrying",
+			log.Error("Failed to start consumer, retrying",
 				zap.Error(err),
 				zap.String("queueName", queueName),
 				zap.Duration("backoff", backoff),
@@ -178,7 +178,7 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 			}
 		}
 		if err != nil {
-			logger.Fatal("Failed to start consumer after retries",
+			log.Fatal("Failed to start consumer after retries",
 				zap.Error(err),
 				zap.String("queueName", queueName),
 				zap.Int("maxRetries", maxRetries),
@@ -186,12 +186,12 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 		}
 	}
 
-	logger.Info("Consumer started", zap.String("queueName", queueName))
+	log.Info("Consumer started", zap.String("queueName", queueName))
 
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		for msg := range messages {
 			correlationID := extractCorrelationID(msg.Headers)
-			msgLogger := &logger.Logger{Logger: logger.With(zap.String("correlation_id", correlationID))}
+			msgLogger := &logpkg.Logger{Logger: log.Logger.With(zap.String("correlation_id", correlationID))}
 
 			msgLogger.Info("Received message",
 				zap.String("queueName", queueName),
@@ -215,9 +215,8 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 			msg.Ack(false)
 		}
 
-		// messages channel closed — connection lost
 		if attempt == maxRetries-1 {
-			logger.Error("Consumer connection lost, max retries exhausted",
+			log.Error("Consumer connection lost, max retries exhausted",
 				zap.String("queueName", queueName),
 			)
 			return
@@ -225,7 +224,7 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 
 		amqpCh.Close()
 
-		logger.Warn("Consumer connection lost, reconnecting",
+		log.Warn("Consumer connection lost, reconnecting",
 			zap.String("queueName", queueName),
 			zap.Duration("backoff", backoff),
 			zap.Int("attempt", attempt+1),
@@ -235,14 +234,14 @@ func startAccountCreationConsumer(rmq *messaging.MessagingService, logger *logge
 
 		messages, amqpCh, err = rmq.ConsumeFromExchange(exchangeName, queueName)
 		if err != nil {
-			logger.Error("Consumer connection lost, retries exhausted",
+			log.Error("Consumer connection lost, retries exhausted",
 				zap.Error(err),
 				zap.String("queueName", queueName),
 			)
 			return
 		}
 
-		logger.Info("Consumer reconnected", zap.String("queueName", queueName))
+		log.Info("Consumer reconnected", zap.String("queueName", queueName))
 	}
 }
 
@@ -271,8 +270,8 @@ func extractCorrelationID(headers amqp091.Table) string {
 	return s
 }
 
-func processUserCreated(event UserCreatedEvent, logger *logger.Logger) error {
-	logger.Info("Processing user.created event",
+func processUserCreated(event UserCreatedEvent, log *logpkg.Logger) error {
+	log.Info("Processing user.created event",
 		zap.String("ID", event.ID),
 		zap.String("Username", event.Username),
 		zap.String("Email", event.Email),
@@ -285,10 +284,9 @@ func processUserCreated(event UserCreatedEvent, logger *logger.Logger) error {
 
 	database := db.GetDB()
 
-	// Idempotency: skip if account already exists for this user
 	var existing models.Account
 	if err := database.Where("user_id = ?", userID).First(&existing).Error; err == nil {
-		logger.Info("Account already exists for user, skipping", zap.String("userID", event.ID))
+		log.Info("Account already exists for user, skipping", zap.String("userID", event.ID))
 		return nil
 	}
 
@@ -303,7 +301,7 @@ func processUserCreated(event UserCreatedEvent, logger *logger.Logger) error {
 		return fmt.Errorf("failed to create account for user %q: %w", event.ID, err)
 	}
 
-	logger.Info("Account created for user",
+	log.Info("Account created for user",
 		zap.String("userID", event.ID),
 		zap.String("accountID", account.ID.String()),
 	)
