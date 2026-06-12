@@ -24,8 +24,8 @@ const (
 type TransactionService interface {
 	GetTransactions(db *gorm.DB, userID string, filter repository.TransactionFilter) (dto.PaginatedTransactionsResponse, error)
 	GetTransactionByID(db *gorm.DB, userID string, id uuid.UUID) (dto.TransactionResponse, error)
-	CreateTransaction(db *gorm.DB, userID string, req dto.CreateTransferRequest) (dto.TransactionResponse, error)
-	Deposit(db *gorm.DB, userID string, req dto.DepositRequest) (dto.TransactionResponse, error)
+	CreateTransaction(db *gorm.DB, userID string, req dto.CreateTransferRequest, correlationID string) (dto.TransactionResponse, error)
+	Deposit(db *gorm.DB, userID string, req dto.DepositRequest, correlationID string) (dto.TransactionResponse, error)
 }
 
 type transactionService struct {
@@ -89,7 +89,7 @@ func (s *transactionService) GetTransactionByID(db *gorm.DB, userID string, id u
 	return dto.TransactionToResponse(*transaction), nil
 }
 
-func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req dto.CreateTransferRequest) (dto.TransactionResponse, error) {
+func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req dto.CreateTransferRequest, correlationID string) (dto.TransactionResponse, error) {
 	if req.Amount < minTransactionAmount {
 		return dto.TransactionResponse{}, ErrAmountTooLow
 	}
@@ -229,7 +229,7 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 			return err
 		}
 
-		if err := s.writeOutbox(tx, transaction); err != nil {
+		if err := s.writeOutbox(tx, transaction, correlationID); err != nil {
 			return err
 		}
 
@@ -248,7 +248,7 @@ func (s *transactionService) CreateTransaction(db *gorm.DB, userID string, req d
 	return dto.TransactionToResponse(*result), nil
 }
 
-func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.DepositRequest) (dto.TransactionResponse, error) {
+func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.DepositRequest, correlationID string) (dto.TransactionResponse, error) {
 	if req.Amount < minTransactionAmount {
 		return dto.TransactionResponse{}, ErrAmountTooLow
 	}
@@ -331,7 +331,7 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 			return err
 		}
 
-		if err := s.writeOutbox(tx, transaction); err != nil {
+		if err := s.writeOutbox(tx, transaction, correlationID); err != nil {
 			return err
 		}
 
@@ -350,7 +350,7 @@ func (s *transactionService) Deposit(db *gorm.DB, userID string, req dto.Deposit
 	return dto.TransactionToResponse(*result), nil
 }
 
-func (s *transactionService) writeOutbox(db *gorm.DB, t models.Transaction) error {
+func (s *transactionService) writeOutbox(db *gorm.DB, t models.Transaction, correlationID string) error {
 	if t.ReceiverAccountID == nil {
 		return errors.New("transaction has nil ReceiverAccountID, cannot write outbox event")
 	}
@@ -374,9 +374,15 @@ func (s *transactionService) writeOutbox(db *gorm.DB, t models.Transaction) erro
 		return err
 	}
 
+	var cid *string
+	if correlationID != "" {
+		cid = &correlationID
+	}
+
 	return s.repos.Outbox.Create(db, &models.OutboxEvent{
-		QueueName: events.QueueTransactionReceived,
-		Payload:   payload,
-		Status:    models.OutboxStatusPending,
+		QueueName:     events.QueueTransactionReceived,
+		Payload:       payload,
+		CorrelationID: cid,
+		Status:        models.OutboxStatusPending,
 	})
 }

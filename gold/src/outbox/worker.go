@@ -12,6 +12,7 @@ import (
 
 type Publisher interface {
 	Produce(queueName, message string) error
+	ProduceWithHeaders(queueName, message string, correlationID string) error
 }
 
 type Worker struct {
@@ -58,7 +59,11 @@ func (w *Worker) processOnce() {
 		}
 
 		for _, entry := range entries {
-			if pubErr := w.publisher.Produce(entry.QueueName, entry.Payload); pubErr != nil {
+			correlationID := ""
+			if entry.CorrelationID != nil {
+				correlationID = *entry.CorrelationID
+			}
+			if pubErr := w.publisher.ProduceWithHeaders(entry.QueueName, entry.Payload, correlationID); pubErr != nil {
 				w.log.Error("Outbox worker: failed to publish event",
 					zap.String("eventID", entry.ID.String()),
 					zap.String("queueName", entry.QueueName),

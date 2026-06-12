@@ -37,6 +37,11 @@ func NewRabbitMQ(url string, logger *logger.Logger) (*MessagingService, error) {
 
 // Produce sends a message to a specific queue
 func (m *MessagingService) Produce(queueName, message string) error {
+	return m.ProduceWithHeaders(queueName, message, "")
+}
+
+// ProduceWithHeaders sends a message to a queue with AMQP headers.
+func (m *MessagingService) ProduceWithHeaders(queueName, message, correlationID string) error {
 	// Create a new channel for the operation
 	channel, err := m.conn.Channel()
 	if err != nil {
@@ -59,6 +64,11 @@ func (m *MessagingService) Produce(queueName, message string) error {
 		return fmt.Errorf("failed to declare a queue: %w", err)
 	}
 
+	headers := amqp091.Table{}
+	if correlationID != "" {
+		headers["x-correlation-id"] = correlationID
+	}
+
 	// Publish the message
 	err = channel.Publish(
 		"",         // exchange
@@ -68,6 +78,7 @@ func (m *MessagingService) Produce(queueName, message string) error {
 		amqp091.Publishing{
 			ContentType: "application/json",
 			Body:        []byte(message),
+			Headers:     headers,
 		},
 	)
 	if err != nil {

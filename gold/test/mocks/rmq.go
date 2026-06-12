@@ -23,6 +23,13 @@ func (m *MockRmq) Produce(queueName, message string) error {
 	return nil
 }
 
+func (m *MockRmq) ProduceWithHeaders(queueName, message, correlationID string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.messages = append(m.messages, message)
+	return nil
+}
+
 func (m *MockRmq) Messages() []string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
