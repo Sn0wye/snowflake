@@ -8,6 +8,7 @@ import (
 	"github.com/getsnowflake/snowflake/helium/pkg/config"
 	"github.com/getsnowflake/snowflake/helium/pkg/jwt"
 
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
@@ -17,6 +18,7 @@ import (
 )
 
 type claimsCtxKey struct{}
+type correlationCtxKey struct{}
 
 var authSkippedMethods = map[string]bool{
 	"/pb.AuthService/ValidateToken": true,
@@ -39,6 +41,27 @@ func RecoveryInterceptor(log *zap.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
+func CorrelationInterceptor() grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		md, _ := metadata.FromIncomingContext(ctx)
+		vals := md.Get("x-correlation-id")
+		id := ""
+		if len(vals) > 0 {
+			id = vals[0]
+		}
+		if id == "" {
+			id = uuid.New().String()
+		}
+		ctx = context.WithValue(ctx, correlationCtxKey{}, id)
+		return handler(ctx, req)
+	}
+}
+
+func CorrelationFromContext(ctx context.Context) string {
+	id, _ := ctx.Value(correlationCtxKey{}).(string)
+	return id
+}
+
 func LoggingInterceptor(log *zap.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		start := time.Now()
@@ -48,6 +71,10 @@ func LoggingInterceptor(log *zap.Logger) grpc.UnaryServerInterceptor {
 		fields := []zapcore.Field{
 			zap.String("method", info.FullMethod),
 			zap.Duration("duration", duration),
+		}
+
+		if cid := CorrelationFromContext(ctx); cid != "" {
+			fields = append(fields, zap.String("correlation_id", cid))
 		}
 
 		if err != nil {
