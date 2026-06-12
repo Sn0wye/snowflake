@@ -267,6 +267,9 @@ func extractCorrelationID(headers amqp091.Table) string {
 	if !ok || s == "" {
 		return uuid.New().String()
 	}
+	if _, err := uuid.Parse(s); err != nil {
+		return uuid.New().String()
+	}
 	return s
 }
 
