@@ -4,6 +4,7 @@ WORKDIR /app
 COPY main .
 COPY migrate .
 COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
 COPY config ./config
 EXPOSE 8080
 EXPOSE 50050
