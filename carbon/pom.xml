@@ -123,6 +123,15 @@
 		<artifactId>logstash-logback-encoder</artifactId>
 		<version>7.4</version>
 	</dependency>
+	<dependency>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-actuator</artifactId>
+	</dependency>
+	<dependency>
+		<groupId>io.micrometer</groupId>
+		<artifactId>micrometer-registry-prometheus</artifactId>
+		<scope>runtime</scope>
+	</dependency>
 </dependencies>
     <dependencyManagement>
         <dependencies>
@@ -146,6 +155,19 @@
         </extensions>
 
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!-- Fork a fresh JVM per test class. logback is a JVM-global
+                         singleton; without isolation a default-profile context
+                         configures the pattern appender and the later
+                         production-profile context (ServiceLogFieldTest) cannot
+                         switch to the JSON appender. -->
+                    <reuseForks>false</reuseForks>
+                    <forkCount>1</forkCount>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
