@@ -22,13 +22,13 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // Actuator endpoints (e.g. /actuator/prometheus) are scraped by Prometheus
+        // Actuator endpoints (/metrics scraped by Prometheus, /health) are reached
         // without a bearer token, so they bypass auth/rate-limit interceptors.
         registry.addInterceptor(correlationIdInterceptor)
-                .excludePathPatterns("/score/health", "/actuator/**");
+                .excludePathPatterns("/score/health", "/metrics", "/health");
         registry.addInterceptor(bearerTokenInterceptor)
-                .excludePathPatterns("/score/health", "/actuator/**");
+                .excludePathPatterns("/score/health", "/metrics", "/health");
         registry.addInterceptor(rateLimitInterceptor)
-                .excludePathPatterns("/score/health", "/actuator/**");
+                .excludePathPatterns("/score/health", "/metrics", "/health");
     }
 }
