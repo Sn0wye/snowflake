@@ -20,7 +20,7 @@ class PrometheusEndpointTest {
 
     @Test
     void exposesPrometheusMetrics() throws Exception {
-        mockMvc.perform(get("/actuator/prometheus"))
+        mockMvc.perform(get("/metrics"))
                 .andExpect(status().isOk())
                 // JVM runtime metric proves micrometer is wired and scraping works.
                 .andExpect(content().string(containsString("jvm_memory_used_bytes")));

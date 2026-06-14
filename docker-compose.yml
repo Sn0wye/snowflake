@@ -107,7 +107,6 @@ services:
     labels:
       - 'prometheus.scrape=true'
       - 'prometheus.port=8081'
-      - 'prometheus.path=/actuator/prometheus'
     environment:
       - SPRING_PROFILES_ACTIVE=production
       - SPRING_DATASOURCE_URL=${CARBON_DATABASE_URL:-}
