@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Oxygen.API.Extensions;
 using Oxygen.API.Filters;
+using Oxygen.API.Logging;
 using Oxygen.API.Middleware;
 using Oxygen.Infrastructure;
 using Oxygen.Infrastructure.Adapters;
@@ -12,19 +13,13 @@ using Oxygen.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Prometheus;
 using Serilog;
-using Serilog.Formatting.Compact;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((ctx, lc) =>
-{
-    lc.Enrich.FromLogContext();
-    if (ctx.HostingEnvironment.IsDevelopment())
-        lc.WriteTo.Console();
-    else
-        lc.WriteTo.Console(new CompactJsonFormatter());
-});
+    SerilogConfig.Configure(lc, ctx.HostingEnvironment.IsDevelopment()));
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -129,6 +124,10 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
+// Prometheus: measure RED metrics for every request. Served on the HTTP port
+// at /metrics (not proxied through nginx).
+app.UseHttpMetrics();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -144,4 +143,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapMetrics();
 app.Run();
+
+// Exposed so integration tests can boot the app via WebApplicationFactory<Program>.
+public partial class Program { }
