@@ -11,6 +11,7 @@ import (
 	"github.com/getsnowflake/snowflake/helium/pkg/config"
 	"github.com/getsnowflake/snowflake/helium/pkg/logger"
 	"github.com/getsnowflake/snowflake/helium/pkg/messaging"
+	"github.com/getsnowflake/snowflake/helium/pkg/metrics"
 	"github.com/getsnowflake/snowflake/helium/pkg/validator"
 	"github.com/getsnowflake/snowflake/helium/src/db"
 	grpcs "github.com/getsnowflake/snowflake/helium/src/grpc"
@@ -92,6 +93,10 @@ func startHTTPServer(conf *viper.Viper, logger *logger.Logger, rmq *messaging.Me
 	// 		Title:    "Swagger API Docs",
 	// 	},
 	// ))
+
+	// Prometheus metrics: instrument all routes and expose at /metrics.
+	// Served on the HTTP port (not proxied through nginx).
+	metrics.Register(app, "helium")
 
 	// CORS middleware
 	app.Use(cors.New(cors.Config{

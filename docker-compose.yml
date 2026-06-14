@@ -67,6 +67,9 @@ services:
       - '8080:8080'
       - '50050:50050'
     restart: on-failure
+    labels:
+      - 'prometheus.scrape=true'
+      - 'prometheus.port=8080'
     environment:
       - DATABASE_URL=${HELIUM_DATABASE_URL:-}
       - RABBITMQ_URL=${HELIUM_RABBITMQ_URL:-}
