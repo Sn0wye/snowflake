@@ -15,6 +15,7 @@ import (
 	jwtpkg "github.com/getsnowflake/snowflake/gold/pkg/jwt"
 	logpkg "github.com/getsnowflake/snowflake/gold/pkg/logger"
 	"github.com/getsnowflake/snowflake/gold/pkg/messaging"
+	"github.com/getsnowflake/snowflake/gold/pkg/metrics"
 	"github.com/getsnowflake/snowflake/gold/pkg/middleware"
 	"github.com/getsnowflake/snowflake/gold/pkg/validator"
 	"github.com/getsnowflake/snowflake/gold/src/db"
@@ -114,6 +115,10 @@ func startHTTPServer(conf *viper.Viper, logger *logpkg.Logger, rmq *messaging.Me
 	// 		Title:    "Swagger API Docs",
 	// 	},
 	// ))
+
+	// Prometheus metrics: instrument all routes and expose at /metrics.
+	// Served on the HTTP port (not proxied through nginx).
+	metrics.Register(app, "gold")
 
 	// CORS middleware
 	app.Use(cors.New(cors.Config{

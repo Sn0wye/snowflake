@@ -1,0 +1,3 @@
+# Prometheus scrape discovery via Docker SD, not static config
+
+Prometheus discovers scrape targets using `docker_sd_configs` with label-based filtering rather than static hostnames. In production (Coolify), container names are auto-generated and change across deploys, making static config unmaintainable. Docker SD reads labels (`prometheus.scrape=true`, `prometheus.port`) directly from running containers, so `prometheus.yml` is identical in local and prod regardless of hostname. The trade-off is that the Prometheus container requires a `/var/run/docker.sock` mount, which is an accepted standard practice for monitoring tools in self-hosted environments.

@@ -85,10 +85,12 @@ func initZap(conf *viper.Viper) *Logger {
 	}
 
 	core := zapcore.NewCore(encoder, syncer, level)
+	// service identifies the origin service on every log line for log aggregation.
+	serviceField := zap.Fields(zap.String("service", "gold"))
 	if conf.GetString("env") != "production" {
-		return &Logger{zap.New(core, zap.Development(), zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))}
+		return &Logger{zap.New(core, serviceField, zap.Development(), zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))}
 	}
-	return &Logger{zap.New(core, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))}
+	return &Logger{zap.New(core, serviceField, zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))}
 }
 
 func timeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
