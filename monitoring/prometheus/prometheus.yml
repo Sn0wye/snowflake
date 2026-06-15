@@ -1,0 +1,35 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Discover scrape targets from running Docker containers by label, not by
+  # static hostname — identical behaviour locally and in production (Coolify),
+  # where container names are auto-generated. See ADR 0001.
+  - job_name: docker-services
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+    relabel_configs:
+      # Only scrape containers that opt in with prometheus.scrape=true.
+      - source_labels: [__meta_docker_container_label_prometheus_scrape]
+        regex: 'true'
+        action: keep
+      # Build the target address from the container IP and the prometheus.port
+      # label rather than the (possibly unexposed) Docker-published port.
+      - source_labels:
+          [__meta_docker_network_ip, __meta_docker_container_label_prometheus_port]
+        separator: ':'
+        target_label: __address__
+      # Optional prometheus.path label overrides the default /metrics path.
+      - source_labels: [__meta_docker_container_label_prometheus_path]
+        regex: (.+)
+        target_label: __metrics_path__
+      # Expose the compose service name as `service` so dashboards can group by
+      # it (helium, gold, carbon, oxygen).
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        target_label: service
+      # Human-friendly container name (strip the leading slash) as `container`.
+      - source_labels: [__meta_docker_container_name]
+        regex: '/(.*)'
+        target_label: container

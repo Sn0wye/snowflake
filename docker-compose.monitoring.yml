@@ -1,0 +1,55 @@
+# Opt-in monitoring stack. Compose with the main file:
+#   docker-compose -f docker-compose.yml -f docker-compose.monitoring.yml up
+# The main docker-compose.yml has no dependency on these containers.
+services:
+  # Metrics collection — discovers targets via the Docker socket by label
+  # (prometheus.scrape=true). See docs/adr/0001-prometheus-docker-sd.md.
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    container_name: snowflake-prometheus
+    # Run as root so the read-only Docker socket mount is readable for SD; the
+    # socket is root-owned both on Docker Desktop and on Linux hosts (Coolify).
+    user: root
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - prometheus-data:/prometheus
+    ports:
+      - '9090:9090'
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
+  # Dashboards — datasource and the Snowflake Overview dashboard are
+  # provisioned from monitoring/grafana, so no manual setup is needed.
+  grafana:
+    image: grafana/grafana:11.5.0
+    container_name: snowflake-grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - '3000:3000'
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
+volumes:
+  prometheus-data:
+  grafana-data:
+
+# Mirrors the definition in docker-compose.yml; merging the two files reuses
+# the same project network so Prometheus/Grafana share it with the services.
+networks:
+  microservices-network:
+    driver: bridge
