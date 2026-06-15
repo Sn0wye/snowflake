@@ -15,6 +15,8 @@ RUN go build -ldflags="-s -w" -o migrate src/cmd/migrate/main.go
 # Runner
 FROM alpine:latest
 
+RUN apk add --no-cache curl
+
 WORKDIR /app
 COPY --from=builder /app/main .
 COPY --from=builder /app/migrate .
@@ -22,5 +24,8 @@ COPY --from=builder /app/config ./config
 
 EXPOSE 8080
 EXPOSE 50050
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8080/auth/health || exit 1
 
 CMD ["./main"]
