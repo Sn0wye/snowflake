@@ -122,11 +122,13 @@ builder.Services.AddScoped<ILoanService, LoanService>();
 
 var app = builder.Build();
 
-app.UseMiddleware<ExceptionHandlingMiddleware>();
-
-// Prometheus: measure RED metrics for every request. Served on the HTTP port
-// at /metrics (not proxied through nginx).
+// Prometheus: measure RED metrics for every request. Placed first so it is the
+// outermost middleware and observes the final status of every response —
+// including responses written by the exception handler below. Served on the
+// HTTP port at /metrics (not proxied through nginx).
 app.UseHttpMetrics();
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
