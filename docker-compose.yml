@@ -75,6 +75,7 @@ services:
       - RABBITMQ_URL=${HELIUM_RABBITMQ_URL:-}
       - JWT_SECRET=${HELIUM_JWT_SECRET:-}
       - JWT_ISSUER=${HELIUM_JWT_ISSUER:-}
+      - REFRESH_TOKEN_SECRET=${HELIUM_REFRESH_TOKEN_SECRET:-}
       - HTTP_PORT=${HELIUM_HTTP_PORT:-8080}
       - GRPC_PORT=${HELIUM_GRPC_PORT:-50050}
       - LOG_LEVEL=${HELIUM_LOG_LEVEL:-info}
@@ -86,12 +87,7 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
-    healthcheck:
-      test: ['CMD', 'wget', '-qO-', 'http://localhost:8080/auth/health']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+    # Healthcheck is baked into the image (see helium/Dockerfile).
     networks:
       - microservices-network
 
