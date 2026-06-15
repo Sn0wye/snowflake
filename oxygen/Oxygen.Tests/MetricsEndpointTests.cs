@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Oxygen.Tests;
 
-public class MetricsEndpointTests : IClassFixture<WebApplicationFactory<Program>>
+public class MetricsEndpointTests : IClassFixture<WebApplicationFactory<Program>>, IDisposable
 {
     private readonly WebApplicationFactory<Program> _factory;
 
@@ -35,4 +35,8 @@ public class MetricsEndpointTests : IClassFixture<WebApplicationFactory<Program>
         // RED: request rate/error-rate counter and latency histogram.
         body.Should().Contain("http_request_duration_seconds");
     }
+
+    // WithWebHostBuilder returns a new factory instance that the IClassFixture
+    // does not own, so dispose it here to tear down its host/TestServer.
+    public void Dispose() => _factory.Dispose();
 }
