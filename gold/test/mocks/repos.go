@@ -222,16 +222,30 @@ func (m *MockTransactionRepo) FindByAccountID(_ *gorm.DB, accountID uuid.UUID, f
 	defer m.mu.RUnlock()
 	var result []models.Transaction
 	for _, t := range m.transactions {
-		if (t.SenderAccountID != nil && *t.SenderAccountID == accountID) ||
-			(t.ReceiverAccountID != nil && *t.ReceiverAccountID == accountID) {
-			if filter.Status != "" && string(t.Status) != filter.Status {
+		isSender := t.SenderAccountID != nil && *t.SenderAccountID == accountID
+		isReceiver := t.ReceiverAccountID != nil && *t.ReceiverAccountID == accountID
+
+		switch filter.Direction {
+		case "debit":
+			if !isSender {
 				continue
 			}
-			if filter.Type != "" && string(t.Type) != filter.Type {
+		case "credit":
+			if !isReceiver {
 				continue
 			}
-			result = append(result, *t)
+		default:
+			if !isSender && !isReceiver {
+				continue
+			}
 		}
+		if filter.StartDate != nil && t.CreatedAt.Before(*filter.StartDate) {
+			continue
+		}
+		if filter.EndDate != nil && !t.CreatedAt.Before(*filter.EndDate) {
+			continue
+		}
+		result = append(result, *t)
 	}
 	sort.Slice(result, func(i, j int) bool {
 		return result[i].CreatedAt.After(result[j].CreatedAt)

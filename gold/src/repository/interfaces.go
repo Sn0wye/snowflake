@@ -9,10 +9,11 @@ import (
 )
 
 type TransactionFilter struct {
-	Status string
-	Type   string
-	Page   int
-	Limit  int
+	Direction string // "credit" (money in), "debit" (money out), or "" (both)
+	StartDate *time.Time
+	EndDate   *time.Time
+	Page      int
+	Limit     int
 }
 
 type AccountRepository interface {

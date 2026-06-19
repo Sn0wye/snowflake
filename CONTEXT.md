@@ -42,6 +42,15 @@ The process of verifying that an Account's cached Balance equals the sum of all 
 ### Discrepancy
 The difference between an Account's cached Balance and its ledger-derived balance. Captured as an amount and a timestamp. Cleared when reconciliation passes again.
 
+### Transaction
+A recorded money movement against Accounts. Today either a **Transfer** (between two Accounts) or a **Deposit** (external funds into one Account). Atomic — a Transaction persists only once completed; there is no stored pending or failed Transaction. Distinct from the **Ledger Entry** it produces.
+
+### Ledger Entry
+The per-Account record of a Transaction's effect on one Account's Balance. A Transfer produces two Ledger Entries — a **debit** on the sender and a **credit** on the receiver; a Deposit produces one credit. Immutable.
+
+### Direction (credit / debit)
+Whether a Transaction moved money into (**credit**) or out of (**debit**) a given Account. **Observer-relative**: the same Transfer is a debit to its sender and a credit to its receiver, so Direction is a property of the (Account, Transaction) pair — never of the Transaction alone. This is why a single credit/debit attribute cannot live on a Transaction.
+
 ---
 
 ## Bounded Context: Scoring (Carbon)

@@ -31,14 +31,22 @@ func (r *transactionRepo) FindByIdempotencyKey(db *gorm.DB, key uuid.UUID) (*mod
 }
 
 func (r *transactionRepo) FindByAccountID(db *gorm.DB, accountID uuid.UUID, filter TransactionFilter) ([]models.Transaction, int64, error) {
-	query := db.Model(&models.Transaction{}).
-		Where("sender_account_id = ? OR receiver_account_id = ?", accountID, accountID)
+	query := db.Model(&models.Transaction{})
 
-	if filter.Status != "" {
-		query = query.Where("status = ?", filter.Status)
+	switch filter.Direction {
+	case "debit":
+		query = query.Where("sender_account_id = ?", accountID)
+	case "credit":
+		query = query.Where("receiver_account_id = ?", accountID)
+	default:
+		query = query.Where("sender_account_id = ? OR receiver_account_id = ?", accountID, accountID)
 	}
-	if filter.Type != "" {
-		query = query.Where("type = ?", filter.Type)
+
+	if filter.StartDate != nil {
+		query = query.Where("created_at >= ?", *filter.StartDate)
+	}
+	if filter.EndDate != nil {
+		query = query.Where("created_at < ?", *filter.EndDate)
 	}
 
 	var total int64
