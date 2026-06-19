@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/getsnowflake/snowflake/gold/pkg/exceptions"
 	"github.com/getsnowflake/snowflake/gold/pkg/jwt"
@@ -20,6 +21,7 @@ import (
 const (
 	defaultTransactionLimit = 20
 	maxTransactionLimit     = 100
+	dateLayout              = "2006-01-02"
 )
 
 type TransactionsController interface {
@@ -46,13 +48,15 @@ func NewTransactionsController(db *gorm.DB, jwt *jwt.JWT, svc service.Transactio
 //	@Tags			Transactions
 //	@Accept			json
 //	@Produce		json
-//	@Param			page	query		int									false	"Page number (default: 1)"
-//	@Param			limit	query		int									false	"Items per page, max 100 (default: 20)"
-//	@Param			status	query		string								false	"Filter by transaction status (pending, completed)"
-//	@Param			type	query		string								false	"Filter by transaction type (transfer, deposit)"
-//	@Success		200		{object}	dto.PaginatedTransactionsResponse	"PaginatedTransactionsResponse"
-//	@Failure		404		{object}	exceptions.NotFoundError			"Account not found"
-//	@Failure		500		{object}	exceptions.InternalServerError		"Failed to fetch transactions"
+//	@Param			page		query		int									false	"Page number (default: 1)"
+//	@Param			limit		query		int									false	"Items per page, max 100 (default: 20)"
+//	@Param			direction	query		string								false	"Filter by direction relative to the account: credit (money in) or debit (money out)"	Enums(credit, debit)
+//	@Param			start_date	query		string								false	"Only transactions on or after this UTC date (YYYY-MM-DD)"
+//	@Param			end_date	query		string								false	"Only transactions on or before this UTC date, inclusive (YYYY-MM-DD)"
+//	@Success		200			{object}	dto.PaginatedTransactionsResponse	"PaginatedTransactionsResponse"
+//	@Failure		400			{object}	exceptions.BadRequestError			"Invalid direction or date filter"
+//	@Failure		404			{object}	exceptions.NotFoundError			"Account not found"
+//	@Failure		500			{object}	exceptions.InternalServerError		"Failed to fetch transactions"
 //	@Security		Bearer
 //	@Router			/account/transactions [get]
 //	@OperationId	getTransactions
@@ -75,11 +79,38 @@ func (s *transactionsController) GetTransactions(ctx *fiber.Ctx) error {
 		}
 	}
 
+	direction := ctx.Query("direction")
+	if direction != "" && direction != "credit" && direction != "debit" {
+		return exceptions.BadRequest(ctx, "direction must be 'credit' or 'debit'")
+	}
+
+	var startDate, endDate *time.Time
+	if s := ctx.Query("start_date"); s != "" {
+		d, err := time.Parse(dateLayout, s)
+		if err != nil {
+			return exceptions.BadRequest(ctx, "start_date must be in YYYY-MM-DD format")
+		}
+		startDate = &d
+	}
+	if e := ctx.Query("end_date"); e != "" {
+		d, err := time.Parse(dateLayout, e)
+		if err != nil {
+			return exceptions.BadRequest(ctx, "end_date must be in YYYY-MM-DD format")
+		}
+		if startDate != nil && startDate.After(d) {
+			return exceptions.BadRequest(ctx, "start_date must not be after end_date")
+		}
+		// Exclusive upper bound: include the whole end_date day.
+		exclusive := d.AddDate(0, 0, 1)
+		endDate = &exclusive
+	}
+
 	filter := repository.TransactionFilter{
-		Status: ctx.Query("status"),
-		Type:   ctx.Query("type"),
-		Page:   page,
-		Limit:  limit,
+		Direction: direction,
+		StartDate: startDate,
+		EndDate:   endDate,
+		Page:      page,
+		Limit:     limit,
 	}
 
 	resp, err := s.service.GetTransactions(s.db, claims.Subject, filter)

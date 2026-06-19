@@ -31,13 +31,13 @@ type Transaction struct {
 	Type              TransactionType   `gorm:"type:varchar(20); not null" json:"type"`
 	Status            TransactionStatus `gorm:"type:varchar(20); not null; index" json:"status"`
 	Amount            int64             `gorm:"type:bigint; not null" json:"amount"` // In cents
-	SenderAccountID   *uuid.UUID        `gorm:"type:uuid; index" json:"sender_account_id,omitempty"`
-	ReceiverAccountID *uuid.UUID        `gorm:"type:uuid; index" json:"receiver_account_id,omitempty"`
+	SenderAccountID   *uuid.UUID        `gorm:"type:uuid; index:idx_transactions_sender_created,priority:1" json:"sender_account_id,omitempty"`
+	ReceiverAccountID *uuid.UUID        `gorm:"type:uuid; index:idx_transactions_receiver_created,priority:1" json:"receiver_account_id,omitempty"`
 	FlakeKeyUsed      string            `gorm:"type:varchar(255)" json:"flake_key_used,omitempty"`
 	Description       string            `gorm:"type:text" json:"description,omitempty"`
 	IdempotencyKey    uuid.UUID         `gorm:"type:uuid; unique; not null" json:"idempotency_key"`
 	Metadata          json.RawMessage   `gorm:"type:jsonb" json:"metadata,omitempty"`
-	CreatedAt         time.Time         `gorm:"autoCreateTime; index" json:"-"`
+	CreatedAt         time.Time         `gorm:"autoCreateTime; index; index:idx_transactions_sender_created,priority:2,sort:desc; index:idx_transactions_receiver_created,priority:2,sort:desc" json:"-"`
 	CompletedAt       *time.Time        `gorm:"type:timestamptz" json:"completed_at,omitempty"`
 	UpdatedAt         time.Time         `gorm:"autoUpdateTime" json:"-"`
 }

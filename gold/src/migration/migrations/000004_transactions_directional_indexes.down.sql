@@ -1,0 +1,5 @@
+CREATE INDEX idx_transactions_sender_account_id ON transactions(sender_account_id);
+CREATE INDEX idx_transactions_receiver_account_id ON transactions(receiver_account_id);
+
+DROP INDEX idx_transactions_sender_created;
+DROP INDEX idx_transactions_receiver_created;

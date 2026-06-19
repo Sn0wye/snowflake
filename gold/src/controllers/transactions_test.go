@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/getsnowflake/snowflake/gold/pkg/jwt"
 	"github.com/getsnowflake/snowflake/gold/pkg/validator"
@@ -86,6 +87,173 @@ func seedAccountDB(t *testing.T, db *gorm.DB, userID uuid.UUID, balance int64) *
 func makeJSON(v interface{}) *strings.Reader {
 	b, _ := json.Marshal(v)
 	return strings.NewReader(string(b))
+}
+
+func seedTxDB(t *testing.T, db *gorm.DB, tx *models.Transaction) *models.Transaction {
+	t.Helper()
+	if tx.IdempotencyKey == uuid.Nil {
+		tx.IdempotencyKey = uuid.New()
+	}
+	if tx.Type == "" {
+		tx.Type = models.TransactionTypeTransfer
+	}
+	if tx.Status == "" {
+		tx.Status = models.TransactionStatusCompleted
+	}
+	require.NoError(t, db.Create(tx).Error)
+	return tx
+}
+
+func getTransactions(t *testing.T, app *fiber.App, userID, query string) dto.PaginatedTransactionsResponse {
+	t.Helper()
+	req := httptest.NewRequest("GET", "/transactions"+query, nil)
+	req.Header.Set("X-User-ID", userID)
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	var page dto.PaginatedTransactionsResponse
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&page))
+	return page
+}
+
+func TestGetTransactions_DirectionDebit_HTTP(t *testing.T) {
+	app, db := setupRealApp(t)
+	account := seedAccountDB(t, db, uuid.New(), 100000)
+	other := uuid.New()
+
+	sent := seedTxDB(t, db, &models.Transaction{
+		Amount:            1000,
+		SenderAccountID:   &account.ID,
+		ReceiverAccountID: &other,
+	})
+	seedTxDB(t, db, &models.Transaction{
+		Type:              models.TransactionTypeDeposit,
+		Amount:            2000,
+		ReceiverAccountID: &account.ID,
+	})
+
+	page := getTransactions(t, app, account.UserID.String(), "?direction=debit")
+	assert.Equal(t, int64(1), page.Total)
+	require.Len(t, page.Transactions, 1)
+	assert.Equal(t, sent.ID, page.Transactions[0].ID)
+}
+
+func TestGetTransactions_DirectionCredit_HTTP(t *testing.T) {
+	app, db := setupRealApp(t)
+	account := seedAccountDB(t, db, uuid.New(), 100000)
+	other := uuid.New()
+
+	seedTxDB(t, db, &models.Transaction{
+		Amount:            1000,
+		SenderAccountID:   &account.ID,
+		ReceiverAccountID: &other,
+	})
+	received := seedTxDB(t, db, &models.Transaction{
+		Type:              models.TransactionTypeDeposit,
+		Amount:            2000,
+		ReceiverAccountID: &account.ID,
+	})
+
+	page := getTransactions(t, app, account.UserID.String(), "?direction=credit")
+	assert.Equal(t, int64(1), page.Total)
+	require.Len(t, page.Transactions, 1)
+	assert.Equal(t, received.ID, page.Transactions[0].ID)
+}
+
+func TestGetTransactions_NoDirection_ReturnsBoth_HTTP(t *testing.T) {
+	app, db := setupRealApp(t)
+	account := seedAccountDB(t, db, uuid.New(), 100000)
+	other := uuid.New()
+
+	seedTxDB(t, db, &models.Transaction{
+		Amount:            1000,
+		SenderAccountID:   &account.ID,
+		ReceiverAccountID: &other,
+	})
+	seedTxDB(t, db, &models.Transaction{
+		Type:              models.TransactionTypeDeposit,
+		Amount:            2000,
+		ReceiverAccountID: &account.ID,
+	})
+
+	page := getTransactions(t, app, account.UserID.String(), "")
+	assert.Equal(t, int64(2), page.Total)
+	assert.Len(t, page.Transactions, 2)
+}
+
+func TestGetTransactions_DateWindow_HTTP(t *testing.T) {
+	app, db := setupRealApp(t)
+	account := seedAccountDB(t, db, uuid.New(), 100000)
+
+	seedTxDB(t, db, &models.Transaction{
+		Type: models.TransactionTypeDeposit, Amount: 1000,
+		ReceiverAccountID: &account.ID,
+		CreatedAt:         time.Date(2026, 1, 1, 12, 0, 0, 0, time.UTC),
+	})
+	mid := seedTxDB(t, db, &models.Transaction{
+		Type: models.TransactionTypeDeposit, Amount: 2000,
+		ReceiverAccountID: &account.ID,
+		CreatedAt:         time.Date(2026, 6, 10, 12, 0, 0, 0, time.UTC),
+	})
+	seedTxDB(t, db, &models.Transaction{
+		Type: models.TransactionTypeDeposit, Amount: 3000,
+		ReceiverAccountID: &account.ID,
+		CreatedAt:         time.Date(2026, 6, 20, 12, 0, 0, 0, time.UTC),
+	})
+
+	page := getTransactions(t, app, account.UserID.String(), "?start_date=2026-06-05&end_date=2026-06-15")
+	assert.Equal(t, int64(1), page.Total)
+	require.Len(t, page.Transactions, 1)
+	assert.Equal(t, mid.ID, page.Transactions[0].ID)
+}
+
+func TestGetTransactions_EndDateInclusive_HTTP(t *testing.T) {
+	app, db := setupRealApp(t)
+	account := seedAccountDB(t, db, uuid.New(), 100000)
+
+	lateDay := seedTxDB(t, db, &models.Transaction{
+		Type: models.TransactionTypeDeposit, Amount: 1000,
+		ReceiverAccountID: &account.ID,
+		CreatedAt:         time.Date(2026, 6, 15, 23, 30, 0, 0, time.UTC),
+	})
+
+	page := getTransactions(t, app, account.UserID.String(), "?end_date=2026-06-15")
+	assert.Equal(t, int64(1), page.Total)
+	require.Len(t, page.Transactions, 1)
+	assert.Equal(t, lateDay.ID, page.Transactions[0].ID)
+}
+
+func TestGetTransactions_InvalidDate_HTTP(t *testing.T) {
+	app, db := setupRealApp(t)
+	account := seedAccountDB(t, db, uuid.New(), 100000)
+
+	req := httptest.NewRequest("GET", "/transactions?start_date=06-2026-15", nil)
+	req.Header.Set("X-User-ID", account.UserID.String())
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestGetTransactions_StartAfterEnd_HTTP(t *testing.T) {
+	app, db := setupRealApp(t)
+	account := seedAccountDB(t, db, uuid.New(), 100000)
+
+	req := httptest.NewRequest("GET", "/transactions?start_date=2026-06-20&end_date=2026-06-10", nil)
+	req.Header.Set("X-User-ID", account.UserID.String())
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+}
+
+func TestGetTransactions_InvalidDirection_HTTP(t *testing.T) {
+	app, db := setupRealApp(t)
+	account := seedAccountDB(t, db, uuid.New(), 100000)
+
+	req := httptest.NewRequest("GET", "/transactions?direction=sideways", nil)
+	req.Header.Set("X-User-ID", account.UserID.String())
+	resp, err := app.Test(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
 
 func TestCreateTransaction_Success_HTTP(t *testing.T) {
