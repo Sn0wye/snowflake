@@ -1,13 +1,22 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Oxygen.DTO.Response;
 using Oxygen.Infrastructure;
+using Swashbuckle.AspNetCore.Annotations;
 
 namespace Oxygen.API.Controllers;
 
 [ApiController]
 [Route("loan")]
+[Tags("Health")]
 public class HealthController(ApplicationDbContext dbContext) : ControllerBase
 {
+    [SwaggerOperation(
+        Summary    = "Health check",
+        Description = "Liveness/readiness check (database)"
+    )]
+    [SwaggerResponse(200, "Service healthy", typeof(HealthResponse))]
+    [SwaggerResponse(503, "Service unhealthy", typeof(HealthResponse))]
     [HttpGet("health")]
     public async Task<IActionResult> Health()
     {

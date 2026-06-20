@@ -68,11 +68,11 @@ func (s *authController) Profile(c *fiber.Ctx) error {
 //	@Tags			Auth
 //	@Accept			json
 //	@Produce		json
-//	@Param			body	body		dto.RegisterRequest					true	"Register Request"
-//	@Success		200		{object}	dto.RegisterResponse				"RegisterResponse"
-//	@Failure		400		{object}	exceptions.BadRequestError			"Invalid request body"
-//	@Failure		409		{object}	exceptions.ConflictError	"Email already taken"
-//	@Failure		500		{object}	exceptions.InternalServerError		"Failed to hash password or generate token"
+//	@Param			body	body		dto.RegisterRequest				true	"Register Request"
+//	@Success		200		{object}	dto.RegisterResponse			"RegisterResponse"
+//	@Failure		400		{object}	exceptions.BadRequestError		"Invalid request body"
+//	@Failure		409		{object}	exceptions.ConflictError		"Email already taken"
+//	@Failure		500		{object}	exceptions.InternalServerError	"Failed to hash password or generate token"
 //	@Router			/auth/register [post]
 //	@OperationId	register
 func (s *authController) Register(c *fiber.Ctx) error {

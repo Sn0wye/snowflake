@@ -5,6 +5,19 @@ import (
 	"net/http"
 )
 
+// HealthComponents reports the status of each dependency. Each field is "ok"
+// when healthy, otherwise the underlying error message.
+type HealthComponents struct {
+	Database string `json:"database" example:"ok"`
+	RabbitMQ string `json:"rabbitmq" example:"ok"`
+}
+
+// HealthResponse is the JSON body returned by the health endpoint.
+type HealthResponse struct {
+	Status     string           `json:"status" example:"healthy"`
+	Components HealthComponents `json:"components"`
+}
+
 type Checker interface {
 	Check(ctx context.Context) error
 }

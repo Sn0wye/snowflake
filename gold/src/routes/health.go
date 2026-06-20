@@ -18,7 +18,21 @@ func BindHealthRoutes(app *fiber.App, db *gorm.DB, rmq *messaging.MessagingServi
 	}))
 
 	router := app.Group("/account")
-	router.Get("/health", func(c *fiber.Ctx) error {
+	router.Get("/health", healthHandler(hs))
+}
+
+// healthHandler godoc
+//
+//	@Summary		/account/health
+//	@Description	Service health check (database + RabbitMQ)
+//	@Tags			Health
+//	@Produce		json
+//	@Success		200	{object}	health.HealthResponse	"Service healthy"
+//	@Failure		503	{object}	health.HealthResponse	"Service unhealthy"
+//	@Router			/account/health [get]
+//	@OperationId	health
+func healthHandler(hs *health.Service) fiber.Handler {
+	return func(c *fiber.Ctx) error {
 		status, components := hs.Check(context.Background())
 		statusText := "healthy"
 		if status == http.StatusServiceUnavailable {
@@ -28,5 +42,5 @@ func BindHealthRoutes(app *fiber.App, db *gorm.DB, rmq *messaging.MessagingServi
 			"status":     statusText,
 			"components": components,
 		})
-	})
+	}
 }

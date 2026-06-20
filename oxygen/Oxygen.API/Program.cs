@@ -72,6 +72,7 @@ builder.Services.AddSwaggerGen(options =>
     });
     
     options.IncludeXmlComments(Assembly.GetExecutingAssembly());
+    options.IncludeXmlComments(typeof(Oxygen.DTO.Response.HealthResponse).Assembly);
 });
 builder.Services.AddSingleton<RateLimitFilter>();
 builder.Services.AddControllers(options =>
